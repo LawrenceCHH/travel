@@ -1,154 +1,103 @@
-# [Start Bootstrap - Clean Blog Jekyll](https://startbootstrap.com/themes/clean-blog-jekyll/) - Official Jekyll Version
+# Travel Blog (Jekyll)
 
-[Clean Blog Jekyll](https://startbootstrap.com/themes/clean-blog-jekyll/) is a stylish, responsive blog theme for [Bootstrap](https://getbootstrap.com/) created by [Start Bootstrap](https://startbootstrap.com/). This theme features a blog homepage, about page, contact page, and an example post page along with a working contact form powered by [Formspree](https://formspree.io/).
+A Jekyll blog, originally based on [Start Bootstrap's Clean Blog](https://startbootstrap.com/themes/clean-blog-jekyll/) theme, rebuilt on Tailwind CSS with PWA offline support and GitHub Actions deployment.
 
-This repository holds the official Jekyll version of the Clean Blog theme on Start Bootstrap!
+## Tech Stack
 
-## Preview
+- **Jekyll** — Core Files install (layouts/includes/posts live directly in this repo, not pulled in from a gem theme).
+- **Tailwind CSS v4** (`@tailwindcss/cli`) — utility-first styles, built via `npm run build:css`.
+- **Vanilla JS** — no framework; `assets/scripts.js` only handles the mobile nav toggle.
+- **Inline SVG** — icons are hand-written SVG, no icon font.
+- **Self-hosted fonts** — Lora + Open Sans (400/700) as local `woff2` files.
+- **PWA** — `manifest.json` + `sw.js` for installability and offline reading.
 
-[![Clean Blog (Jekyll) Preview](https://startbootstrap.com/assets/img/screenshots/themes/clean-blog-jekyll.png)](http://StartBootstrap.github.io/startbootstrap-clean-blog-jekyll/)
+**Removed** in the last rewrite: Bootstrap 4, jQuery, Font Awesome, Google Fonts CDN.
 
-**[View Live Preview](http://StartBootstrap.github.io/startbootstrap-clean-blog-jekyll/)**
+## Prerequisites
 
-## Installation & Setup
+- Ruby 3.2+ with Bundler (builds the site)
+- Node 20+ (builds the CSS)
 
-### Using RubyGems
+Both toolchains are required — Jekyll doesn't know how to run Tailwind, and Tailwind doesn't know how to render Liquid.
 
-When installing the theme using RubyGems, demo images, posts, and pages are not included. Follow the instructions below for complete setup.
+## Local Development
 
-1. (Optional) Create a new Jekyll site: `jekyll new my-site`
-2. Replace the current theme in your `Gemfile` with `gem "jekyll-theme-clean-blog"`.
-3. Install the theme (run the command inside your site directory): `bundle install`
-4. Replace the current theme in your `_config.yml` file with `theme: jekyll-theme-clean-blog`.
-5. Build your site: `bundle exec jekyll serve`
+```bash
+bundle install
+npm install
+npm run build:css       # assets/tailwind.css -> assets/main.css (gitignored, ~14KB minified)
+bundle exec jekyll serve
+```
 
-Assuming there are no errors and the site is building properly, follow these steps next:
+`assets/main.css` is a build artifact and is not committed — you must run `build:css` at least once after cloning, and again any time you edit `assets/tailwind.css`.
 
-1. Create the following pages if they do not exist already (or change the extension of existing markdown files from `.md` to `.html`):
+To rebuild CSS automatically while editing styles, run a watcher in a second terminal:
 
-   * `index.html` - set to `layout: home`
-   * `about.html` - set to `layout: page`
-   * `contact.html` - set to `layout: page`
-   * `posts/index.html` - set to `layout: page` (you will also need to create a `posts` directory)
+```bash
+npx tailwindcss -i ./assets/tailwind.css -o ./assets/main.css --watch
+```
 
-2. Configure the `index.html` front matter. Example:
+`bin/cibuild` runs the full build (`npm run build:css` + `bundle exec jekyll build`) in one command — the same steps CI runs.
 
-    ```markdown
-    ---
-    layout: home
-    background: '/PATH_TO_IMAGE'
-    ---
-    ```
+## Configuration
 
-3. Configure the `about.html`, `contact.html`, and `posts/index.html` front matter. Example:
+Edit `_config.yml`:
 
-    ```markdown
-    ---
-    layout: page
-    title: Page Title
-    description: This is the page description.
-    background: '/PATH_TO_IMAGE'
-    ---
-    ```
+- `title`, `email`, `description`, `author`, `*_username` — still placeholder values from the original theme; replace with real values.
+- `baseurl` / `url` — currently set for `https://lawrencechh.github.io/travel`.
+- `google_analytics` — leave blank to disable (no external request is made); set a GA4 ID to enable tracking via `_includes/google-analytics.html`.
 
-4. For each post in the `_posts` directory, update the front matter. Example:
+## Contact Form (Formspree)
 
-    ```markdown
-    ---
-    layout: post
-    title: "Post Title"
-    subtitle: "This is the post subtitle."
-    date: YYYY-MM-DD HH:MM:SS
-    background: '/PATH_TO_IMAGE'
-    ---
-    ```
+The contact page submits via `fetch()` to Formspree (`_includes/scripts.html`). You must replace the placeholder endpoint:
 
-    For reference, look at the [demo repository](https://github.com/StartBootstrap/startbootstrap-clean-blog-jekyll) to see how the files are set up.
+```js
+var FORMSPREE_ENDPOINT = 'https://formspree.io/f/YOUR_FORM_ID';
+```
 
-5. Add the form to the `contact.html` page. Add the following code to your `contact.html` page:
+with a real form ID from [formspree.io/forms](https://formspree.io/forms). The older `//formspree.io/{email}` endpoint format has been retired by Formspree and will not deliver mail.
 
-    ```html
-    <form name="sentMessage" id="contactForm" novalidate>
-      <div class="control-group">
-        <div class="form-group floating-label-form-group controls">
-          <label>Name</label>
-          <input type="text" class="form-control" placeholder="Name" id="name" required data-validation-required-message="Please enter your name.">
-          <p class="help-block text-danger"></p>
-        </div>
-      </div>
-      <div class="control-group">
-        <div class="form-group floating-label-form-group controls">
-          <label>Email Address</label>
-          <input type="email" class="form-control" placeholder="Email Address" id="email" required data-validation-required-message="Please enter your email address.">
-          <p class="help-block text-danger"></p>
-        </div>
-      </div>
-      <div class="control-group">
-        <div class="form-group col-xs-12 floating-label-form-group controls">
-          <label>Phone Number</label>
-          <input type="tel" class="form-control" placeholder="Phone Number" id="phone" required data-validation-required-message="Please enter your phone number.">
-          <p class="help-block text-danger"></p>
-        </div>
-      </div>
-      <div class="control-group">
-        <div class="form-group floating-label-form-group controls">
-          <label>Message</label>
-          <textarea rows="5" class="form-control" placeholder="Message" id="message" required data-validation-required-message="Please enter a message."></textarea>
-          <p class="help-block text-danger"></p>
-        </div>
-      </div>
-      <br>
-      <div id="success"></div>
-      <div class="form-group">
-        <button type="submit" class="btn btn-primary" id="sendMessageButton">Send</button>
-      </div>
-    </form>
-    ```
+## PWA / Offline Support
 
-    Make sure you have the `email` setting in your `_config.yml` file set to a working email address! Once this is set, fill out the form and then check your email, verify the email address using the link sent to you by Formspree, and then the form will be working!
+`manifest.json` and `sw.js` make the site installable and readable offline:
 
-6. Build your site: `bundle exec jekyll serve`
+- Static assets (`/assets/`, `/img/`, `/fonts/`) are served cache-first.
+- Pages are served network-first, falling back to cache when offline — so pages a visitor has already opened stay readable without a connection.
 
-### Using Core Files
+If you change the precache list or want to force visitors' caches to refresh, bump `CACHE_NAME` in `sw.js` (currently `clean-blog-v1`).
 
-When using the core files, the demo images, posts, and pages are all included with the download. After following the instructions below, you can then go and change the content of the pages and posts.
+The app icons in `img/icons/` are a placeholder mark — swap them for real brand icons before shipping.
 
-1. [Download](https://github.com/StartBootstrap/startbootstrap-clean-blog-jekyll/archive/master.zip) or Clone the repository.
-2. Update the following configuration settings in your `_config.yml` file:
+## Deployment (GitHub Actions)
 
-    * `baseurl`
-    * `url`
-    * `title`
-    * `email` (after setting this setting to a working email address, fill out the form on the contact page and send it - then check your email and verify the address and the form will send you messages when used)
-    * `description`
-    * `author`
-    * `twitter_username` (Optional)
-    * `facebook_username` (Optional)
-    * `github_username` (Optional)
-    * `linkedin_username` (Optional)
-    * `instagram_username` (Optional)
+Pushing to `master` triggers `.github/workflows/pages.yml`:
 
-3. Build your site: `bundle exec jekyll serve`
+1. **build job** — `npm ci` + `npm run build:css`, then `bundle exec jekyll build` (`JEKYLL_ENV=production`), artifact uploaded via `actions/upload-pages-artifact`.
+2. **deploy job** — `actions/deploy-pages` publishes the artifact.
 
-## Bugs and Issues
+> **One-time manual step required:** GitHub → repo Settings → Pages → Source must be set to **GitHub Actions** (this can't be set from a file in the repo). This replaces the old "Deploy from a branch" mode. You can also set it via:
+> ```bash
+> gh api -X POST repos/LawrenceCHH/travel/pages -f build_type=workflow
+> ```
 
-Have a bug or an issue with this template? [Open a new issue](https://github.com/StartBootstrap/startbootstrap-clean-blog-jekyll/issues) here on GitHub!
+## Project Structure
 
-## About
+```
+_layouts/, _includes/    Jekyll templates
+_posts/, posts/          blog content
+assets/tailwind.css      Tailwind source (edit this, not main.css)
+assets/main.css          build output (gitignored)
+manifest.json, sw.js     PWA support
+.github/workflows/       CI build + deploy
+```
 
-Start Bootstrap is an open source library of free Bootstrap templates and themes. All of the free templates and themes on Start Bootstrap are released under the MIT license, which means you can use them for any purpose, even for commercial projects.
+See [`doc/project.md`](doc/project.md) for the full file map and design decisions.
 
-* <https://startbootstrap.com>
-* <https://twitter.com/SBootstrap>
+## Development Docs
 
-Start Bootstrap was created by and is maintained by **[David Miller](http://davidmiller.io/)**.
+- [`doc/project.md`](doc/project.md) — architecture snapshot for contributors/agents picking up this repo.
+- [`doc/update.md`](doc/update.md) — current task checklist, changelog, and verification commands.
 
-* <http://davidmiller.io>
-* <https://twitter.com/davidmillerhere>
-* <https://github.com/davidtmiller>
+## Credits & License
 
-Start Bootstrap is based on the [Bootstrap](https://getbootstrap.com/) framework created by [Mark Otto](https://twitter.com/mdo) and [Jacob Thorton](https://twitter.com/fat).
-
-## Copyright and License
-
-Copyright 2013-2021 Start Bootstrap LLC. Code released under the [MIT](https://github.com/StartBootstrap/startbootstrap-clean-blog-jekyll/blob/master/LICENSE) license.
+Built on top of [Clean Blog Jekyll](https://startbootstrap.com/themes/clean-blog-jekyll/) by [Start Bootstrap](https://startbootstrap.com/) / [David Miller](http://davidmiller.io/), based on [Bootstrap](https://getbootstrap.com/). Code released under the [MIT](LICENSE) license (Copyright 2013-2021 Start Bootstrap LLC).

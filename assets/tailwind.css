@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Lora";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/lora-regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Lora";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/lora-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Open Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/open-sans-regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Open Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/open-sans-700.woff2") format("woff2");
+}
+
+@theme {
+  --font-serif: "Lora", ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: "Open Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --color-primary: #0085a1;
+  --color-primary-dark: #006d85;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    line-height: 1.5;
+    color: #212529;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    font-weight: 800;
+  }
+
+  p {
+    margin: 30px 0;
+  }
+
+  p a {
+    text-decoration: underline;
+  }
+
+  a {
+    color: #212529;
+  }
+
+  a:hover, a:focus {
+    color: var(--color-primary);
+  }
+
+  blockquote {
+    font-style: italic;
+    color: #6c757d;
+  }
+
+  ::selection {
+    color: #fff;
+    background: var(--color-primary);
+  }
+}
+
+@layer components {
+  /* Buttons */
+  .btn-primary {
+    @apply inline-block rounded-none px-6 py-4 font-sans text-sm font-extrabold uppercase tracking-wider text-white;
+    background-color: var(--color-primary);
+  }
+  .btn-primary:hover,
+  .btn-primary:focus {
+    background-color: var(--color-primary-dark);
+  }
+
+  /* Hero / masthead used on home, page and post layouts */
+  .masthead {
+    @apply relative mb-12 bg-gray-600 bg-cover bg-center;
+  }
+  .masthead .overlay {
+    @apply absolute inset-0 bg-gray-900 opacity-50;
+  }
+  .page-heading,
+  .post-heading,
+  .site-heading {
+    @apply relative z-10 py-24 text-white md:py-32;
+  }
+  .page-heading,
+  .site-heading {
+    @apply text-center;
+  }
+  .page-heading h1,
+  .site-heading h1 {
+    @apply mt-0 font-sans text-4xl font-extrabold md:text-6xl;
+  }
+  .post-heading h1 {
+    @apply mt-0 font-sans text-3xl font-extrabold md:text-5xl;
+  }
+  .subheading {
+    @apply mt-2 block font-sans text-xl font-light leading-tight;
+  }
+  .post-heading .subheading {
+    @apply mb-6 mt-2 font-semibold;
+  }
+  .post-heading .meta {
+    @apply block font-serif text-lg font-light italic leading-tight;
+  }
+  .post-heading .meta a {
+    @apply text-white underline;
+  }
+
+  /* Section heading used inside post/page body content */
+  .section-heading {
+    @apply mt-12 font-sans text-3xl font-bold;
+  }
+
+  /* Post list preview (home page) */
+  .post-preview > a {
+    @apply text-gray-900 no-underline;
+  }
+  .post-preview > a:hover,
+  .post-preview > a:focus {
+    @apply text-primary;
+  }
+  .post-preview .post-title {
+    @apply mb-2 mt-6 font-sans text-2xl font-extrabold md:text-3xl;
+  }
+  .post-preview .post-subtitle {
+    @apply mb-2 font-light;
+  }
+  .post-preview .post-meta {
+    @apply mt-0 font-serif text-lg italic text-gray-600;
+  }
+  .post-preview .post-meta a {
+    @apply text-gray-900 no-underline;
+  }
+  .post-preview .post-meta a:hover,
+  .post-preview .post-meta a:focus {
+    @apply text-primary underline;
+  }
+
+  .reading-time {
+    @apply text-gray-600;
+  }
+}

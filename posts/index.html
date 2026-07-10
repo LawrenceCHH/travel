@@ -32,15 +32,17 @@ background: '/img/bg-post.jpg'
 <!-- Pager -->
 {% if paginator.total_pages > 1 %}
 
-<div class="clearfix">
+<div class="flex justify-between">
 
   {% if paginator.previous_page %}
-  <a class="btn btn-primary float-left" href="{{ paginator.previous_page_path | prepend: site.baseurl | replace: '//', '/' }}">&larr;
-    Newer<span class="d-none d-md-inline"> Posts</span></a>
+  <a class="btn-primary" href="{{ paginator.previous_page_path | prepend: site.baseurl | replace: '//', '/' }}">&larr;
+    Newer<span class="hidden md:inline"> Posts</span></a>
+  {% else %}
+  <span></span>
   {% endif %}
 
   {% if paginator.next_page %}
-  <a class="btn btn-primary float-right" href="{{ paginator.next_page_path | prepend: site.baseurl | replace: '//', '/' }}">Older<span class="d-none d-md-inline"> Posts</span> &rarr;</a>
+  <a class="btn-primary" href="{{ paginator.next_page_path | prepend: site.baseurl | replace: '//', '/' }}">Older<span class="hidden md:inline"> Posts</span> &rarr;</a>
   {% endif %}
 
 </div>
