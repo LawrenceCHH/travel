@@ -16,6 +16,46 @@ Install/build/deploy commands → [`../README.md`](../README.md). Open tasks, ch
 
 ## How to Use This Repo
 
+**安裝 Ruby**(Jekyll 本體是用 Ruby 寫的,npm/Tailwind 只負責 CSS,兩者缺一不可,詳見上面 Tech
+Stack 段落)。以下針對 **Ubuntu/WSL(apt)** 環境,整段可直接複製貼上到終端機執行:
+
+```bash
+# 更新 apt 套件清單
+sudo apt-get update
+
+# 安裝 Ruby 本體、編譯工具,以及 bundle install 需要用到的開發函式庫
+# (build-essential 用來編譯原生擴充套件;libssl-dev/libreadline-dev/libyaml-dev 缺了會導致
+#  Ruby 編譯出來的版本無法處理 HTTPS/YAML,進而讓 bundle install 連不上 rubygems.org 或直接失敗)
+sudo apt-get install -y ruby-full build-essential libssl-dev libreadline-dev libyaml-dev
+
+# 安裝 Bundler(管理 Gemfile 依賴用的工具)
+# gem install bundler
+sudo gem install bundler -v 2.4.22
+
+# 驗證安裝成功,兩行都應該印出版本號(CI 的 .github/workflows/pages.yml 釘的是 Ruby 3.2)
+ruby -v
+bundle -v
+
+# 進入專案目錄,依 Gemfile 安裝 Jekyll 等套件
+cd ~/j/travel
+# 讓 gem 都裝在專案本地資料夾,不动系統目錄,避免權限問題
+bundle config set --local path 'vendor/bundle'
+bundle install
+
+# 啟動本地開發伺服器
+# 記得帶 --baseurl /travel,不然本機預覽的路徑會跟 _config.yml 裡設定的、
+# GitHub Pages 實際使用的 /travel baseurl 對不上,連結會壞掉
+bundle exec jekyll serve --baseurl /travel
+```
+
+**什麼時候要重跑指令、什麼時候伺服器會自動更新**:
+
+- `bundle exec jekyll serve` 執行時會顯示 `Auto-regeneration: enabled`——**只要這個伺服器本身還在背景跑著**,不管你是新增一篇文章、改一篇文章內容,還是改 layout/`_includes`,存檔後它都會自動偵測、自動重新 build,你不用重跑任何指令,重整瀏覽器就看得到最新結果。
+- 但如果你**關掉終端機或伺服器沒在跑**(例如換一台機器、重開機後第一次執行),不管你改的是什麼,都要重新跑 `bundle exec jekyll serve`(或 `bundle exec jekyll build`)才看得到任何畫面——這點跟你改的內容種類無關。
+- `npm run build:css` 是唯一的例外:它**不會**被 `jekyll serve` 的 auto-regeneration 觸發,是獨立的建置步驟。只有在你改了 `assets/tailwind.css`(設計 token、新增 `@layer components`),或是在任何 HTML/文章裡用到「之前整個專案都沒出現過的新 Tailwind class」時,才需要重跑。**單純新增一篇文章、寫一般文字內容,幾乎不會用到新 class,所以通常不用重跑 `build:css`。**
+
+簡單结論:改 `_posts/` 新增文章 → 伺服器開著就自動生效,不用碰任何建置指令;改 CSS/JS/layout → 視情況可能要重跑 `npm run build:css`,但 `jekyll serve` 本身一樣不用重開。
+
 **Rebuild CSS after any class/style change** — Jekyll does not process Tailwind; you must:
 
 ```bash

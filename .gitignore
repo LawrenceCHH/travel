@@ -5,3 +5,5 @@ Gemfile.lock
 *.gem
 assets/main.css
 assets/app.css
+.bundle
+vendor
