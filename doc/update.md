@@ -17,6 +17,16 @@ Cleanup remaining from the Bootstrap → Tailwind + PWA + GitHub Actions rewrite
 
 ## Update History
 
+### 2026-07-10 — Documented GitHub Pages workflow, built and pushed rewrite (e5be734)
+
+- Added a "GitHub Pages Deployment" section to `doc/project.md` with the full `pages.yml`
+  workflow content, the reasoning behind its shape (Node-before-Ruby ordering, required
+  `pages`/`id-token` permissions, `concurrency` group, two-job build/deploy split), and the
+  one-time manual setup steps (switching Pages Settings → Source to "GitHub Actions", with
+  both the UI path and the `gh api` one-liner).
+- Ran `npm run build:css`, committed the full Bootstrap→Tailwind+PWA+Actions rewrite (136
+  files changed) and pushed to `origin/master` (`1f8996f..e5be734`).
+
 ### 2026-07-10 — Bootstrap 4 → Tailwind CSS + PWA + GitHub Actions rewrite
 
 - Removed Bootstrap 4, jQuery, Font Awesome, and Google Fonts CDN entirely; deleted `assets/vendor/bootstrap/`, `assets/vendor/startbootstrap-clean-blog/{scss,js}`, `_sass/styles.scss`, `assets/main.scss`.
