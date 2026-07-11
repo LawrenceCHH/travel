@@ -24,35 +24,40 @@ layout: default
     {{ content }}
 
     <!-- Home Post List -->
-    {% for post in site.posts limit : 5 %}
-
-    <article class="post-preview">
-      <a href="{{ post.url | prepend: site.baseurl | replace: '//', '/' }}">
-        <h2 class="post-title">{{ post.title }}</h2>
-        {% if post.subtitle %}
-        <h3 class="post-subtitle">{{ post.subtitle }}</h3>
-        {% else %}
-        <h3 class="post-subtitle">{{ post.excerpt | strip_html | truncatewords: 15 }}</h3>
-        {% endif %}
-      </a>
-      <p class="post-meta">Posted by
-        {% if post.author %}
-        {{ post.author }}
-        {% else %}
-        {{ site.author }}
-        {% endif %}
-        on
-        {{ post.date | date: '%B %d, %Y' }} &middot; {% include read_time.html content=post.content %}
-      </p>
-    </article>
-
-    <hr>
-
-    {% endfor %}
-
-    <!-- Pager -->
-    <div class="flex justify-end">
-      <a class="btn-primary" href="{{"/posts" | relative_url }}">View All Posts &rarr;</a>
+    <div id="posts-container" class="space-y-4">
+      {% for post in site.posts %}
+      <article class="post-preview post-card border-b border-gray-100 pb-6 mb-6">
+        <a href="{{ post.url | prepend: site.baseurl | replace: '//', '/' }}">
+          <h2 class="post-title">{{ post.title }}</h2>
+          {% if post.subtitle %}
+          <h3 class="post-subtitle">{{ post.subtitle }}</h3>
+          {% else %}
+          <h3 class="post-subtitle">{{ post.excerpt | strip_html | truncate: 80 }}</h3>
+          {% endif %}
+        </a>
+        <p class="post-meta">
+          {{ post.date | date: '%Y年%m月%d日' }}
+          &middot; {% include read_time.html content=post.content %}
+        </p>
+      </article>
+      {% endfor %}
     </div>
+
+    <!-- Pagination Container -->
+    <div id="pagination-container" class="mt-8 mb-12"></div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        if (typeof window.initPagination === 'function') {
+          window.initPagination({
+            containerId: 'posts-container',
+            paginationId: 'pagination-container',
+            pageSize: 5,
+            itemSelector: '.post-card',
+            forceShow: true
+          });
+        }
+      });
+    </script>
 
   </div>

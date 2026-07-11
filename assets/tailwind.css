@@ -30,27 +30,27 @@
 }
 
 @theme {
-  --font-serif: "Lora", ui-serif, Georgia, "Times New Roman", serif;
-  --font-sans: "Open Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: "Lora", "Noto Serif TC", "Songti TC", ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: "Open Sans", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   --color-primary: #0085a1;
   --color-primary-dark: #006d85;
 }
 
 @layer base {
   body {
-    font-family: var(--font-serif);
-    font-size: 20px;
-    line-height: 1.5;
+    font-family: var(--font-sans); /* Use sans-serif for clean, modern Chinese layout */
+    font-size: 18px; /* Slightly smaller size for better CJK character density */
+    line-height: 1.7; /* Comfortable line-height for Chinese text block reading */
     color: #212529;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sans);
-    font-weight: 800;
+    font-weight: 700; /* 700 weight looks sharper and less blurry than 800 for CJK characters */
   }
 
   p {
-    margin: 30px 0;
+    margin: 24px 0; /* Adjusted spacing for CJK paragraphs */
   }
 
   p a {

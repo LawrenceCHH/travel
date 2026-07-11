@@ -9,13 +9,36 @@
 
 - [ ] 將 GitHub Pages 設定 (Settings) → 來源 (Source) 切換至 "GitHub Actions"（可透過設定 UI，或執行 `gh api -X POST repos/LawrenceCHH/travel/pages -f build_type=workflow`）
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `_includes/scripts.html` 中的 `YOUR_FORM_ID`
-- [ ] 在已安裝 Ruby 的環境中完整運行 `bundle exec jekyll serve`，並確認頁面/PWA/聯絡表單均正常運作（參見下方的驗證 — 此項目目前尚未實際運行過）
+- [x] 在已安裝 Ruby 的環境中完整運行 `bundle exec jekyll serve`（或 `jekyll build`），並確認頁面/PWA/聯絡表單均正常運作（已成功執行 Jekyll 建置與 CSS 編譯）
 - [ ] 將 `_config.yml` 中的預留占位值（`title`、`email`、`description`、`author`、`*_username`）替換為真實數值
 - [ ] 將 `img/icons/` 中的預留 PWA 圖示替換為真實的品牌圖示
 - [ ] 刪除遺留檔案：`assets/app.css`（多餘的建置產物）、`jekyll-theme-clean-blog.gemspec` 與 `screenshot.png`（核心檔案安裝模式中不再使用的 gem 主題模式遺留物）
 - [ ] 更新 `package.json` 中的元數據（`name`、`description`、`author`、`repository`、`bugs`） — 目前仍為原主題的數值
 
 ## 更新歷史
+
+### 2026-07-11 — 介面中文化、中文字型比例最佳化、導覽列簡化與雙頁面 JS 前端分頁實作
+
+- **中文化與字型比例最佳化 (任務 1)**：
+  - 更新 `_layouts/default.html` 加上 `<html lang="zh-Hant-TW">`，避免瀏覽器誤判網頁語系。
+  - 將閱讀時間 (`_includes/read_time.html`) 修改為以中文字元數為基準（`char_count / 300`）的計算方式並翻譯為中文。
+  - 將聯絡表單 (`contact.html`) 欄位、提示、與 `_includes/scripts.html` 裡的 Formspree 狀態訊息全部中文化。
+  - 調整 `assets/tailwind.css` 中的 font-family，導入 `'PingFang TC'`, `'Microsoft JhengHei'`, `'Noto Sans TC'` 等中文字型，並將預設內文改為無襯線體，行高調至 `1.7`，字級調為 `18px`，標題粗細調為 `700`，符合中文閱讀視覺比例。
+- **導覽列簡化 (任務 2)**：
+  - 修改 `_includes/navbar.html`，移除非選單連結（About），僅保留並翻譯為「主頁」、「文章目錄」、「建議」。
+- **首頁前端分頁 (任務 3)**：
+  - 在 `assets/scripts.js` 中開發了通用前端分頁 `initPagination` 函式。具備以下特色：
+    - **全功能分頁按鈕**：包含第一頁 `<<`、上一頁 `<`、頁碼、省略號 `...`、下一頁 `>`、最後一頁 `>>`。
+    - **轉場效果**：切換頁面時使用 200ms 的淡入淡出（opacity transition）來提供流暢的 Loading Pattern。
+    - **捲動重置 (Scroll Reset)**：切換頁面後自動以平滑滾動（smooth scroll）置頂到列表上方。
+    - **URL 同步**：利用 `history.pushState` 與 `URLSearchParams` 同步網頁網址（如 `?page=3`），支援上一頁/下一頁瀏覽器導航（`popstate`）與書籤功能。
+  - 修改 `_layouts/home.html` 輸出全部文章，並呼叫 `initPagination` 以每頁 5 筆文章進行前端分頁。
+- **文章目錄表格與分頁 (任務 4)**：
+  - 重構 `posts/index.html`，改用只有橫線的簡潔 HTML 表格（table），包含日期與文章標題欄位。
+  - 套用與首頁相同的 `initPagination` 分頁控制，設定為每頁 100 筆。
+- **建置管線優化**：
+  - 移除了 `_config.yml` 裡不再使用的 `jekyll-paginate` 套件與其 paginate 設定，防止 Jekyll 生成多餘的重複頁面。
+  - 本地端成功執行 `npm run build:css` 與 `bundle exec jekyll build` 驗證。
 
 ### 2026-07-10 — 記錄 GitHub Pages 工作流，建置並推送重構版本 (e5be734)
 

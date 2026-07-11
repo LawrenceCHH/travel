@@ -1,50 +1,37 @@
 ---
 layout: page
-title: Posts
+title: 文章目錄
 background: '/img/bg-post.jpg'
 ---
 
-{% for post in paginator.posts %}
-
-<article class="post-preview">
-  <a href="{{ post.url | prepend: site.baseurl | replace: '//', '/' }}">
-    <h2 class="post-title">{{ post.title }}</h2>
-    {% if post.subtitle %}
-    <h3 class="post-subtitle">{{ post.subtitle }}</h3>
-    {% else %}
-    <h3 class="post-subtitle">{{ post.excerpt | strip_html | truncatewords: 15 }}</h3>
-    {% endif %}
-  </a>
-  <p class="post-meta">Posted by
-    {% if post.author %}
-    {{ post.author }}
-    {% else %}
-    {{ site.author }}
-    {% endif %}
-    on {{ post.date | date: '%B %d, %Y' }} &middot; {% include read_time.html content=post.content %}
-  </p>
-</article>
-
-<hr>
-
-{% endfor %}
-
-<!-- Pager -->
-{% if paginator.total_pages > 1 %}
-
-<div class="flex justify-between">
-
-  {% if paginator.previous_page %}
-  <a class="btn-primary" href="{{ paginator.previous_page_path | prepend: site.baseurl | replace: '//', '/' }}">&larr;
-    Newer<span class="hidden md:inline"> Posts</span></a>
-  {% else %}
-  <span></span>
-  {% endif %}
-
-  {% if paginator.next_page %}
-  <a class="btn-primary" href="{{ paginator.next_page_path | prepend: site.baseurl | replace: '//', '/' }}">Older<span class="hidden md:inline"> Posts</span> &rarr;</a>
-  {% endif %}
-
+<div class="overflow-x-auto">
+  <table class="w-full text-left border-collapse my-6">
+    <tbody id="archive-table-body">
+      {% for post in site.posts %}
+      <tr class="archive-row border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150">
+        <td class="py-3 px-4 text-gray-600 font-mono text-sm w-1/4">{{ post.date | date: "%Y-%m-%d" }}</td>
+        <td class="py-3 px-4">
+          <a class="text-gray-900 font-bold hover:text-primary no-underline" href="{{ post.url | prepend: site.baseurl | replace: '//', '/' }}">{{ post.title }}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 
-{% endif %}
+<!-- Pagination Container -->
+<div id="pagination-container" class="mt-8 mb-12"></div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    if (typeof window.initPagination === 'function') {
+      window.initPagination({
+        containerId: 'archive-table-body',
+        paginationId: 'pagination-container',
+        pageSize: 5,
+        itemSelector: '.archive-row',
+        forceShow: true
+      });
+    }
+  });
+</script>

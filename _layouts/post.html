@@ -15,10 +15,8 @@ layout: default
         {% if page.subtitle %}
         <h2 class="subheading">{{ page.subtitle }}</h2>
         {% endif %}
-        <span class="meta">Posted by
-          <a href="#">{% if page.author %}{{ page.author }}{% else %}{{ site.author }}{% endif %}</a>
-          on {{ page.date | date: '%B %d, %Y' }} &middot; {% include read_time.html
-          content=page.content %}
+        <span class="meta">
+          {{ page.date | date: '%Y年%m月%d日' }} &middot; {% include read_time.html content=page.content %}
         </span>
       </div>
     </div>
@@ -33,14 +31,12 @@ layout: default
     <div class="flex justify-between">
 
       {% if page.previous.url %}
-      <a class="btn-primary" href="{{ page.previous.url | prepend: site.baseurl | replace: '//', '/' }}" title="{{ page.previous.title }}">&larr; Previous<span class="hidden md:inline">
-          Post</span></a>
+      <a class="btn-primary" href="{{ page.previous.url | prepend: site.baseurl | replace: '//', '/' }}" title="{{ page.previous.title }}">&larr; 上一篇<span class="hidden md:inline">文章</span></a>
       {% else %}
       <span></span>
       {% endif %}
       {% if page.next.url %}
-      <a class="btn-primary" href="{{ page.next.url | prepend: site.baseurl | replace: '//', '/' }}" title="{{ page.next.title }}">Next<span class="hidden md:inline">
-          Post</span> &rarr;</a>
+      <a class="btn-primary" href="{{ page.next.url | prepend: site.baseurl | replace: '//', '/' }}" title="{{ page.next.title }}">下一篇<span class="hidden md:inline">文章</span> &rarr;</a>
       {% endif %}
 
     </div>

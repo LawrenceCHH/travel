@@ -1,3 +1,4 @@
-<span class="reading-time" title="Estimated read time">
-  {% assign words = include.content | number_of_words %}
-  {% if words < 270 %} 1 min {% else %} {{ words | divided_by:135 }} mins {% endif %} read </span>
+<span class="reading-time" title="預估閱讀時間">
+  {% assign char_count = include.content | strip_html | size %}
+  閱讀時間約 {% if char_count < 300 %}1{% else %}{{ char_count | divided_by:300 | plus:1 }}{% endif %} 分鐘
+</span>

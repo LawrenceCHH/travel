@@ -1,25 +1,15 @@
 <!-- Navigation -->
 <nav class="sticky top-0 z-50 border-b border-gray-200 bg-white" id="mainNav">
   <div class="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
-    <a class="font-sans font-extrabold text-gray-800 no-underline hover:text-primary" href="{{"/" | relative_url }}">{{ site.title | escape }}</a>
+    <!-- Left: Home Icon -->
+    <a class="text-gray-800 hover:text-primary transition-colors duration-150 flex items-center" href="{{"/" | relative_url }}" aria-label="主頁">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </a>
 
-    <button type="button" class="flex h-11 w-11 items-center justify-center text-gray-800 lg:hidden" onclick="toggleNav()" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
-      <svg id="navIcon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-    </button>
-
-    <ul class="hidden flex-col gap-1 lg:flex lg:flex-row lg:items-center lg:gap-2" id="navbarResponsive">
-      <li>
-        <a class="block px-3 py-2 font-sans text-xs font-extrabold uppercase tracking-wide text-gray-800 no-underline hover:text-primary" href="{{"/" | relative_url }}">Home</a>
-      </li>
-      <li>
-        <a class="block px-3 py-2 font-sans text-xs font-extrabold uppercase tracking-wide text-gray-800 no-underline hover:text-primary" href="{{"/about" | relative_url }}">About</a>
-      </li>
-      <li>
-        <a class="block px-3 py-2 font-sans text-xs font-extrabold uppercase tracking-wide text-gray-800 no-underline hover:text-primary" href="{{ "/posts" | relative_url }}">Posts</a>
-      </li>
-      <li>
-        <a class="block px-3 py-2 font-sans text-xs font-extrabold uppercase tracking-wide text-gray-800 no-underline hover:text-primary" href="{{"/contact" | relative_url }}">Contact</a>
-      </li>
-    </ul>
+    <!-- Right: Catalog and Suggestions -->
+    <div class="flex items-center gap-6">
+      <a class="font-sans text-sm font-bold text-gray-800 no-underline hover:text-primary transition-colors duration-150" href="{{ "/posts" | relative_url }}">目錄</a>
+      <a class="font-sans text-sm font-bold text-gray-800 no-underline hover:text-primary transition-colors duration-150" href="{{"/contact" | relative_url }}">建議</a>
+    </div>
   </div>
 </nav>
