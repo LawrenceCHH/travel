@@ -105,16 +105,16 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     menu.className = 'hidden absolute right-0 z-50 mt-2 w-72 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none p-4 transition-all duration-200 opacity-0 scale-95';
     menu.style.transformOrigin = 'top right';
     
-    // Dropdown Content (AND/OR logic toggles removed for minimalism)
+    // Dropdown Content (Scrollable checkbox list and confirm actions)
     menu.innerHTML = `
-      <!-- Checkbox List -->
-      <div class="max-h-60 overflow-y-auto space-y-2 pr-1" id="tag-checkbox-list">
+      <!-- Checkbox List (Scrollable, roughly 10 items height) -->
+      <div class="max-h-[320px] overflow-y-auto space-y-2 pr-1" id="tag-checkbox-list">
       </div>
       
-      <!-- Footer actions -->
+      <!-- Footer actions (Clear on left, Confirm on right) -->
       <div class="flex items-center justify-between border-t border-gray-100 pt-3 mt-3">
-        <button type="button" id="clear-tags-btn" class="text-xs font-bold text-gray-500 hover:text-primary cursor-pointer focus:outline-none">清除全部</button>
-        <span class="text-xs text-gray-400" id="total-tags-stat">共 ${tags.length} 個標籤</span>
+        <button type="button" id="clear-tags-btn" class="text-xs font-bold text-gray-500 hover:text-primary cursor-pointer focus:outline-none">清除標籤</button>
+        <button type="button" id="confirm-tags-btn" class="text-xs font-bold text-white bg-primary hover:bg-primary-dark px-3 py-1.5 rounded cursor-pointer focus:outline-none">確定</button>
       </div>
     `;
     tagContainer.appendChild(menu);
@@ -135,9 +135,17 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
       checkboxList.appendChild(label);
     });
 
+    const checkboxes = Array.from(menu.querySelectorAll('.tag-checkbox'));
+    const selectedCountSpan = btn.querySelector('#selected-count');
+
     // Toggle Dropdown logic
     const arrow = btn.querySelector('#dropdown-arrow');
     function openDropdown() {
+      // Sync checkbox UI with actual confirmed selectedTags
+      checkboxes.forEach(cb => {
+        cb.checked = selectedTags.has(cb.value);
+      });
+
       menu.classList.remove('hidden');
       // Force repaint
       menu.offsetHeight;
@@ -179,31 +187,26 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
       }
     });
 
-    // Checkbox changed event listener
-    const checkboxes = Array.from(menu.querySelectorAll('.tag-checkbox'));
-    const selectedCountSpan = btn.querySelector('#selected-count');
-
-    checkboxes.forEach(cb => {
-      cb.addEventListener('change', () => {
+    // Confirm button click listener
+    const confirmBtn = menu.querySelector('#confirm-tags-btn');
+    confirmBtn.addEventListener('click', () => {
+      selectedTags.clear();
+      checkboxes.forEach(cb => {
         if (cb.checked) {
           selectedTags.add(cb.value);
-        } else {
-          selectedTags.delete(cb.value);
         }
-        selectedCountSpan.textContent = selectedTags.size;
-        applyFilters();
       });
+      selectedCountSpan.textContent = selectedTags.size;
+      closeDropdown();
+      applyFilters();
     });
 
-    // Clear all button click listener
+    // Clear tag button click listener
     const clearBtn = menu.querySelector('#clear-tags-btn');
     clearBtn.addEventListener('click', () => {
       checkboxes.forEach(cb => {
         cb.checked = false;
       });
-      selectedTags.clear();
-      selectedCountSpan.textContent = 0;
-      applyFilters();
     });
   }
 
