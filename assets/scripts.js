@@ -17,8 +17,8 @@ function toggleNav() {
 }
 window.toggleNav = toggleNav;
 
-function initPagination({ containerId, paginationId, pageSize, itemSelector, forceShow = false }) {
-  console.log("initPagination invoked:", { containerId, paginationId, pageSize, itemSelector, forceShow });
+function initPagination({ containerId, paginationId, tagContainerId, pageSize, itemSelector, forceShow = false }) {
+  console.log("initPagination invoked:", { containerId, paginationId, tagContainerId, pageSize, itemSelector, forceShow });
   const container = document.getElementById(containerId);
   const paginationContainer = document.getElementById(paginationId);
   if (!container) {
@@ -30,17 +30,91 @@ function initPagination({ containerId, paginationId, pageSize, itemSelector, for
     return;
   }
 
-  const items = Array.from(container.querySelectorAll(itemSelector));
-  const totalItems = items.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const allItems = Array.from(container.querySelectorAll(itemSelector));
+  let filteredItems = allItems;
+  let totalItems = filteredItems.length;
+  let totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  let activeTag = null;
 
-  console.log(`initPagination: Found ${totalItems} items. Total pages: ${totalPages}`);
+  // Render Tag Filter Bar if tagContainerId is provided
+  if (tagContainerId) {
+    const tagContainer = document.getElementById(tagContainerId);
+    if (tagContainer) {
+      // Gather unique tags
+      const tagSet = new Set();
+      allItems.forEach(item => {
+        const dataTags = item.getAttribute('data-tags');
+        if (dataTags) {
+          dataTags.split(',').forEach(tag => {
+            const trimmed = tag.trim();
+            if (trimmed) tagSet.add(trimmed);
+          });
+        }
+      });
+      
+      const uniqueTags = Array.from(tagSet).sort();
+      if (uniqueTags.length > 0) {
+        renderTagFilter(tagContainer, uniqueTags);
+      }
+    }
+  }
 
-  if (totalPages <= 1 && !forceShow) {
-    console.log("initPagination: Total pages <= 1 and forceShow is false. Hiding pagination controls.");
-    paginationContainer.innerHTML = '';
-    items.forEach(item => item.style.display = '');
-    return;
+  function renderTagFilter(tagContainer, tags) {
+    tagContainer.innerHTML = '';
+    tagContainer.className = 'flex flex-wrap gap-2 mb-8 justify-center';
+    
+    // Add "All" button
+    const allBtn = createTagButton('全部', null, true);
+    tagContainer.appendChild(allBtn);
+    
+    tags.forEach(tag => {
+      const btn = createTagButton(tag, tag, false);
+      tagContainer.appendChild(btn);
+    });
+
+    function createTagButton(label, tagValue, isDefaultActive) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = label;
+      
+      const activeClass = 'px-3 py-1.5 text-xs font-semibold rounded-full bg-primary text-white transition-colors duration-200 cursor-pointer';
+      const inactiveClass = 'px-3 py-1.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors duration-200 cursor-pointer';
+      
+      btn.className = isDefaultActive ? activeClass : inactiveClass;
+      
+      btn.addEventListener('click', () => {
+        // Toggle active style
+        Array.from(tagContainer.querySelectorAll('button')).forEach(b => {
+          b.className = inactiveClass;
+        });
+        btn.className = activeClass;
+        
+        // Filter items
+        activeTag = tagValue;
+        if (activeTag) {
+          filteredItems = allItems.filter(item => {
+            const dataTags = item.getAttribute('data-tags') || '';
+            const itemTags = dataTags.split(',').map(t => t.trim());
+            return itemTags.includes(activeTag);
+          });
+        } else {
+          filteredItems = allItems;
+        }
+        
+        // Recalculate pagination properties
+        totalItems = filteredItems.length;
+        totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        
+        // Hide all items first, then render page 1 of the filtered items
+        allItems.forEach(item => item.style.display = 'none');
+        
+        // Reset query page to 1
+        setPageUrl(1);
+        render(1);
+      });
+      
+      return btn;
+    }
   }
 
   function getCurrentPage() {
@@ -64,11 +138,13 @@ function initPagination({ containerId, paginationId, pageSize, itemSelector, for
       const startIndex = (page - 1) * pageSize;
       const endIndex = page * pageSize;
 
-      items.forEach((item, index) => {
+      // Hide all items
+      allItems.forEach(item => item.style.display = 'none');
+
+      // Show only filtered items on the current page
+      filteredItems.forEach((item, index) => {
         if (index >= startIndex && index < endIndex) {
           item.style.display = '';
-        } else {
-          item.style.display = 'none';
         }
       });
 
@@ -86,6 +162,10 @@ function initPagination({ containerId, paginationId, pageSize, itemSelector, for
   function renderPaginationControls(currentPage) {
     paginationContainer.innerHTML = '';
     
+    if (totalPages <= 1 && !forceShow) {
+      return;
+    }
+    
     const nav = document.createElement('nav');
     nav.className = 'flex items-center justify-center space-x-1 md:space-x-2 my-8';
 
@@ -94,7 +174,7 @@ function initPagination({ containerId, paginationId, pageSize, itemSelector, for
       btn.type = 'button';
       btn.innerHTML = label;
       
-      let baseClass = 'px-3 py-2 text-sm font-medium rounded transition-colors duration-200 focus:outline-none ';
+      let baseClass = 'px-3 py-2 text-sm font-medium rounded transition-colors duration-200 focus:outline-none cursor-pointer ';
       
       if (isDisabled) {
         btn.disabled = true;
