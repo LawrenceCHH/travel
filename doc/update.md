@@ -16,6 +16,8 @@
 - [x] 配置 PWA 相關檔案 (`manifest.json` 與 `sw.js`)，編寫 Vite 打包雜湊快取防刷外掛
 - [x] 移除專案中所有舊 Jekyll/Ruby 的無關檔案，包含 Gemfile、Gemfile.lock、_config.yml、_layouts、_includes、_posts，以及舊遺留檔案如 `assets/app.css` 與 `screenshot.png` 等
 - [x] 更新 `.github/workflows/pages.yml` 部署流程為 Node/Vite 專屬版本，改為監聽 `main` 分支並打包 `dist` 部署
+- [x] 調整建議頁面觸發與介面設計：導覽列移除建議頁籤，改由頁尾信件按鈕跳轉，表單姓名改為暱稱、移除電話欄位並優化置中版面
+- [x] 新增三種不同風格的演示文章（學術版、旅遊隨筆、技術文章），整合自訂配圖與其排版樣式
 - [ ] 將 GitHub Pages 設定 (Settings) → 來源 (Source) 切換至 "GitHub Actions"（若是首次部署）
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
@@ -24,6 +26,40 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-12 — 新增三類風格排版演示文章（HTML 加強版與純 Markdown 對照版）
+
+*   **文章內容與配圖生成**：
+    *   **學術風格文章**：
+        *   HTML 加強版：[2026-07-12-academic-style.md](file:///home/lawrencechh/j/travel/src/posts/2026-07-12-academic-style.md)
+        *   純 Markdown 版：[2026-07-12-academic-pure-md.md](file:///home/lawrencechh/j/travel/src/posts/2026-07-12-academic-pure-md.md)
+        *   探討深度學習在 NLP 特徵空間的幾何結構。配置學術對照曲線圖 `academic_diagram.jpg`。
+    *   **旅遊風格文章**：
+        *   HTML 加強版：[2026-07-12-travel-style.md](file:///home/lawrencechh/j/travel/src/posts/2026-07-12-travel-style.md)
+        *   純 Markdown 版：[2026-07-12-travel-style-pure-md.md](file:///home/lawrencechh/j/travel/src/posts/2026-07-12-travel-style-pure-md.md)
+        *   細緻描述京都暮色漫步隨筆。配置京都黃昏法觀寺八坂塔照片 `travel_kyoto.jpg`。
+    *   **技術寫作文章**：
+        *   HTML 加強版：[2026-07-12-technical-style.md](file:///home/lawrencechh/j/travel/src/posts/2026-07-12-technical-style.md)
+        *   純 Markdown 版：[2026-07-12-technical-style-pure-md.md](file:///home/lawrencechh/j/travel/src/posts/2026-07-12-technical-style-pure-md.md)
+        *   詳解高併發 Web 系統與快取一致性實戰。配置系統架構拓撲圖 `tech_architecture.jpg`。
+*   **排版結構設計對照**：
+    *   **HTML 加強版**：內嵌 Tailwind 佈局（如微調容器寬度 `max-w-xl`、`max-w-2xl`，添加配圖圓角、懸停縮放陰影動畫，自訂 SVG 時間軸），實現高度定制化的美觀效果。
+    *   **純 Markdown 版**：完全不使用任何 HTML 標籤（如 `<div>`、`<span>`、`<img />`）。純粹依靠 GFM（GitHub Flavored Markdown）的內建元素來實現美觀的結構：
+        *   學術版：利用標準標題級別（`#`）、公式引言塊、表格以及測地線比率等原生標識符。
+        *   旅遊隨筆：利用原生的 Emoji 符號配合列表項目、粗體時戳與二級塊引用來呈現清爽的散步行程時間軸，以原生 Markdown 嵌入圖片。
+        *   技術文章：利用 GFM 原生警告提示塊（`> [!WARNING]`）、高亮程式碼塊（` ```javascript `）以及常規 Markdown 表格來呈現高凝聚力、層次分明的工程文檔。
+*   **整合與建置**：
+    *   執行 `npm run build:metadata` 重新生成含有 14 篇文章的 `posts.json` 並執行 `npm run build` 確認全部編譯成功。
+
+### 2026-07-12 — 調整建議頁面觸發與介面設計
+
+*   **導覽列與頁尾調整**：
+    *   移除導覽列 `navbar.html` 中的「建議」頁籤，並將導覽列最大寬度從 `max-w-5xl` 縮減為 `max-w-3xl`，使導覽列元件能完美與主要內容欄位左右對齊。
+    *   修改頁尾 `footer.html` 中的信件按鈕連結，由原先的 `mailto` 行為改為直接跳轉至建議頁面 `/travel/contact.html`。
+*   **建議表單介面優化**：
+    *   調整 `contact.html` 建議頁面表單的排版，將表單內容容器最大寬度縮減為 `max-w-xl`，並將簡介文字置中（`text-center`），使其在桌上型螢幕下更具視覺凝聚力與高級感。
+    *   修改表單輸入欄位，將「您的姓名」改為「您的暱稱」（placeholder 改為「請輸入暱稱」）。
+    *   完全移除「聯絡電話」輸入欄位與其對應的 DOM 元素，確保隱私性與簡潔度，同時保留 Formspree 送出與 `#name` 重設焦點的 JS 機制。
 
 ### 2026-07-11 — 遷移至 Vite + Tailwind CSS v4 純前端多頁面架構 (方案 A)
 

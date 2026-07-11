@@ -1,5 +1,89 @@
 [
   {
+    "id": "2026-07-12-technical-style-pure-md",
+    "title": "[純MD版] 現代 Web 應用架構設計：高併發 API 伺服器與快取策略實戰",
+    "subtitle": "解析前後端解耦、Redis 多級快取與資料一致性設計方案",
+    "date": "2026-07-12 15:10:00 +0800",
+    "background": "/img/posts/tech_architecture.jpg",
+    "tags": [
+      "架構設計",
+      "Redis 快取",
+      "純MD排版"
+    ],
+    "readTime": "閱讀時間約 11 分鐘",
+    "markdownPath": "src/posts/2026-07-12-technical-style-pure-md.md"
+  },
+  {
+    "id": "2026-07-12-technical-style",
+    "title": "現代 Web 應用架構設計：高併發 API 伺服器與快取策略實戰",
+    "subtitle": "解析前後端解耦、Redis 多級快取與資料一致性設計方案",
+    "date": "2026-07-12 15:00:00 +0800",
+    "background": "/img/posts/tech_architecture.jpg",
+    "tags": [
+      "架構設計",
+      "Redis 快取",
+      "高併發"
+    ],
+    "readTime": "閱讀時間約 11 分鐘",
+    "markdownPath": "src/posts/2026-07-12-technical-style.md"
+  },
+  {
+    "id": "2026-07-12-travel-style-pure-md",
+    "title": "[純MD版] 京都暮色漫步：穿梭在千年古都的光影縫隙中",
+    "subtitle": "從清水坂到八坂通，尋訪石疊小徑與晚鐘的古雅韻味",
+    "date": "2026-07-12 12:10:00 +0800",
+    "background": "/img/posts/travel_kyoto.jpg",
+    "tags": [
+      "日本旅遊",
+      "京都",
+      "純MD排版"
+    ],
+    "readTime": "閱讀時間約 4 分鐘",
+    "markdownPath": "src/posts/2026-07-12-travel-style-pure-md.md"
+  },
+  {
+    "id": "2026-07-12-travel-style",
+    "title": "京都暮色漫步：穿梭在千年古都的光影縫隙中",
+    "subtitle": "從清水坂到八坂通，尋訪石疊小徑與晚鐘的古雅韻味",
+    "date": "2026-07-12 12:00:00 +0800",
+    "background": "/img/posts/travel_kyoto.jpg",
+    "tags": [
+      "日本旅遊",
+      "京都",
+      "隨筆攝影"
+    ],
+    "readTime": "閱讀時間約 5 分鐘",
+    "markdownPath": "src/posts/2026-07-12-travel-style.md"
+  },
+  {
+    "id": "2026-07-12-academic-pure-md",
+    "title": "[純MD版] 深度學習在自然語言處理中的幾何結構分析",
+    "subtitle": "從流形假說與特徵空間幾何探索語意表徵的拓撲演變",
+    "date": "2026-07-12 09:10:00 +0800",
+    "background": "/img/posts/academic_diagram.jpg",
+    "tags": [
+      "學術論文",
+      "幾何表徵",
+      "純MD排版"
+    ],
+    "readTime": "閱讀時間約 8 分鐘",
+    "markdownPath": "src/posts/2026-07-12-academic-pure-md.md"
+  },
+  {
+    "id": "2026-07-12-academic-style",
+    "title": "深度學習在自然語言處理中的幾何結構分析",
+    "subtitle": "從流形假說與特徵空間幾何探索語意表徵的拓撲演變",
+    "date": "2026-07-12 09:00:00 +0800",
+    "background": "/img/posts/academic_diagram.jpg",
+    "tags": [
+      "學術論文",
+      "幾何表徵",
+      "深度學習"
+    ],
+    "readTime": "閱讀時間約 8 分鐘",
+    "markdownPath": "src/posts/2026-07-12-academic-style.md"
+  },
+  {
     "id": "2026-07-11-test",
     "title": "文章標題",
     "subtitle": "顯示於標題下方的一行副標題。",
