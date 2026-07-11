@@ -1,13 +1,15 @@
----
----
-const BASE = '{{ "/" | relative_url }}';
+const BASE = '/travel/';
 const CACHE_NAME = 'clean-blog-v13';
 
+// 預快取路徑，Vite build 時會被 swPrecachePlugin 自動取代為含有雜湊碼的檔案名
 const PRECACHE_URLS = [
   BASE,
-  BASE + 'assets/main.css',
+  BASE + 'assets/tailwind.css',
   BASE + 'assets/scripts.js',
-  BASE + 'manifest.json'
+  BASE + 'manifest.json',
+  BASE + 'components/navbar.html',
+  BASE + 'components/footer.html',
+  BASE + 'data/posts.json'
 ];
 
 self.addEventListener('install', function (event) {
@@ -36,8 +38,7 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('fetch', function (event) {
   const request = event.request;
 
-  // Only handle same-origin GET requests. Cross-origin requests (Formspree, any
-  // third-party API) are left alone so the browser handles them normally.
+  // 僅快取同源 GET 請求
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) {
     return;
   }
@@ -45,7 +46,7 @@ self.addEventListener('fetch', function (event) {
   const isStaticAsset = request.url.indexOf('/assets/') !== -1 || request.url.indexOf('/img/') !== -1 || request.url.indexOf('/fonts/') !== -1;
 
   if (isStaticAsset) {
-    // Cache-first for static assets: they're fingerprint-free here, but rarely change.
+    // 靜態資源優先快取
     event.respondWith(
       caches.match(request).then(function (cached) {
         return cached || fetch(request).then(function (response) {
@@ -59,8 +60,7 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // Network-first for pages, falling back to cache so previously visited
-  // pages stay readable offline.
+  // 頁面及其他請求網路優先，失敗則回退快取以支援離線瀏覽
   event.respondWith(
     fetch(request).then(function (response) {
       return caches.open(CACHE_NAME).then(function (cache) {

@@ -1,31 +1,92 @@
----
-layout: page
-title: 建議
-description: 有任何想說的話嗎？歡迎填寫表單與我聯絡。
-background: '/img/bg-contact.jpg'
-form: true
----
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>建議 - 旅遊指南</title>
+  <link rel="manifest" href="/travel/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/travel/img/icons/icon.svg">
+  <link rel="apple-touch-icon" href="/travel/img/icons/icon-192.png">
+  <meta name="theme-color" content="#0085a1">
+  <link rel="stylesheet" href="/assets/tailwind.css">
+</head>
+<body class="bg-white text-gray-900">
+  <div id="navbar-placeholder"></div>
 
-<p>想要提供建議或與我聯絡嗎？請填寫下方的表單送出您的建議，我會盡快回覆您！</p>
-<form name="sentMessage" id="contactForm" class="space-y-5">
-  <div>
-    <label for="name" class="mb-1 block font-sans text-sm font-bold text-gray-800">您的姓名</label>
-    <input type="text" name="name" class="w-full border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入姓名" id="name" required>
+  <!-- Page Header -->
+  <header class="masthead" style="background-image: url('/travel/img/bg-contact.jpg')">
+    <div class="overlay"></div>
+    <div class="mx-auto max-w-3xl px-5">
+      <div class="page-heading">
+        <h1>建議</h1>
+        <span class="subheading">有任何想說的話嗎？歡迎填寫表單與我聯絡。</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="mx-auto max-w-3xl px-5 py-8">
+    <p class="mb-6 text-gray-700">想要提供建議或與我聯絡嗎？請填寫下方的表單送出您的建議，我會盡快回覆您！</p>
+    <form name="sentMessage" id="contactForm" class="space-y-5">
+      <div>
+        <label for="name" class="mb-1 block font-sans text-sm font-bold text-gray-800">您的姓名</label>
+        <input type="text" name="name" class="w-full border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入姓名" id="name" required>
+      </div>
+      <div>
+        <label for="email" class="mb-1 block font-sans text-sm font-bold text-gray-800">電子郵件信箱</label>
+        <input type="email" name="email" class="w-full border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入電子郵件" id="email" required>
+      </div>
+      <div>
+        <label for="phone" class="mb-1 block font-sans text-sm font-bold text-gray-800">聯絡電話</label>
+        <input type="tel" name="phone" class="w-full border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入電話號碼" id="phone" required>
+      </div>
+      <div>
+        <label for="message" class="mb-1 block font-sans text-sm font-bold text-gray-800">建議內容</label>
+        <textarea rows="5" name="message" class="w-full border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入您想對我說的話..." id="message" required></textarea>
+      </div>
+      <div id="success"></div>
+      <div>
+        <button type="submit" class="btn-primary" id="sendMessageButton">送出建議</button>
+      </div>
+    </form>
   </div>
-  <div>
-    <label for="email" class="mb-1 block font-sans text-sm font-bold text-gray-800">電子郵件信箱</label>
-    <input type="email" name="email" class="w-full border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入電子郵件" id="email" required>
-  </div>
-  <div>
-    <label for="phone" class="mb-1 block font-sans text-sm font-bold text-gray-800">聯絡電話</label>
-    <input type="tel" name="phone" class="w-full border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入電話號碼" id="phone" required>
-  </div>
-  <div>
-    <label for="message" class="mb-1 block font-sans text-sm font-bold text-gray-800">建議內容</label>
-    <textarea rows="5" name="message" class="w-full border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入您想對我說的話..." id="message" required></textarea>
-  </div>
-  <div id="success"></div>
-  <div>
-    <button type="submit" class="btn-primary" id="sendMessageButton">送出建議</button>
-  </div>
-</form>
+
+  <div id="footer-placeholder"></div>
+
+  <script type="module" src="/assets/scripts.js"></script>
+  <!-- Formspree 聯絡表單專屬邏輯 -->
+  <script>
+    (function () {
+      var form = document.getElementById('contactForm');
+      var button = document.getElementById('sendMessageButton');
+      var successBox = document.getElementById('success');
+      var FORMSPREE_ENDPOINT = 'https://formspree.io/f/YOUR_FORM_ID';
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        button.disabled = true;
+
+        fetch(FORMSPREE_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+          body: new FormData(form)
+        }).then(function (response) {
+          if (response.ok) {
+            successBox.innerHTML = '<div class="rounded bg-green-50 border border-green-200 text-green-800 px-4 py-3">您的建議已成功送出！</div>';
+            form.reset();
+          } else {
+            throw new Error('Form submission failed');
+          }
+        }).catch(function () {
+          successBox.innerHTML = '<div class="rounded bg-red-50 border border-red-200 text-red-800 px-4 py-3">抱歉，郵件伺服器似乎沒有回應，請稍後再試！</div>';
+        }).finally(function () {
+          setTimeout(function () { button.disabled = false; }, 1000);
+        });
+      });
+
+      form.querySelector('#name').addEventListener('focus', function () {
+        successBox.innerHTML = '';
+      });
+    })();
+  </script>
+</body>
+</html>

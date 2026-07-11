@@ -1,55 +1,110 @@
----
-layout: page
-title: 文章目錄
-background: '/img/bg-post.jpg'
----
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>文章目錄 - 旅遊指南</title>
+  <link rel="manifest" href="/travel/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/travel/img/icons/icon.svg">
+  <link rel="apple-touch-icon" href="/travel/img/icons/icon-192.png">
+  <meta name="theme-color" content="#0085a1">
+  <link rel="stylesheet" href="/assets/tailwind.css">
+</head>
+<body class="bg-white text-gray-900">
+  <div id="navbar-placeholder"></div>
 
-<!-- Filter & Search Bar -->
-<div class="flex flex-row justify-end items-center gap-3 mt-6 mb-8 w-full">
-  <div id="tag-filter-container" class="w-1/2 max-w-[180px] md:max-w-[200px]"></div>
-  <div id="search-container" class="w-1/2 max-w-[180px] md:max-w-[200px]"></div>
-</div>
+  <!-- Page Header -->
+  <header class="masthead" style="background-image: url('/travel/img/bg-post.jpg')">
+    <div class="overlay"></div>
+    <div class="mx-auto max-w-3xl px-5">
+      <div class="page-heading">
+        <h1>文章目錄</h1>
+        <span class="subheading">所有文章一覽</span>
+      </div>
+    </div>
+  </header>
 
-<div class="overflow-x-auto">
-  <table class="w-full text-left border-collapse my-6">
-    <tbody id="archive-table-body">
-      {% for post in site.posts %}
-      <tr class="archive-row border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150"
-          data-tags="{{ post.tags | join: ',' }}">
-        <td class="py-3 px-4 text-gray-600 font-mono text-sm w-1/4">{{ post.date | date: "%Y-%m-%d" }}</td>
-        <td class="py-3 px-4">
-          <div class="flex flex-col gap-1 w-full max-w-[180px] sm:max-w-[300px] md:max-w-[400px] lg:max-w-[500px]">
-            <a class="text-gray-900 font-bold hover:text-primary no-underline" href="{{ post.url | prepend: site.baseurl | replace: '//', '/' }}">{{ post.title }}</a>
-            {% if post.tags.size > 0 %}
-            <div class="truncate text-xs text-gray-500 w-full" title="{{ post.tags | join: ', ' }}">
-              {% for tag in post.tags %}
-              <span class="mr-2">#{{ tag }}</span>
-              {% endfor %}
-            </div>
-            {% endif %}
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+  <div class="mx-auto max-w-3xl px-5">
+    <!-- Filter & Search Bar -->
+    <div class="flex flex-row justify-end items-center gap-3 mt-6 mb-8 w-full">
+      <div id="tag-filter-container" class="w-1/2 max-w-[180px] md:max-w-[200px]"></div>
+      <div id="search-container" class="w-1/2 max-w-[180px] md:max-w-[200px]"></div>
+    </div>
 
-<!-- Pagination Container -->
-<div id="pagination-container" class="mt-8 mb-12"></div>
+    <!-- Table Container -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse my-6">
+        <tbody id="archive-table-body">
+          <tr>
+            <td class="py-8 text-center text-gray-500" colspan="2">目錄載入中...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    if (typeof window.initPagination === 'function') {
-      window.initPagination({
-        containerId: 'archive-table-body',
-        paginationId: 'pagination-container',
-        tagContainerId: 'tag-filter-container',
-        searchContainerId: 'search-container',
-        pageSize: 5,
-        itemSelector: '.archive-row',
-        forceShow: true
-      });
-    }
-  });
-</script>
+    <!-- Pagination Container -->
+    <div id="pagination-container" class="mt-8 mb-12"></div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script type="module" src="/assets/scripts.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async function() {
+      const base = '/travel/';
+      try {
+        const res = await fetch(`${base}data/posts.json`);
+        if (!res.ok) throw new Error("JSON fetch failed");
+        const posts = await res.json();
+        
+        const tbody = document.getElementById('archive-table-body');
+        tbody.innerHTML = '';
+        
+        posts.forEach(post => {
+          const tr = document.createElement('tr');
+          tr.className = 'archive-row border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150';
+          tr.setAttribute('data-tags', post.tags.join(','));
+          
+          const dateObj = new Date(post.date);
+          const formattedDate = isNaN(dateObj.getTime())
+            ? post.date.slice(0, 10)
+            : `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+
+          const tagsHtml = post.tags.length > 0
+            ? `<div class="truncate text-xs text-gray-500 w-full" title="${post.tags.join(', ')}">
+                ${post.tags.map(tag => `<span class="mr-2">#${tag}</span>`).join('')}
+               </div>`
+            : '';
+
+          tr.innerHTML = `
+            <td class="py-3 px-4 text-gray-600 font-mono text-sm w-1/4">${formattedDate}</td>
+            <td class="py-3 px-4">
+              <div class="flex flex-col gap-1 w-full max-w-[180px] sm:max-w-[300px] md:max-w-[400px] lg:max-w-[500px]">
+                <a class="text-gray-900 font-bold hover:text-primary no-underline" href="${base}posts/detail.html?id=${post.id}">${post.title}</a>
+                ${tagsHtml}
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        // 呼叫分頁器，每頁 100 篇
+        if (typeof window.initPagination === 'function') {
+          window.initPagination({
+            containerId: 'archive-table-body',
+            paginationId: 'pagination-container',
+            tagContainerId: 'tag-filter-container',
+            searchContainerId: 'search-container',
+            pageSize: 100,
+            itemSelector: '.archive-row',
+            forceShow: true
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load archive index:", err);
+        document.getElementById('archive-table-body').innerHTML = '<tr><td class="py-8 text-center text-red-500" colspan="2">目錄載入失敗</td></tr>';
+      }
+    });
+  </script>
+</body>
+</html>

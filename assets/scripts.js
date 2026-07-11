@@ -389,3 +389,54 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
 }
 window.initPagination = initPagination;
 
+// 附加元件動態載入與 PWA 註冊邏輯
+document.addEventListener("DOMContentLoaded", function() {
+  const base = '/travel/';
+  
+  // 1. 動態加載導航列
+  const navbarPlaceholder = document.getElementById('navbar-placeholder');
+  if (navbarPlaceholder) {
+    fetch(`${base}components/navbar.html`)
+      .then(res => {
+        if (!res.ok) throw new Error('Navbar load failed');
+        return res.text();
+      })
+      .then(html => {
+        navbarPlaceholder.outerHTML = html;
+        // 反白當前頁面連結
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('#mainNav a').forEach(link => {
+          const href = link.getAttribute('href');
+          if (href && (currentPath === href || currentPath === href + 'index.html')) {
+            link.classList.add('text-primary');
+          }
+        });
+      })
+      .catch(err => console.error(err));
+  }
+
+  // 2. 動態加載頁尾
+  const footerPlaceholder = document.getElementById('footer-placeholder');
+  if (footerPlaceholder) {
+    fetch(`${base}components/footer.html`)
+      .then(res => {
+        if (!res.ok) throw new Error('Footer load failed');
+        return res.text();
+      })
+      .then(html => {
+        footerPlaceholder.outerHTML = html;
+        const yearSpan = document.getElementById('current-year');
+        if (yearSpan) {
+          yearSpan.textContent = new Date().getFullYear();
+        }
+      })
+      .catch(err => console.error(err));
+  }
+
+  // 3. 註冊 PWA Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register(`${base}sw.js`).catch(err => {
+      console.warn("ServiceWorker registration failed:", err);
+    });
+  }
+});

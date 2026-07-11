@@ -1,9 +1,3 @@
-_site
-.sass-cache
 node_modules
-Gemfile.lock
-*.gem
-assets/main.css
-assets/app.css
-.bundle
-vendor
+dist
+.agents/

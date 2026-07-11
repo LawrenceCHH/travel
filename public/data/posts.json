@@ -1,0 +1,99 @@
+[
+  {
+    "id": "2026-07-11-test",
+    "title": "文章標題",
+    "subtitle": "顯示於標題下方的一行副標題。",
+    "date": "2026-07-10 09:00:00 -0000",
+    "background": "/img/posts/01.jpg",
+    "tags": [
+      "skill",
+      "tool",
+      "design",
+      "claude_code"
+    ],
+    "readTime": "閱讀時間約 1 分鐘",
+    "markdownPath": "src/posts/2026-07-11-test.md"
+  },
+  {
+    "id": "2026-07-12 test copy",
+    "title": "post2",
+    "subtitle": "顯示於標題下方的一行副標題。",
+    "date": "2026-07-10 09:00:00 -0000",
+    "background": "/img/posts/01.jpg",
+    "tags": [
+      "skill",
+      "tool",
+      "design",
+      "claude_code"
+    ],
+    "readTime": "閱讀時間約 1 分鐘",
+    "markdownPath": "src/posts/2026-07-12 test copy.md"
+  },
+  {
+    "id": "2020-01-31-man-must-explore",
+    "title": "Man must explore, and this is exploration at its greatest",
+    "subtitle": "Problems look mighty small from 150 miles up",
+    "date": "2020-01-31 10:45:13 -0400",
+    "background": "/img/posts/06.jpg",
+    "tags": [
+      "design",
+      "space",
+      "exploration"
+    ],
+    "readTime": "閱讀時間約 11 分鐘",
+    "markdownPath": "src/posts/2020-01-31-man-must-explore.html"
+  },
+  {
+    "id": "2020-01-30-heartbeats",
+    "title": "I believe every human has a finite number of heartbeats. I don't intend to waste any of mine.",
+    "subtitle": "",
+    "date": "2020-01-30 23:45:13 -0400",
+    "background": "/img/posts/05.jpg",
+    "tags": [],
+    "readTime": "閱讀時間約 11 分鐘",
+    "markdownPath": "src/posts/2020-01-30-heartbeats.html"
+  },
+  {
+    "id": "2020-01-29-prophecy",
+    "title": "Science has not yet mastered prophecy",
+    "subtitle": "We predict too much for the next year and yet far too little for the next ten.",
+    "date": "2020-01-29 23:45:13 -0400",
+    "background": "/img/posts/04.jpg",
+    "tags": [],
+    "readTime": "閱讀時間約 11 分鐘",
+    "markdownPath": "src/posts/2020-01-29-prophecy.html"
+  },
+  {
+    "id": "2020-01-28-exploration",
+    "title": "Failure is not an option",
+    "subtitle": "Many say exploration is part of our destiny, but it’s actually our duty to future generations.",
+    "date": "2020-01-28 23:45:13 -0400",
+    "background": "/img/posts/03.jpg",
+    "tags": [
+      "tool",
+      "space"
+    ],
+    "readTime": "閱讀時間約 11 分鐘",
+    "markdownPath": "src/posts/2020-01-28-exploration.html"
+  },
+  {
+    "id": "2020-01-27-dreams",
+    "title": "The dreams of yesterday are the hopes of today and the reality of tomorrow.",
+    "subtitle": "",
+    "date": "2020-01-27 23:45:13 -0400",
+    "background": "/img/posts/02.jpg",
+    "tags": [],
+    "readTime": "閱讀時間約 11 分鐘",
+    "markdownPath": "src/posts/2020-01-27-dreams.html"
+  },
+  {
+    "id": "2020-01-26-dinosaurs",
+    "title": "Dinosaurs are extinct today",
+    "subtitle": "because they lacked opposable thumbs and the brainpower to build a space program.",
+    "date": "2020-01-26 23:45:13 -0400",
+    "background": "/img/posts/01.jpg",
+    "tags": [],
+    "readTime": "閱讀時間約 11 分鐘",
+    "markdownPath": "src/posts/2020-01-26-dinosaurs.html"
+  }
+]
