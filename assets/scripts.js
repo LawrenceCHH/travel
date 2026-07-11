@@ -114,7 +114,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
       <!-- Footer actions (Clear on left, Confirm on right) -->
       <div class="flex items-center justify-between border-t border-gray-100 pt-3 mt-3">
         <button type="button" id="clear-tags-btn" class="text-xs font-bold text-gray-500 hover:text-primary cursor-pointer focus:outline-none">清除標籤</button>
-        <button type="button" id="confirm-tags-btn" class="text-xs font-bold text-white bg-primary hover:bg-primary-dark px-3 py-1.5 rounded cursor-pointer focus:outline-none">確定</button>
+        <button type="button" id="confirm-tags-btn" class="text-xs font-bold text-gray-500 hover:text-primary cursor-pointer focus:outline-none">確定</button>
       </div>
     `;
     tagContainer.appendChild(menu);
