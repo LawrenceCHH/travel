@@ -17,8 +17,8 @@ function toggleNav() {
 }
 window.toggleNav = toggleNav;
 
-function initPagination({ containerId, paginationId, tagContainerId, pageSize, itemSelector, forceShow = false }) {
-  console.log("initPagination invoked:", { containerId, paginationId, tagContainerId, pageSize, itemSelector, forceShow });
+function initPagination({ containerId, paginationId, tagContainerId, searchContainerId, pageSize, itemSelector, forceShow = false }) {
+  console.log("initPagination invoked:", { containerId, paginationId, tagContainerId, searchContainerId, pageSize, itemSelector, forceShow });
   const container = document.getElementById(containerId);
   const paginationContainer = document.getElementById(paginationId);
   if (!container) {
@@ -34,87 +34,260 @@ function initPagination({ containerId, paginationId, tagContainerId, pageSize, i
   let filteredItems = allItems;
   let totalItems = filteredItems.length;
   let totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  let activeTag = null;
+  
+  // State for filtering
+  let selectedTags = new Set();
+  let matchMode = 'AND'; // 'AND' or 'OR'
+  let searchQuery = '';
 
-  // Render Tag Filter Bar if tagContainerId is provided
-  if (tagContainerId) {
-    const tagContainer = document.getElementById(tagContainerId);
-    if (tagContainer) {
-      // Gather unique tags
-      const tagSet = new Set();
-      allItems.forEach(item => {
-        const dataTags = item.getAttribute('data-tags');
-        if (dataTags) {
-          dataTags.split(',').forEach(tag => {
-            const trimmed = tag.trim();
-            if (trimmed) tagSet.add(trimmed);
-          });
+  // 1. Gather all unique tags and count their frequency
+  const tagCounts = {};
+  allItems.forEach(item => {
+    // Add data-title attribute dynamically if not present for faster keyword search
+    if (!item.getAttribute('data-title')) {
+      const link = item.querySelector('a');
+      if (link) {
+        item.setAttribute('data-title', link.textContent.trim().toLowerCase());
+      } else {
+        item.setAttribute('data-title', item.textContent.trim().toLowerCase());
+      }
+    }
+
+    const dataTags = item.getAttribute('data-tags');
+    if (dataTags) {
+      dataTags.split(',').forEach(tag => {
+        const trimmed = tag.trim();
+        if (trimmed) {
+          tagCounts[trimmed] = (tagCounts[trimmed] || 0) + 1;
         }
       });
-      
-      const uniqueTags = Array.from(tagSet).sort();
-      if (uniqueTags.length > 0) {
-        renderTagFilter(tagContainer, uniqueTags);
-      }
+    }
+  });
+
+  const sortedTags = Object.keys(tagCounts).sort();
+
+  // 2. Render Tag Dropdown if tagContainerId is provided
+  if (tagContainerId && sortedTags.length > 0) {
+    const tagContainer = document.getElementById(tagContainerId);
+    if (tagContainer) {
+      renderTagDropdown(tagContainer, sortedTags, tagCounts);
     }
   }
 
-  function renderTagFilter(tagContainer, tags) {
+  // 3. Render Search Box if searchContainerId is provided
+  if (searchContainerId) {
+    const searchContainer = document.getElementById(searchContainerId);
+    if (searchContainer) {
+      renderSearchBox(searchContainer);
+    }
+  }
+
+  function renderTagDropdown(tagContainer, tags, counts) {
     tagContainer.innerHTML = '';
-    tagContainer.className = 'flex flex-wrap gap-2 mb-8 justify-center';
+    tagContainer.className = 'relative inline-block text-left';
     
-    // Add "All" button
-    const allBtn = createTagButton('全部', null, true);
-    tagContainer.appendChild(allBtn);
+    // Create Dropdown Button
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'tag-dropdown-btn';
+    btn.className = 'inline-flex w-48 justify-between items-center gap-x-1.5 rounded bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm border border-gray-300 hover:bg-gray-50 cursor-pointer focus:outline-none';
+    btn.innerHTML = `
+      <span>篩選標籤 (<span id="selected-count">0</span>)</span>
+      <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" id="dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
+      </svg>
+    `;
+    tagContainer.appendChild(btn);
+
+    // Create Dropdown Menu Wrapper
+    const menu = document.createElement('div');
+    menu.id = 'tag-dropdown-menu';
+    menu.className = 'hidden absolute left-0 z-50 mt-2 w-72 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none p-4 transition-all duration-200 opacity-0 scale-95';
+    menu.style.transformOrigin = 'top left';
     
+    // Dropdown Content
+    menu.innerHTML = `
+      <!-- Logic Mode Toggle -->
+      <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
+        <span class="text-xs font-bold text-gray-500">比對模式：</span>
+        <div class="flex items-center gap-3">
+          <label class="inline-flex items-center text-xs font-semibold text-gray-700 cursor-pointer">
+            <input type="radio" name="matchMode" value="AND" checked class="mr-1.5 text-primary focus:ring-primary cursor-pointer">
+            全部符合 (AND)
+          </label>
+          <label class="inline-flex items-center text-xs font-semibold text-gray-700 cursor-pointer">
+            <input type="radio" name="matchMode" value="OR" class="mr-1.5 text-primary focus:ring-primary cursor-pointer">
+            任一符合 (OR)
+          </label>
+        </div>
+      </div>
+      
+      <!-- Checkbox List -->
+      <div class="max-h-60 overflow-y-auto space-y-2 pr-1" id="tag-checkbox-list">
+      </div>
+      
+      <!-- Footer actions -->
+      <div class="flex items-center justify-between border-t border-gray-100 pt-3 mt-3">
+        <button type="button" id="clear-tags-btn" class="text-xs font-bold text-gray-500 hover:text-primary cursor-pointer focus:outline-none">清除全部</button>
+        <span class="text-xs text-gray-400" id="total-tags-stat">共 ${tags.length} 個標籤</span>
+      </div>
+    `;
+    tagContainer.appendChild(menu);
+
+    const checkboxList = menu.querySelector('#tag-checkbox-list');
+
+    // Populate Checkbox List
     tags.forEach(tag => {
-      const btn = createTagButton(tag, tag, false);
-      tagContainer.appendChild(btn);
+      const label = document.createElement('label');
+      label.className = 'flex items-center justify-between text-xs font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 p-1.5 rounded transition-colors duration-150';
+      label.innerHTML = `
+        <span class="flex items-center gap-2">
+          <input type="checkbox" value="${tag}" class="tag-checkbox rounded text-primary focus:ring-primary cursor-pointer">
+          <span>${tag}</span>
+        </span>
+        <span class="text-gray-400 font-mono">(${counts[tag]})</span>
+      `;
+      checkboxList.appendChild(label);
     });
 
-    function createTagButton(label, tagValue, isDefaultActive) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = label;
-      
-      const activeClass = 'px-3 py-1.5 text-xs font-semibold rounded-full bg-primary text-white transition-colors duration-200 cursor-pointer';
-      const inactiveClass = 'px-3 py-1.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors duration-200 cursor-pointer';
-      
-      btn.className = isDefaultActive ? activeClass : inactiveClass;
-      
-      btn.addEventListener('click', () => {
-        // Toggle active style
-        Array.from(tagContainer.querySelectorAll('button')).forEach(b => {
-          b.className = inactiveClass;
-        });
-        btn.className = activeClass;
-        
-        // Filter items
-        activeTag = tagValue;
-        if (activeTag) {
-          filteredItems = allItems.filter(item => {
-            const dataTags = item.getAttribute('data-tags') || '';
-            const itemTags = dataTags.split(',').map(t => t.trim());
-            return itemTags.includes(activeTag);
-          });
-        } else {
-          filteredItems = allItems;
-        }
-        
-        // Recalculate pagination properties
-        totalItems = filteredItems.length;
-        totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-        
-        // Hide all items first, then render page 1 of the filtered items
-        allItems.forEach(item => item.style.display = 'none');
-        
-        // Reset query page to 1
-        setPageUrl(1);
-        render(1);
-      });
-      
-      return btn;
+    // Toggle Dropdown logic
+    const arrow = btn.querySelector('#dropdown-arrow');
+    function openDropdown() {
+      menu.classList.remove('hidden');
+      // Force repaint
+      menu.offsetHeight;
+      menu.classList.remove('opacity-0', 'scale-95');
+      menu.classList.add('opacity-100', 'scale-100');
+      arrow.style.transform = 'rotate(180deg)';
     }
+
+    function closeDropdown() {
+      menu.classList.remove('opacity-100', 'scale-100');
+      menu.classList.add('opacity-0', 'scale-95');
+      arrow.style.transform = '';
+      setTimeout(() => {
+        if (menu.classList.contains('opacity-0')) {
+          menu.classList.add('hidden');
+        }
+      }, 200);
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = menu.classList.contains('hidden');
+      if (isHidden) {
+        openDropdown();
+      } else {
+        closeDropdown();
+      }
+    });
+
+    // Prevent closing when clicking inside the menu
+    menu.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', () => {
+      if (!menu.classList.contains('hidden')) {
+        closeDropdown();
+      }
+    });
+
+    // Checkbox changed event listener
+    const checkboxes = Array.from(menu.querySelectorAll('.tag-checkbox'));
+    const selectedCountSpan = btn.querySelector('#selected-count');
+
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
+          selectedTags.add(cb.value);
+        } else {
+          selectedTags.delete(cb.value);
+        }
+        selectedCountSpan.textContent = selectedTags.size;
+        applyFilters();
+      });
+    });
+
+    // Match mode (radio) change listener
+    const matchRadios = menu.querySelectorAll('input[name="matchMode"]');
+    matchRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        matchMode = e.target.value;
+        applyFilters();
+      });
+    });
+
+    // Clear all button click listener
+    const clearBtn = menu.querySelector('#clear-tags-btn');
+    clearBtn.addEventListener('click', () => {
+      checkboxes.forEach(cb => {
+        cb.checked = false;
+      });
+      selectedTags.clear();
+      selectedCountSpan.textContent = 0;
+      applyFilters();
+    });
+  }
+
+  function renderSearchBox(searchContainer) {
+    searchContainer.innerHTML = `
+      <div class="relative w-full max-w-xs">
+        <input type="search" id="search-input" placeholder="搜尋文章標題..." class="w-full rounded border border-gray-300 bg-white px-3 py-2 pr-10 text-sm focus:border-primary focus:outline-none text-gray-800 shadow-sm">
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+          <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+      </div>
+    `;
+
+    const searchInput = searchContainer.querySelector('#search-input');
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.trim().toLowerCase();
+      applyFilters();
+    });
+  }
+
+  function applyFilters() {
+    // Apply tag logic AND keyword search
+    filteredItems = allItems.filter(item => {
+      // 1. Tag Match
+      let tagMatch = true;
+      if (selectedTags.size > 0) {
+        const itemTagsAttr = item.getAttribute('data-tags') || '';
+        const itemTags = itemTagsAttr.split(',').map(t => t.trim()).filter(Boolean);
+        
+        if (matchMode === 'AND') {
+          // All selected tags must be present in itemTags
+          tagMatch = Array.from(selectedTags).every(tag => itemTags.includes(tag));
+        } else {
+          // At least one selected tag must be present in itemTags
+          tagMatch = Array.from(selectedTags).some(tag => itemTags.includes(tag));
+        }
+      }
+
+      // 2. Keyword Match
+      let keywordMatch = true;
+      if (searchQuery) {
+        const title = item.getAttribute('data-title') || '';
+        keywordMatch = title.includes(searchQuery);
+      }
+
+      return tagMatch && keywordMatch;
+    });
+
+    // Recalculate pagination properties
+    totalItems = filteredItems.length;
+    totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    
+    // Hide all items first
+    allItems.forEach(item => item.style.display = 'none');
+    
+    // Reset query page to 1
+    setPageUrl(1);
+    render(1);
   }
 
   function getCurrentPage() {
