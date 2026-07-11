@@ -37,7 +37,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
   
   // State for filtering
   let selectedTags = new Set();
-  let matchMode = 'AND'; // 'AND' or 'OR'
+  let matchMode = 'OR'; // Multi-select defaults to OR logic
   let searchQuery = '';
 
   // 1. Gather all unique tags and count their frequency
@@ -84,13 +84,13 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
 
   function renderTagDropdown(tagContainer, tags, counts) {
     tagContainer.innerHTML = '';
-    tagContainer.className = 'relative inline-block text-left';
+    tagContainer.className = 'relative inline-block w-full';
     
     // Create Dropdown Button
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'tag-dropdown-btn';
-    btn.className = 'inline-flex w-48 justify-between items-center gap-x-1.5 rounded bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm border border-gray-300 hover:bg-gray-50 cursor-pointer focus:outline-none';
+    btn.className = 'inline-flex w-full justify-between items-center gap-x-1.5 rounded bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm border border-gray-300 hover:bg-gray-50 cursor-pointer focus:outline-none';
     btn.innerHTML = `
       <span>篩選標籤 (<span id="selected-count">0</span>)</span>
       <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" id="dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -102,26 +102,11 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     // Create Dropdown Menu Wrapper
     const menu = document.createElement('div');
     menu.id = 'tag-dropdown-menu';
-    menu.className = 'hidden absolute left-0 z-50 mt-2 w-72 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none p-4 transition-all duration-200 opacity-0 scale-95';
-    menu.style.transformOrigin = 'top left';
+    menu.className = 'hidden absolute right-0 z-50 mt-2 w-72 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none p-4 transition-all duration-200 opacity-0 scale-95';
+    menu.style.transformOrigin = 'top right';
     
-    // Dropdown Content
+    // Dropdown Content (AND/OR logic toggles removed for minimalism)
     menu.innerHTML = `
-      <!-- Logic Mode Toggle -->
-      <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
-        <span class="text-xs font-bold text-gray-500">比對模式：</span>
-        <div class="flex items-center gap-3">
-          <label class="inline-flex items-center text-xs font-semibold text-gray-700 cursor-pointer">
-            <input type="radio" name="matchMode" value="AND" checked class="mr-1.5 text-primary focus:ring-primary cursor-pointer">
-            全部符合 (AND)
-          </label>
-          <label class="inline-flex items-center text-xs font-semibold text-gray-700 cursor-pointer">
-            <input type="radio" name="matchMode" value="OR" class="mr-1.5 text-primary focus:ring-primary cursor-pointer">
-            任一符合 (OR)
-          </label>
-        </div>
-      </div>
-      
       <!-- Checkbox List -->
       <div class="max-h-60 overflow-y-auto space-y-2 pr-1" id="tag-checkbox-list">
       </div>
@@ -210,15 +195,6 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
       });
     });
 
-    // Match mode (radio) change listener
-    const matchRadios = menu.querySelectorAll('input[name="matchMode"]');
-    matchRadios.forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        matchMode = e.target.value;
-        applyFilters();
-      });
-    });
-
     // Clear all button click listener
     const clearBtn = menu.querySelector('#clear-tags-btn');
     clearBtn.addEventListener('click', () => {
@@ -233,7 +209,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
 
   function renderSearchBox(searchContainer) {
     searchContainer.innerHTML = `
-      <div class="relative w-full max-w-xs">
+      <div class="relative w-full">
         <input type="search" id="search-input" placeholder="搜尋文章標題..." class="w-full rounded border border-gray-300 bg-white px-3 py-2 pr-10 text-sm focus:border-primary focus:outline-none text-gray-800 shadow-sm">
         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
           <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
