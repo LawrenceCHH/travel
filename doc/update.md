@@ -18,7 +18,7 @@
 - [x] 更新 `.github/workflows/pages.yml` 部署流程為 Node/Vite 專屬版本，改為監聽 `main` 分支並打包 `dist` 部署
 - [x] 調整建議頁面觸發與介面設計：導覽列移除建議頁籤，改由頁尾信件按鈕跳轉，表單姓名改為暱稱、移除電話欄位並優化置中版面
 - [x] 新增三種不同風格的演示文章（學術版、旅遊隨筆、技術文章），整合自訂配圖與其排版樣式
-- [ ] 將 GitHub Pages 設定 (Settings) → 來源 (Source) 切換至 "GitHub Actions"（若是首次部署）
+- [x] 將 GitHub Pages 設定 (Settings) → 來源 (Source) 切換至 "GitHub Actions"（若是首次部署）
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
@@ -26,6 +26,14 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-12 — 解決 GitHub Pages 部署環境保護限制與更新 Node.js 版本
+
+*   **GitHub Pages 部署設定說明**：
+    *   指出因 GitHub Pages 環境保護規則（Environment Protection Rules）阻擋 `main` 分支部署至 `github-pages` 環境的問題。
+    *   解決方案為使用者需至 GitHub 儲存庫 Web 介面的 **Settings** -> **Pages**，將 **Build and deployment -> Source** 切換成 **"GitHub Actions"**，即可授權工作流直接部署。
+*   **工作流 Node.js 版本更新**：
+    *   將 [pages.yml](file:///home/lawrencechh/j/travel/.github/workflows/pages.yml) 中的 `node-version` 升級為 `22`，以因應 Node 20 棄用警示。
 
 ### 2026-07-12 — 新增三類風格排版演示文章（HTML 加強版與純 Markdown 對照版）
 

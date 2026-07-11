@@ -147,3 +147,22 @@ posts/
     `posts/detail.html` 作為唯一的通用文章內頁，在載入時透過 `marked.js` 對 Markdown 文章原始碼進行即時轉譯。在轉譯前，利用正則表達式剝離 Jekyll 遺留的 Front Matter 區塊，並支持原始 HTML 與 Markdown 文章格式的雙重相容。
 5.  **PWA 靜態資源預快取防刷 (swPrecachePlugin)**：
     由於 Vite 打包後的 CSS/JS 檔名會帶有隨機雜湊碼（例如 `tailwind-XyZ123.css`），為了讓 Service Worker (`sw.js`) 能夠精確預快取這些資源以供離線訪問，自訂了 Vite 插件 `swPrecachePlugin`，在 Vite 完成 Bundling 後，動態將帶有雜湊值的資源名稱取代並更新至 `dist/sw.js` 的預快取陣列中。
+
+---
+
+## GitHub Pages 部署設定指引
+
+由於本專案採用自訂的 GitHub Actions 工作流（監聽 `main` 工作分支）來建置並部署至 GitHub Pages，若遇到 `Branch "main" is not allowed to deploy to github-pages due to environment protection rules` 錯誤，請前往 GitHub 儲存庫網頁端進行以下兩項設定：
+
+### 1. 切換 Pages 部署來源為 GitHub Actions
+1. 進入 GitHub 專案網頁，點選 **Settings** (設定) 頁籤。
+2. 在左側選單點選 **Pages**。
+3. 尋找 **Build and deployment** -> **Source**，將下拉選單從 `Deploy from a branch` 切換成 **`GitHub Actions`**。
+
+### 2. 設定 Environment 允許非預設分支部署
+當 GitHub 儲存庫的預設分支（Default branch）為 `master`，但您的開發/部署工作分支為 `main` 時，GitHub Pages 預設的環境保護規則會阻擋非預設分支的部署。
+1. 在專案 **Settings** 頁面，點選左側選單的 **Environments**。
+2. 點選進入 **`github-pages`** 環境設定。
+3. 找到 **Deployment branches and tags** 區塊：
+   * **選項 A（推薦）**：變更限制為 **All branches**，允許任何分支運行工作流進行部署。
+   * **選項 B**：維持 **Selected branches**，但點選 **Add deployment branch rule**，手動輸入並新增 **`main`** 分支以授權其部署。
