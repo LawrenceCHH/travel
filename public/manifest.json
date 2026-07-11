@@ -5,8 +5,8 @@
   "start_url": "/travel/",
   "scope": "/travel/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0085a1",
+  "background_color": "#F3F3F3",
+  "theme_color": "#343434",
   "icons": [
     {
       "src": "/travel/img/icons/icon-192.png",

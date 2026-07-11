@@ -90,10 +90,10 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'tag-dropdown-btn';
-    btn.className = 'inline-flex w-full justify-between items-center gap-x-1.5 rounded bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm border border-gray-300 hover:bg-gray-50 cursor-pointer focus:outline-none';
+    btn.className = 'inline-flex w-full justify-between items-center gap-x-1.5 rounded bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm border border-sand hover:bg-sand/30 cursor-pointer focus:outline-none';
     btn.innerHTML = `
       <span>篩選標籤 (<span id="selected-count">0</span>)</span>
-      <svg class="h-4 w-4 text-gray-400 transition-transform duration-200" id="dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <svg class="h-4 w-4 text-muted-text transition-transform duration-200" id="dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
       </svg>
     `;
@@ -112,9 +112,9 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
       </div>
       
       <!-- Footer actions (Clear on left, Confirm on right) -->
-      <div class="flex items-center justify-between border-t border-gray-100 pt-3 mt-3">
-        <button type="button" id="clear-tags-btn" class="text-xs font-bold text-gray-500 hover:text-primary cursor-pointer focus:outline-none">清除標籤</button>
-        <button type="button" id="confirm-tags-btn" class="text-xs font-bold text-gray-500 hover:text-primary cursor-pointer focus:outline-none">確定</button>
+      <div class="flex items-center justify-between border-t border-sand pt-3 mt-3">
+        <button type="button" id="clear-tags-btn" class="text-xs font-bold text-muted-text hover:text-primary cursor-pointer focus:outline-none">清除標籤</button>
+        <button type="button" id="confirm-tags-btn" class="text-xs font-bold text-muted-text hover:text-primary cursor-pointer focus:outline-none">確定</button>
       </div>
     `;
     tagContainer.appendChild(menu);
@@ -124,13 +124,13 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     // Populate Checkbox List
     tags.forEach(tag => {
       const label = document.createElement('label');
-      label.className = 'flex items-center justify-between text-xs font-semibold text-gray-700 cursor-pointer hover:bg-gray-50 p-1.5 rounded transition-colors duration-150';
+      label.className = 'flex items-center justify-between text-xs font-semibold text-ink cursor-pointer hover:bg-sand/30 p-1.5 rounded transition-colors duration-150';
       label.innerHTML = `
         <span class="flex items-center gap-2">
           <input type="checkbox" value="${tag}" class="tag-checkbox rounded text-primary focus:ring-primary cursor-pointer">
           <span>${tag}</span>
         </span>
-        <span class="text-gray-400 font-mono">(${counts[tag]})</span>
+        <span class="text-muted-text font-mono">(${counts[tag]})</span>
       `;
       checkboxList.appendChild(label);
     });
@@ -213,7 +213,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
   function renderSearchBox(searchContainer) {
     searchContainer.innerHTML = `
       <div class="w-full">
-        <input type="text" id="search-input" placeholder="搜尋標題... 🔍" class="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none text-gray-800 shadow-sm">
+        <input type="text" id="search-input" placeholder="搜尋標題... 🔍" class="w-full rounded border border-sand bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none text-ink shadow-sm">
       </div>
     `;
 

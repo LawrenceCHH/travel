@@ -7,10 +7,10 @@
   <link rel="manifest" href="/travel/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/travel/img/icons/icon.svg">
   <link rel="apple-touch-icon" href="/travel/img/icons/icon-192.png">
-  <meta name="theme-color" content="#0085a1">
+  <meta name="theme-color" content="#343434">
   <link rel="stylesheet" href="/assets/tailwind.css">
 </head>
-<body class="bg-white text-gray-900">
+<body>
   <div id="navbar-placeholder"></div>
 
   <!-- Page Header -->
@@ -27,7 +27,7 @@
   <div class="mx-auto max-w-3xl px-5">
     <!-- Home Post List Container -->
     <div id="posts-container" class="space-y-4">
-      <p class="text-center text-gray-500 py-8">文章載入中...</p>
+      <p class="text-center text-muted-text py-8">文章載入中...</p>
     </div>
 
     <!-- Pagination Container -->
@@ -50,7 +50,7 @@
         
         posts.forEach(post => {
           const article = document.createElement('article');
-          article.className = 'post-preview post-card border-b border-gray-100 pb-6 mb-6';
+          article.className = 'post-preview post-card border-b border-sand pb-6 mb-6';
           
           const dateObj = new Date(post.date);
           const formattedDate = isNaN(dateObj.getTime()) 
@@ -59,10 +59,10 @@
 
           article.innerHTML = `
             <a href="${base}posts/detail.html?id=${post.id}">
-              <h2 class="post-title text-2xl font-bold text-gray-900 hover:text-primary transition-colors duration-150">${post.title}</h2>
-              <h3 class="post-subtitle text-lg font-normal text-gray-500 mt-1">${post.subtitle || ''}</h3>
+              <h2 class="post-title text-2xl font-bold text-ink hover:text-primary transition-colors duration-150">${post.title}</h2>
+              <h3 class="post-subtitle text-lg font-normal text-muted-text mt-1">${post.subtitle || ''}</h3>
             </a>
-            <p class="post-meta text-sm text-gray-600 mt-3">
+            <p class="post-meta text-sm text-muted-text mt-3">
               ${formattedDate} &middot; <span class="reading-time" title="預估閱讀時間">${post.readTime}</span>
             </p>
           `;

@@ -7,7 +7,7 @@
 ## 技術棧
 
 *   **建置工具**：Vite (v5)
-*   **CSS 框架**：Tailwind CSS v4（CSS 優先配置，無 `tailwind.config.js`），使用 `@tailwindcss/vite` 插件打包
+*   **CSS 框架**：Tailwind CSS v4（CSS 優先配置，無 `tailwind.config.js`），使用 `@tailwindcss/vite` 插件打包，並以 `@plugin "@tailwindcss/typography"` 提供文章內文（`.prose`）排版
 *   **Markdown 解析**：用戶端使用 `marked.js` CDN 解譯，後端 (Node) 建置時計算字數與閱讀時間
 *   **PWA 支援**：`public/manifest.json` 與 `public/sw.js`，包含打包時自動更新雜湊資源快取的機制
 *   **部署**：GitHub Actions → GitHub Pages (發布 `dist/` 目錄，監聽 `main` 分支)
@@ -113,7 +113,7 @@ assets/
   fonts/                       自我託管的 Lora + Open Sans 字型 (woff2)
 public/
   components/                  共用佈局元件
-    navbar.html                動態載入的導覽列
+    navbar.html                動態載入的導覽列（文字 wordmark Logo + 目錄連結）
     footer.html                動態載入的頁尾
   data/
     posts.json                 由 scripts 自動生成的文章索引元資料檔（已被 gitignore）
@@ -145,7 +145,36 @@ posts/
     為了避免在每個獨立 HTML 頁面中複製重複的導覽列與頁尾，透過 `assets/scripts.js` 在網頁載入時動態 `fetch()` 共用的元件 HTML 並置換 placeholder，同時透過 URL 比對來動態將目前頁面選單項目標記為啟用狀態。
 4.  **Markdown 動態編譯與 Front Matter 剝離**：
     `posts/detail.html` 作為唯一的通用文章內頁，在載入時透過 `marked.js` 對 Markdown 文章原始碼進行即時轉譯。在轉譯前，利用正則表達式剝離 Jekyll 遺留的 Front Matter 區塊，並支持原始 HTML 與 Markdown 文章格式的雙重相容。
-5.  **PWA 靜態資源預快取防刷 (swPrecachePlugin)**：
+5.  **視覺設計系統（2026-07-12 改版）**：
+    網站風格定位為「簡潔、乾淨、高雅」，設計 Token 全部定義於 `assets/tailwind.css` 的
+    `@theme` 區塊：
+    *   **色彩**：捨棄舊有青藍色主題色 `#0085a1`，改用中性沉穩色系——
+        `--color-ink (#343434)` 標題/主要文字、`--color-muted (#8E8B82)` 僅供邊框/分隔線/
+        裝飾底色（不可用於內文文字）、`--color-muted-text (#6E6B62)` 供內文級次要文字
+        （meta、副標、版權宣告，對白/paper 底對比約 5:1 通過 WCAG AA）、`--color-sand
+        (#E9DCBE)` 米色 hover 底/標籤底、`--color-paper (#F3F3F3)` 頁面整體底色、
+        `--color-primary (#6B4A34)` 由米色系推導的咖啡色強調色（CTA/連結/hover，對比已驗證
+        通過 AA）。
+    *   **字體分工**：大字級展示型標題（Hero、文章標題、Nav wordmark）用已內建但先前未使用
+        的 Lora 襯線字體建立編輯雜誌感；小字級高資訊密度的 UI（表格、按鈕、標籤、導覽次要
+        連結）維持 Open Sans 無襯線以確保清晰度。中文字重僅使用 400/700（因自架字型檔只有
+        這兩種字重），標題不加 `tracking-tight`/`tracking-wide` 等字距 utility——這類拉丁
+        排版習慣套用在全形中文字上會造成擠字或鬆散，不符合 CJK 排版慣例。
+    *   **已知限制（刻意取捨）**：中文標題目前仍會 fallback 到作業系統內建的中文襯線字型
+        （macOS Songti/Windows 新細明體），多數 Android 裝置無內建中文襯線會退回無襯線字體，
+        跨平台呈現不完全一致。這是為了維持 PWA 離線能力與零外部字型依賴（不引入 Google
+        Fonts CDN）而做的刻意權衡，未來如需求更一致的跨裝置襯線效果，需自行 subset 打包
+        Noto Serif TC 字型檔並承擔額外資源體積。
+    *   **文章內文排版**：安裝 `@tailwindcss/typography` 外掛處理 Markdown 渲染出的標題、
+        清單、表格、code block、blockquote 等元素樣式，透過官方 `--tw-prose-*` CSS 變數
+        覆寫配色（見 `.prose` 區塊），而非手刻各元素選擇器，降低未來新文章格式若用到外掛
+        涵蓋範圍的維護成本。`posts/detail.html` 在 Markdown/HTML 雙格式渲染完成後，額外用
+        JS 為每個 `<table>` 動態包一層 `overflow-x-auto` 容器，避免窄螢幕表格撐破版面
+        （typography 外掛本身不會自動處理表格橫向捲動）。
+    *   **Navbar**：拿掉原本的房屋 SVG 圖示，改為純文字 wordmark「旅遊指南」（serif、
+        `font-bold`），維持只有 2 個導覽項目（首頁 Logo + 目錄）的極簡資訊架構，sticky nav
+        改用 `bg-white/90 backdrop-blur-sm` 毛玻璃效果。
+6.  **PWA 靜態資源預快取防刷 (swPrecachePlugin)**：
     由於 Vite 打包後的 CSS/JS 檔名會帶有隨機雜湊碼（例如 `tailwind-XyZ123.css`），為了讓 Service Worker (`sw.js`) 能夠精確預快取這些資源以供離線訪問，自訂了 Vite 插件 `swPrecachePlugin`，在 Vite 完成 Bundling 後，動態將帶有雜湊值的資源名稱取代並更新至 `dist/sw.js` 的預快取陣列中。
 
 ---

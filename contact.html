@@ -7,10 +7,10 @@
   <link rel="manifest" href="/travel/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/travel/img/icons/icon.svg">
   <link rel="apple-touch-icon" href="/travel/img/icons/icon-192.png">
-  <meta name="theme-color" content="#0085a1">
+  <meta name="theme-color" content="#343434">
   <link rel="stylesheet" href="/assets/tailwind.css">
 </head>
-<body class="bg-white text-gray-900">
+<body>
   <div id="navbar-placeholder"></div>
 
   <!-- Page Header -->
@@ -25,19 +25,19 @@
   </header>
 
   <div class="mx-auto max-w-xl px-5 py-8">
-    <p class="mb-6 text-gray-700 text-center">想要提供建議嗎？請填寫下方的表單送出您的建議，我會盡快回覆您！</p>
+    <p class="mb-6 text-muted-text text-center">想要提供建議嗎？請填寫下方的表單送出您的建議，我會盡快回覆您！</p>
     <form name="sentMessage" id="contactForm" class="space-y-5">
       <div>
-        <label for="name" class="mb-1 block font-sans text-sm font-bold text-gray-800">您的暱稱</label>
-        <input type="text" name="name" class="w-full border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入暱稱" id="name" required>
+        <label for="name" class="mb-1 block font-sans text-sm font-bold text-ink">您的暱稱</label>
+        <input type="text" name="name" class="w-full border border-sand px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入暱稱" id="name" required>
       </div>
       <div>
-        <label for="email" class="mb-1 block font-sans text-sm font-bold text-gray-800">電子郵件信箱</label>
-        <input type="email" name="email" class="w-full border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入電子郵件" id="email" required>
+        <label for="email" class="mb-1 block font-sans text-sm font-bold text-ink">電子郵件信箱</label>
+        <input type="email" name="email" class="w-full border border-sand px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入電子郵件" id="email" required>
       </div>
       <div>
-        <label for="message" class="mb-1 block font-sans text-sm font-bold text-gray-800">建議內容</label>
-        <textarea rows="5" name="message" class="w-full border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入您想對我說的話..." id="message" required></textarea>
+        <label for="message" class="mb-1 block font-sans text-sm font-bold text-ink">建議內容</label>
+        <textarea rows="5" name="message" class="w-full border border-sand px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入您想對我說的話..." id="message" required></textarea>
       </div>
       <div id="success"></div>
       <div>

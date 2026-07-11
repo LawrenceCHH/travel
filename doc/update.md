@@ -19,13 +19,80 @@
 - [x] 調整建議頁面觸發與介面設計：導覽列移除建議頁籤，改由頁尾信件按鈕跳轉，表單姓名改為暱稱、移除電話欄位並優化置中版面
 - [x] 新增三種不同風格的演示文章（學術版、旅遊隨筆、技術文章），整合自訂配圖與其排版樣式
 - [x] 將 GitHub Pages 設定 (Settings) → 來源 (Source) 切換至 "GitHub Actions"（若是首次部署）
+- [x] 視覺與排版全面改版：設計 Token 系統化（新中性色票 + 咖啡強調色）、標題改用襯線字體、
+      Navbar 改為文字 Logo、文章內文導入 `@tailwindcss/typography` 排版、修正表格 RWD 溢出問題
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
 
 ---
 
+## 未來建議修改方向
+
+以下項目在本次視覺改版過程中被發現或討論過，但刻意排除在本次範圍之外（多數是使用者
+明確選擇不做，或屬於需要額外評估成本的中長期項目），記錄於此供後續排入待辦：
+
+- [ ] **中文襯線字體跨裝置一致性**：目前中文標題襯線僅在有系統內建中文襯線字型（macOS
+      Songti、Windows 新細明體）的裝置上生效，多數 Android 裝置無內建中文襯線會退回無襯線
+      字體。若未來要追求完全一致的跨裝置「編輯雜誌感」，需自行 subset 打包 Noto Serif TC
+      字型檔（僅收錄實際會用到的標題字元，避免全字集體積過大），並更新 `sw.js` 的
+      precache 清單。
+- [ ] **「關於」頁面目前沒有任何入口**：`about.html` 存在且已隨本次改版套用新樣式，但
+      Navbar 與 Footer 都沒有連結指向它，一般使用者無法從導覽找到這個頁面。本次規劃階段
+      有提出「把關於頁連回導覽列」的選項，使用者當時未勾選採用，維持現狀；若未來要恢復
+      這個入口，建議與「是否要幫 Nav 增加手機版漢堡選單」一併評估（見下一項）。
+- [ ] **Navbar 手機版漢堡選單**：`assets/scripts.js` 裡仍保留舊 Jekyll 主題遺留的
+      `toggleNav()` 漢堡選單邏輯（對應 `#navbarResponsive` 元素），但目前 `navbar.html`
+      只有 2 個導覽項目（Logo + 目錄），單排橫向排列在小螢幕也不會擠壓，因此沒有實際啟用。
+      若未來導覽項目增加（例如加回「關於」），需要重新評估是否啟用漢堡選單，或考慮直接
+      移除這段死程式碼。
+- [ ] **Hero 遮罩對比度隨圖片內容浮動**：`.masthead .overlay` 目前用固定的
+      `bg-ink opacity-60` 疊加深色遮罩讓白字可讀，但沒有針對每張背景圖（`bg-index.jpg`、
+      `bg-about.jpg`、`bg-contact.jpg`、`bg-post.jpg` 及各文章自訂 `background`）逐一實測
+      對比度，理論上亮色系背景圖仍可能讓白字可讀性不足，未來新增背景圖時建議留意。
+- [ ] **PWA `sw.js` 的 `CACHE_NAME` 未於本次改版更動**：本次僅調整 CSS/HTML 樣式內容，
+      Vite 的雜湊檔名機制已確保新版 CSS/JS 會被以新檔名快取，但如果之後合併本次改版時
+      發現舊訪客瀏覽器仍顯示改版前的殘留樣式，可依 `CLAUDE.md` 規範手動 bump
+      `sw.js` 的 `CACHE_NAME` 強制失效舊快取。
+- 以下三項為改版前既有的待辦，狀態未變，一併列於此處避免與上方「目前目標」重複追蹤：
+  取得真實 Formspree 表單 ID、更新 `package.json` 專案元數據、替換
+  `your-email@example.com` 佔位信箱（詳見上方「目前目標」清單）。
+
+---
+
 ## 更新歷史
+
+### 2026-07-12 — 視覺與排版全面改版（簡潔高雅風格，色彩/字體系統重構）
+
+由統籌者規劃、Opus（資深 UI/UX 設計師角色）審查、Sonnet（工程師角色）實作的三階段流程完成。
+
+*   **設計方向確認**（產品負責人拍板）：標題採 Lora 襯線字體＋內文維持 Open Sans；主色調從
+    青藍色 `#0085a1` 改為沉穩中性色系；Navbar 加入文字 Logo，維持現有 2 項導覽的極簡架構
+    （不擴充項目、不做手機漢堡選單）。
+*   **Opus 審查發現並修正的兩個規劃遺漏**：
+    1.  中文襯線字體實際上未被載入（僅 Lora 支援拉丁字），多數 Android 裝置無內建中文襯線會
+        fallback 到無襯線字——決議不引入外部 Google Fonts CDN（會破壞 PWA 離線快取架構），
+        改記錄為已知取捨（詳見 `doc/project.md` 視覺設計系統章節）。
+    2.  規劃書原訂的 `--color-muted (#8E8B82)` 若直接用於內文文字，對白/paper 底對比僅
+        ~3.1–3.4:1，未達 WCAG AA 正文標準（4.5:1）。新增專用的 `--color-muted-text (#6E6B62)`
+        token（對比約 5:1）供 meta、副標、版權宣告等內文級文字使用，`--color-muted` 收斂為
+        僅供邊框/分隔線/裝飾底色。
+*   **實際改動**：`assets/tailwind.css`（新色彩/字體 Token、標題與元件樣式、`.prose` 排版
+    客製化）、`package.json`（新增 `@tailwindcss/typography` 依賴）、`public/components/
+    navbar.html`（房屋圖示改文字 wordmark「旅遊指南」、`bg-white/90 backdrop-blur-sm` 毛玻璃
+    nav）、`public/components/footer.html`、5 個入口頁（`index.html`、`about.html`、
+    `contact.html`、`posts/index.html`、`posts/detail.html`，含 `theme-color` meta 更新、
+    `bg-white`/`text-gray-900` 移除改用新 base 樣式、長文閱讀欄改白底卡片區隔 paper 底）、
+    `posts/detail.html`（新增表格 `overflow-x-auto` 動態包裹，修正窄螢幕表格撐破版問題）、
+    `assets/scripts.js`（標籤篩選/搜尋元件顏色 Token 替換）、`public/manifest.json`
+    （`theme_color`/`background_color` 更新）。
+*   **驗證**：`npm run build` 建置成功；用 headless Chromium 對首頁/關於頁/建議頁/文章目錄/
+    文章內頁在 320/375/768/1024/1440 五種寬度實際截圖檢視，確認 Nav wordmark 不與「目錄」
+    擠壓換行、長文白卡與 paper 底色層次正確、表格橫向捲動修正生效（用 `--dump-dom` 確認
+    wrapper 確實包住 `<table>`）。統籌者事後另用乾淨 incognito headless session 重新截圖
+    `posts/index.html` 覆核，排除「目錄」連結顯示咖啡色是否為異常——確認該色是既有的
+    「目前頁面反白」功能（`scripts.js` 依 `currentPath` 比對加上 `text-primary`），非 bug。
+*   完整施工清單與 Opus 審查意見存檔於本次任務的暫存規劃書中（未納入版控，供追溯決策脈絡）。
 
 ### 2026-07-12 — 解決 GitHub Pages 部署環境保護限制與更新 Node.js 版本
 

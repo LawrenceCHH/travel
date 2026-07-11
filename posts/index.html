@@ -7,10 +7,10 @@
   <link rel="manifest" href="/travel/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/travel/img/icons/icon.svg">
   <link rel="apple-touch-icon" href="/travel/img/icons/icon-192.png">
-  <meta name="theme-color" content="#0085a1">
+  <meta name="theme-color" content="#343434">
   <link rel="stylesheet" href="/assets/tailwind.css">
 </head>
-<body class="bg-white text-gray-900">
+<body>
   <div id="navbar-placeholder"></div>
 
   <!-- Page Header -->
@@ -36,7 +36,7 @@
       <table class="w-full text-left border-collapse my-6">
         <tbody id="archive-table-body">
           <tr>
-            <td class="py-8 text-center text-gray-500" colspan="2">目錄載入中...</td>
+            <td class="py-8 text-center text-muted-text" colspan="2">目錄載入中...</td>
           </tr>
         </tbody>
       </table>
@@ -62,7 +62,7 @@
         
         posts.forEach(post => {
           const tr = document.createElement('tr');
-          tr.className = 'archive-row border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150';
+          tr.className = 'archive-row border-b border-sand hover:bg-sand/30 transition-colors duration-150';
           tr.setAttribute('data-tags', post.tags.join(','));
           
           const dateObj = new Date(post.date);
@@ -71,16 +71,16 @@
             : `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 
           const tagsHtml = post.tags.length > 0
-            ? `<div class="truncate text-xs text-gray-500 w-full" title="${post.tags.join(', ')}">
+            ? `<div class="truncate text-xs text-muted-text w-full" title="${post.tags.join(', ')}">
                 ${post.tags.map(tag => `<span class="mr-2">#${tag}</span>`).join('')}
                </div>`
             : '';
 
           tr.innerHTML = `
-            <td class="py-3 px-4 text-gray-600 font-mono text-sm w-1/4">${formattedDate}</td>
+            <td class="py-3 px-4 text-muted-text font-mono text-sm w-1/4">${formattedDate}</td>
             <td class="py-3 px-4">
               <div class="flex flex-col gap-1 w-full max-w-[180px] sm:max-w-[300px] md:max-w-[400px] lg:max-w-[500px]">
-                <a class="text-gray-900 font-bold hover:text-primary no-underline" href="${base}posts/detail.html?id=${post.id}">${post.title}</a>
+                <a class="text-ink font-bold hover:text-primary no-underline" href="${base}posts/detail.html?id=${post.id}">${post.title}</a>
                 ${tagsHtml}
               </div>
             </td>

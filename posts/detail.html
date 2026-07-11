@@ -7,12 +7,12 @@
   <link rel="manifest" href="/travel/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/travel/img/icons/icon.svg">
   <link rel="apple-touch-icon" href="/travel/img/icons/icon-192.png">
-  <meta name="theme-color" content="#0085a1">
+  <meta name="theme-color" content="#343434">
   <link rel="stylesheet" href="/assets/tailwind.css">
   <!-- marked.js CDN 用於解析 markdown -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
-<body class="bg-white text-gray-900">
+<body>
   <div id="navbar-placeholder"></div>
 
   <!-- Page Header -->
@@ -31,12 +31,12 @@
   </header>
 
   <!-- Post Content -->
-  <article class="mx-auto max-w-3xl px-5 py-8">
+  <article class="mx-auto max-w-3xl px-5 py-8 my-4 bg-white">
     <div id="post-content" class="prose max-w-none">
-      <p class="text-center text-gray-500 py-12">文章內容載入中...</p>
+      <p class="text-center text-muted-text py-12">文章內容載入中...</p>
     </div>
-    
-    <hr class="my-8 border-gray-200">
+
+    <hr class="my-8 border-sand">
 
     <!-- Navigation -->
     <div class="flex justify-between items-center my-8">
@@ -127,6 +127,14 @@
           // HTML 文章檔直接注入
           contentContainer.innerHTML = cleanContent;
         }
+
+        // 8b. 表格橫向捲動修正：避免窄螢幕被撐破版
+        contentContainer.querySelectorAll('table').forEach(table => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'overflow-x-auto';
+          table.parentNode.insertBefore(wrapper, table);
+          wrapper.appendChild(table);
+        });
 
         // 9. 上下一篇導覽 (Jekyll 排序為新到舊，即 posts[0] 最新)
         // 舊文章 (Previous) 在 posts 陣列 index + 1，新文章 (Next) 在 index - 1

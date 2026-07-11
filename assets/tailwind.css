@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @font-face {
   font-family: "Lora";
@@ -32,8 +33,13 @@
 @theme {
   --font-serif: "Lora", "Noto Serif TC", "Songti TC", ui-serif, Georgia, "Times New Roman", serif;
   --font-sans: "Open Sans", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
-  --color-primary: #0085a1;
-  --color-primary-dark: #006d85;
+  --color-ink: #343434;         /* 標題、主要內文、深色元件底色 */
+  --color-muted: #8E8B82;       /* 僅用於邊框/分隔線/大面積裝飾底色，不可用於內文文字 */
+  --color-muted-text: #6E6B62;  /* 內文級次要文字專用（meta、副標、版權宣告），對比約 5:1 通過 AA */
+  --color-sand: #E9DCBE;        /* 米色，hover 底色/標籤底/分隔裝飾 */
+  --color-paper: #F3F3F3;       /* 頁面整體底色 */
+  --color-primary: #6B4A34;     /* 咖啡色強調色，CTA/連結/hover，對比已驗證通過 AA */
+  --color-primary-dark: #56392A;
 }
 
 @layer base {
@@ -41,7 +47,8 @@
     font-family: var(--font-sans); /* Use sans-serif for clean, modern Chinese layout */
     font-size: 18px; /* Slightly smaller size for better CJK character density */
     line-height: 1.7; /* Comfortable line-height for Chinese text block reading */
-    color: #212529;
+    color: var(--color-ink);
+    background-color: var(--color-paper);
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -58,7 +65,7 @@
   }
 
   a {
-    color: #212529;
+    color: var(--color-ink);
   }
 
   a:hover, a:focus {
@@ -67,7 +74,7 @@
 
   blockquote {
     font-style: italic;
-    color: #6c757d;
+    color: var(--color-muted-text);
   }
 
   ::selection {
@@ -92,7 +99,7 @@
     @apply relative mb-12 bg-gray-600 bg-cover bg-center;
   }
   .masthead .overlay {
-    @apply absolute inset-0 bg-gray-900 opacity-50;
+    @apply absolute inset-0 bg-ink opacity-60;
   }
   .page-heading,
   .post-heading,
@@ -105,16 +112,16 @@
   }
   .page-heading h1,
   .site-heading h1 {
-    @apply mt-0 font-sans text-4xl font-extrabold md:text-6xl;
+    @apply mt-0 font-serif text-4xl font-bold md:text-6xl;
   }
   .post-heading h1 {
-    @apply mt-0 font-sans text-3xl font-extrabold md:text-5xl;
+    @apply mt-0 font-serif text-3xl font-bold md:text-5xl;
   }
   .subheading {
-    @apply mt-2 block font-sans text-xl font-light leading-tight;
+    @apply mt-2 block font-sans text-xl font-normal leading-tight;
   }
   .post-heading .subheading {
-    @apply mb-6 mt-2 font-semibold;
+    @apply mb-6 mt-2 font-bold;
   }
   .post-heading .meta {
     @apply block font-serif text-lg font-light italic leading-tight;
@@ -125,28 +132,28 @@
 
   /* Section heading used inside post/page body content */
   .section-heading {
-    @apply mt-12 font-sans text-3xl font-bold;
+    @apply mt-12 font-serif text-3xl font-bold;
   }
 
   /* Post list preview (home page) */
   .post-preview > a {
-    @apply text-gray-900 no-underline;
+    @apply text-ink no-underline;
   }
   .post-preview > a:hover,
   .post-preview > a:focus {
     @apply text-primary;
   }
   .post-preview .post-title {
-    @apply mb-2 mt-6 font-sans text-2xl font-extrabold md:text-3xl;
+    @apply mb-2 mt-6 font-serif text-2xl font-bold md:text-3xl;
   }
   .post-preview .post-subtitle {
-    @apply mb-2 font-light;
+    @apply mb-2 font-light text-muted-text;
   }
   .post-preview .post-meta {
-    @apply mt-0 font-serif text-lg italic text-gray-600;
+    @apply mt-0 font-serif text-lg italic text-muted-text;
   }
   .post-preview .post-meta a {
-    @apply text-gray-900 no-underline;
+    @apply text-ink no-underline;
   }
   .post-preview .post-meta a:hover,
   .post-preview .post-meta a:focus {
@@ -154,6 +161,31 @@
   }
 
   .reading-time {
-    @apply text-gray-600;
+    @apply text-muted-text;
+  }
+
+  /* Article body typography — colors delegated to official --tw-prose-* variables */
+  .prose {
+    --tw-prose-body: var(--color-ink);
+    --tw-prose-headings: var(--color-ink);
+    --tw-prose-lead: var(--color-muted-text);
+    --tw-prose-links: var(--color-primary);
+    --tw-prose-bold: var(--color-ink);
+    --tw-prose-counters: var(--color-muted-text);
+    --tw-prose-bullets: var(--color-sand);
+    --tw-prose-hr: var(--color-sand);
+    --tw-prose-quotes: var(--color-ink);
+    --tw-prose-quote-borders: var(--color-sand);
+    --tw-prose-captions: var(--color-muted-text);
+    --tw-prose-code: var(--color-ink);
+    --tw-prose-pre-code: var(--color-paper);
+    --tw-prose-pre-bg: var(--color-ink);
+    --tw-prose-th-borders: var(--color-sand);
+    --tw-prose-td-borders: var(--color-sand);
+    font-family: var(--font-sans);
+  }
+  .prose :where(h1, h2, h3, h4):not(:where([class~="not-prose"] *)) {
+    font-family: var(--font-serif);
+    font-weight: 700;
   }
 }
