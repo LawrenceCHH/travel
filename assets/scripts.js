@@ -433,10 +433,34 @@ document.addEventListener("DOMContentLoaded", function() {
       .catch(err => console.error(err));
   }
 
-  // 3. 註冊 PWA Service Worker
+  // 3. 註冊與清理 PWA Service Worker
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(`${base}sw.js`).catch(err => {
-      console.warn("ServiceWorker registration failed:", err);
-    });
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      // 本地開發環境：自動註銷已存在的 Service Worker，防止快取干擾 Vite HMR
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister().then(function(success) {
+            if (success) {
+              console.log("[Dev Mode] Unregistered legacy service worker to prevent caching issues.");
+              // 清除所有舊快取
+              if ('caches' in window) {
+                caches.keys().then(function(names) {
+                  for (let name of names) {
+                    caches.delete(name);
+                  }
+                });
+              }
+              // 自動重載以載入全新資源
+              window.location.reload();
+            }
+          });
+        }
+      });
+    } else {
+      // 生產環境：正常註冊 Service Worker
+      navigator.serviceWorker.register(`${base}sw.js`).catch(err => {
+        console.warn("ServiceWorker registration failed:", err);
+      });
+    }
   }
 });
