@@ -1,7 +1,7 @@
 ---
 ---
 const BASE = '{{ "/" | relative_url }}';
-const CACHE_NAME = 'clean-blog-v9';
+const CACHE_NAME = 'clean-blog-v10';
 
 const PRECACHE_URLS = [
   BASE,

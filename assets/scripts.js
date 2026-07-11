@@ -210,8 +210,8 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
   function renderSearchBox(searchContainer) {
     searchContainer.innerHTML = `
       <div class="relative w-full">
-        <input type="search" id="search-input" placeholder="搜尋文章標題..." class="w-full rounded border border-gray-300 bg-white px-3 py-2 pr-10 text-sm focus:border-primary focus:outline-none text-gray-800 shadow-sm">
-        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+        <input type="text" id="search-input" placeholder="搜尋文章標題..." class="w-full rounded border border-gray-300 bg-white px-3 py-2 pr-10 text-sm focus:border-primary focus:outline-none text-gray-800 shadow-sm">
+        <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
           <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
