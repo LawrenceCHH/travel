@@ -114,6 +114,11 @@
 *   內容整合自 `assets/tailwind.css` 現行 `@theme`、`public/components/*.html` 與各頁
     markup，並交叉引用 `project.md` 第 5 節設計決策與本檔更新歷史。純文件新增，未動任何
     程式碼／建置／PWA 快取。
+*   **補強（讓接手 agent 能安全動手，非只是理解）**：新增 A11「用邊框分層不用陰影」
+    準則；新增 C 區「新元件配方」（卡片／CTA／標籤／圖示／焦點態照抄範本）、D 區「操作鏈：
+    如何讓樣式改動真正生效」（tailwind.css→build:css、main.css 為 gitignored 不可直接改、
+    bump `CACHE_NAME`）、E 區「反模式與已否決方向」（含 dark mode 已被使用者推翻、Canvas
+    動態遮罩／雙階 surface／TOC X 鈕等刻意不做項，避免重走冤枉路）。
 
 ### 2026-07-12 — 恢復頁尾連結圓圈與修正文章詳細頁閱讀時間字色
 
