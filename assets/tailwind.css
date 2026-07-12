@@ -151,6 +151,12 @@
   .post-heading .meta a {
     @apply text-hero-text underline;
   }
+  .post-heading .reading-time {
+    @apply text-hero-text;
+  }
+  .post-heading #post-tags span {
+    @apply inline-flex items-center rounded-full border border-hero-text/30 bg-hero-text/10 px-2.5 py-0.5 text-xs text-hero-text font-normal transition-colors duration-150 hover:bg-hero-text/20;
+  }
 
   /* Section heading used inside post/page body content */
   .section-heading {

@@ -211,6 +211,9 @@ posts/
         **現行值**：配色改版後不透明度再調到 `0.78`、文字改用專屬的
         `--color-hero-text (#F4ECDD)` 而非 `--color-ink`，遮罩色固定綁 `bg-ink`（不可
         綁 `bg-paper`，因為 `--color-paper` 現在是白色），詳見上方「配色改版」段落。
+        同時，修正了文章詳細頁 Hero section 內閱讀時間（`.reading-time`）因為全域繼承樣式而顯示為暗灰色的問題（改為強制使用 `text-hero-text`），
+        並將 Hero 內的標籤（`#post-tags span`）重新設計為專屬的半透明 pill 樣式（`border-hero-text/30 bg-hero-text/10 text-hero-text text-xs`），
+        兼顧視覺設計層次與高對比無障礙規格。
 6.  **目錄頁篩選/搜尋互動細節（2026-07-12 修正）**：
     *   **標籤篩選下拉選單定位**：`assets/scripts.js` 的 `renderTagDropdown()` 選單錨點採
         `left-0`（而非 `right-0`）並搭配 `w-64 max-w-[calc(100vw-2.5rem)]`。原因是按鈕

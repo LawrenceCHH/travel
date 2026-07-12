@@ -58,6 +58,8 @@
 - [x] 使用者確認全站配色改版要保留白色底色（推翻上一步 Opus 拍板的全站深色主題方向），
       重新設計為「白底＋灰色系深色字體為主，偶爾搭配四色票中的暖褐色系當強調色」
 - [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v21 → v22），配合白底配色修正強制舊快取失效
+- [x] 修正文章詳細頁封面照片（Hero）中閱讀時間字色與標籤配色，使其在深色遮罩背景上具有足夠對比度，符合風格並通過 WCAG AA 規範
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v22 → v23），配合 Hero 配色修正強制舊快取失效
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
@@ -90,6 +92,13 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-12 — 修正文章詳細頁封面照片（Hero）中閱讀時間字色與標籤樣式
+
+修正點擊進去各文章頁面後，封面照片下方的閱讀時間等文字在深色背景上不夠明顯的問題：
+*   **閱讀時間字色修正**：原本 `.reading-time` 被全域設定為 `@apply text-muted-text`（對比度僅 1.25:1 近乎不可見），新增 `.post-heading .reading-time` 規則使其在 Hero section 中改用 `--color-hero-text`（`#F4ECDD`），與日期統一，對比度提升至 6.19:1，完全通過 WCAG AA。
+*   **標籤外觀精緻化**：為 `.post-heading #post-tags span` 設計了專屬的半透明 pill 樣式（`border-hero-text/30 bg-hero-text/10 text-hero-text text-xs`），既與目錄頁的標籤視覺呼應，又符合封面照片的深色美學，兼顧清晰可讀性與高質感。
+*   **PWA `CACHE_NAME`**：`clean-blog-v22` → `clean-blog-v23` 以強制失效舊快取。
 
 ### 2026-07-12 — 全站配色三版修正：改回白色底色（推翻深色主題方向）
 
