@@ -49,6 +49,15 @@
 - [x] TOC 錨點跳轉改為平滑捲動動畫（`scrollIntoView({behavior:'smooth'})`），取代瀏覽器
       原生瞬間跳轉，尊重 `prefers-reduced-motion`
 - [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v19 → v20），配合本次修正強制舊快取失效
+- [x] 全站配色改版：由「淺色紙感編輯風格」翻轉為「暖色調深色主題」，四色取自使用者指定
+      色票（#222831/#393E46/#948979/#DFD0B8），設計決策由 Opus（資深 UI/UX 設計師角色）
+      拍板，Sonnet 依規格全站落地實作
+- [x] 重新設計文章封面圖 Hero 遮罩與標題文字配色，確保深色／淺色封面圖兩種最壞情境下
+      標題文字對比皆通過 WCAG AA
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v20 → v21），配合全站配色改版強制舊快取失效
+- [x] 使用者確認全站配色改版要保留白色底色（推翻上一步 Opus 拍板的全站深色主題方向），
+      重新設計為「白底＋灰色系深色字體為主，偶爾搭配四色票中的暖褐色系當強調色」
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v21 → v22），配合白底配色修正強制舊快取失效
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
@@ -81,6 +90,131 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-12 — 全站配色三版修正：改回白色底色（推翻深色主題方向）
+
+上一版（見下方「全站配色改版：暖色調深色主題」條目）由 Opus 判斷「灰色為主導色」應該
+落地為全站深色主題並已實作。使用者實際看過後回饋兩句話：「底色為白色」、「底色為白色，
+深色字體以灰色為主，偶爾搭其他顏色」——明確推翻深色主題方向，改為白底 + 灰階文字為主、
+偶爾點綴暖色的方案（即 Opus 原本分析裡被否決的「淺底方案」，但這次由使用者直接拍板
+採用）。這次由 Sonnet 直接用 Node 手算 WCAG 對比（未再另跑一次 Opus 設計決策，因為是
+單純算術驗證，不需要重新做開放式設計判斷）重新分配 token：
+
+*   **色票拆兩個家族運用**：`#222831`/`#393E46` 這組偏冷的深灰供「灰色為主」的文字使用；
+    `#948979`/`#DFD0B8` 這組偏暖的褐/米供「偶爾搭配的其他顏色」（強調色/邊框/標籤底）
+    使用——賦予四色票明確分工，而非隨機挑用。
+*   **`@theme` 最終值**（`assets/tailwind.css`）：
+    - `--color-paper` / `--color-surface`：`#FFFFFF`（頁面與卡片/導覽列同白，
+      靠 `border-sand` 區隔層次，不做額外的白/近白雙階，避免過度設計）
+    - `--color-ink`：`#222831`（主要文字/標題）
+    - `--color-muted-text`：`#61656B`（由 `#393E46` 淺化衍生，對白底約 5.86:1 通過 AA，
+      比 ink 略淺以建立次要文字的視覺層次）
+    - `--color-muted`：`#888B90`（僅供 disabled 文字，常搭配 `opacity-40` 使用；
+      初版曾誤用更淺的 `#B0B2B5`，實測在 `opacity-40` 疊加下會過於淡到近乎不可見，
+      改用與原始改版前 `--color-muted #8E8B82` 相近的深淺度）
+    - `--color-sand`：`#948979`（色票原色，邊框/分隔線/標籤底/hover 底——偶爾搭配的
+      其他顏色）
+    - `--color-primary` / `--color-primary-dark`：`#6F675B` / `#595249`（由 `#948979`
+      加深衍生的暖褐強調色，對白底雙向皆約 5.57:1 通過 AA，同時滿足「文字疊在白底上」
+      與「白字疊在強調色底上」兩種方向的可讀性）
+    - `--color-hero-text` 維持 `#F4ECDD` 不變
+*   **關鍵陷阱：Hero 遮罩不能跟著 `--color-paper` 翻白**——`.masthead .overlay` 二版時
+    改綁 `bg-paper`（當時 paper 是深色，遮罩才會是深色），這次 `--color-paper` 改回白色
+    後，若沒注意到這個關聯，遮罩會變成蓋在封面圖上的「白色」遮罩，直接讓深色封面圖上的
+    淺色標題文字失去對比，等於重新製造使用者最初詢問的那個問題。已在改 `@theme` 時同步
+    抓出並修正：改綁 `bg-ink`（`--color-ink` 這次仍是深灰 `#222831`，方向正確），遮罩
+    機制與 0.78 不透明度、`--color-hero-text` 皆不受站內底色变化影響，維持獨立。
+*   **`.prose` pre-code/pre-bg 還原引用 token**：二版曾因 ink/paper 語意互換而暫時改用
+    字面值 `#1A1F26`/`#E4D8BF` 繞開衝突；這次 ink（深）/paper（淺）的深淺方向重新回到
+    與改版前一致，直接改回引用 `var(--color-ink)`/`var(--color-paper)` 即可正確運作
+    （深 code 底 + 白 code 字），移除了不必要的字面值特例。
+*   **TOC 抽屜 active tint 重新換算**：`.toc-sheet .toc-link.is-active` 的 rgba tint
+    需要對應新的 `--color-primary` rgb 值，由二版的暖金 `rgba(216,190,150,0.14)`
+    改算為新暖褐 `rgba(111,103,91,0.12)`。
+*   **因為大部分元件（導覽列/頁尾/按鈕/分頁器/下拉選單/表單/TOC 抽屜背景）先前就是
+    引用 token 而非寫死色碼**，這次白底修正只需要動 `@theme` 區塊 + 上述兩個「方向性
+    陷阱」特例，不需要重新逐檔案掃過一遍——這是二版採用「token-first」寫法帶來的直接
+    好處（详见二版條目「因為大部分元件…全站落地」段落）。
+*   **PWA `CACHE_NAME`**：`clean-blog-v21` → `clean-blog-v22`；`manifest.json` 的
+    `background_color`/`theme_color` 與 5 個頁面的 `<meta name="theme-color">` 皆從
+    二版的 `#222831` 改回 `#FFFFFF`。
+*   **驗證**：`npm run build` 成功；用系統內建 chromium headless 重新截圖同一篇深色
+    封面圖文章，確認導覽列/頁面底色已變回白色、內文標題為深灰、TOC 側欄 active 項目
+    呈現暖褐色調，且 Hero 遮罩仍正確維持深色、標題文字仍清楚可讀（未因底色翻白而連帶
+    劣化）。
+
+### 2026-07-12 — 全站配色改版：暖色調深色主題（Opus UI/UX 設計決策 × Sonnet 實作，已被上方白底版本取代）
+
+使用者提供四色色票（`#222831`／`#393E46`／`#948979`／`#DFD0B8`，「灰色為主要代表色」）
+要求全站換色，並詢問文章封面圖 Hero 遮罩在深色封面圖情境下標題文字如何維持可讀性。
+流程：Sonnet 先盤點現有 7 個色彩 token（ink/muted/muted-text/sand/paper/primary/
+primary-dark）在全站的實際用途（導覽列、按鈕、TOC、分頁器、下拉選單、`.prose` 排版、
+Hero 遮罩等）→ 交給 Opus（資深 UI/UX 設計師角色）判斷「灰色主導」的具體落地方向並
+產出逐 token 色碼規格 → Sonnet 依規格實作。
+
+*   **Opus 的方向判斷**：翻轉為「暖色調 moody 深色主題」，而非「淺底僅換強調色」。理由：
+    這組色票明度是連續遞進的一整條深→淺灰階（非「一底色+三點綴」），只有深色方案能讓
+    `#222831`/`#393E46` 這兩個灰真正鋪滿主導畫面，滿足「灰色為主要代表色」；淺底方案
+    會被迫保留白/淺灰當主要 surface，灰色只能退居點綴，與需求矛盾。深色主題也讓 Hero
+    （本來就是「深遮罩+淺字」）與全站語彙一致，順帶解決 Hero 深色封面圖的可讀性問題。
+*   **Token 對照表**（`assets/tailwind.css` `@theme`）：
+    - `--color-paper`：`#F3F3F3` → `#222831`（頁面整體底色，四色中最深階）
+    - `--color-ink`：`#343434` → `#DFD0B8`（主要文字/標題，語意由「深」翻轉為「淺」）
+    - `--color-muted-text`：`#6E6B62` → `#B7AC93`（`#948979` 提亮衍生，對 surface 約
+      4.75:1 過 AA；`#948979` 原色直接當內文字對比不足，故衍生此變體）
+    - `--color-muted`：`#8E8B82` → `#6E7681`（純中性灰，僅供 disabled 文字/裝飾）
+    - `--color-sand`：`#E9DCBE` → `#948979`（色票原色，邊框/分隔線/標籤底/hover 底）
+    - `--color-primary`：`#6B4A34` → `#D8BE96`（`#DFD0B8` 加飽和衍生的暖金，因四色本身
+      沒有能與文字區隔的高彩強調色，連結會糊在內文裡）
+    - `--color-primary-dark`：`#56392A` → `#C4A876`
+    - 新增 `--color-surface: #393E46`（抬升面：導覽列/卡片/下拉選單/TOC 抽屜，取代所有
+      隱含的 `bg-white`；深色主題需要「頁面底」與「抬升卡片」兩階可區分的暗面）
+    - 新增 `--color-hero-text: #F4ECDD`（Hero 遮罩上的標題文字專用，見下）
+*   **深字/淺字連動修正**：`--color-ink`/`--color-paper` 語意翻轉後，任何「深底淺字」
+    寫死用法都要重新檢視方向是否仍成立——`.btn-primary`／分頁器 active 頁／`.toc-fab`
+    圖示／`::selection` 選取文字，這些原本在強調色底上疊「白字」的地方，現在強調色
+    `--color-primary`（暖金）依然是淺色，疊白字對比僅約 1.8:1 不合格，統一改疊
+    `--color-paper`（`#222831` 深字，重用既有 token 而非另開新變數，因為 Opus 給的深字
+    色碼恰好就是 paper 的值）。`--tw-prose-pre-bg`/`--tw-prose-pre-code`（code block 底/
+    字）先前直接引用 `var(--color-ink)`/`var(--color-paper)`，兩者語意翻轉後會讓 code
+    block 顏色對調錯誤，改用獨立字面值 `#1A1F26`/`#E4D8BF`（比頁面更深的底 + 米白字）。
+*   **Hero 遮罩與封面圖文字規格**（回應使用者「深色封面圖字看不清」的提問，見
+    `assets/tailwind.css` `.masthead .overlay`）：遮罩色改用 `--color-paper`
+    （`#222831`），不透明度由 `0.70` 調高到 `0.78`；標題文字不沿用純白，也不用
+    `--color-ink`（`#DFD0B8` 在 0.78 遮罩下對近純白封面圖的最壞情境對比偏緊），改用專屬
+    的 `--color-hero-text`（`#F4ECDD`，比 ink 更亮的暖米白）。這個組合同時扛住兩種最壞
+    情境：近純白封面圖時，遮罩把合成底壓到 L≈0.09，`F4ECDD` 對比約 6:1（一般粗細副標/
+    meta 門檻 4.5:1、大標題門檻 3:1 皆過）；近全黑封面圖時合成底更暗，對比只會更高。
+    `posts/detail.html` Hero 內原本寫死的 `text-white`/`text-gray-200`/`text-gray-300`/
+    `text-blue-200`（標題/副標/meta/標籤的漸層灰階）統一改為 `text-hero-text`，不維持
+    原本「越次要越淡」的透明度階層——刻意選擇不用透明度做層次，因為調低不透明度會直接
+    削弱經過驗證的對比安全邊際，層次改由既有的字級/字重差異（h1 最大最粗、subheading
+    次之、meta 最小）表現即可。維持既有「單層純色遮罩、不做 Canvas 動態偵測圖片明暗」
+    的零運算成本原則，不因換色而改變這個既有架構決策。
+*   **其餘連動元件**（逐一過 Opus 規格表落地）：
+    - 導覽列 `bg-white/90` → `bg-surface/90`（`navbar.html`）
+    - 頁尾社群圖示鈕 `bg-ink text-white hover:bg-primary` → `bg-surface text-ink
+      hover:bg-primary hover:text-paper`（`footer.html`，因 ink 已翻轉為淺色，圖示
+      hover 到暖金底時文字也要跟著翻深）
+    - TOC 抽屜背景 `#fff` → `var(--color-surface)`；scrim `rgba(0,0,0,0.25)` 加深到
+      `0.5`（深色頁面上原本的淡遮罩已不足以與底層區隔）；抽屜 `.is-active` 淡咖啡色
+      tint `rgba(107,74,52,0.08)` 改暖金 tint `rgba(216,190,150,0.14)`
+    - 分頁器/下拉選單/搜尋框（`scripts.js`）所有 `bg-white` → `bg-surface`；下拉選單
+      `ring-black ring-opacity-5`（深底上看不見）→ `ring-sand/40`；分頁器 active 頁與
+      TOC FAB 圖示的文字色比照上述「深字」原則改 `text-paper`
+    - `about.html`／`posts/detail.html` 的內文卡片 `bg-white` → `bg-surface`
+    - 新增全站表單控制項 base 規則（`input, textarea, select`）明確指定
+      `background-color: var(--color-surface); color: var(--color-ink)`，否則深色主題下
+      `contact.html` 的輸入框會落回瀏覽器預設白底黑字，與全站色調斷裂
+    - 5 個頁面的 `<meta name="theme-color">` 與 `manifest.json` 的
+      `background_color`/`theme_color`：`#343434`/`#F3F3F3` → 統一 `#222831`
+*   **PWA `CACHE_NAME`**：`clean-blog-v20` → `clean-blog-v21`。
+*   **驗證**：`npm run build` 成功；grep 全站確認無殘留的 `bg-white`/`text-white`/
+    `text-gray-*`/`text-blue-*`/`ring-black`/`#343434`/`bg-ink`；grep 編譯後 CSS 確認
+    `.bg-surface`/`.text-hero-text`/`.text-paper` 新 utility 與 `opacity:.78`
+    （`.masthead .overlay` 的任意值透明度）皆已進 bundle。用系統內建 chromium headless
+    截圖驗證一篇背景圖本身就偏深色（系統架構暗色示意圖）的文章內頁，確認標題／副標／
+    meta／標籤在遮罩上清楚可讀，導覽列/TOC 側欄/文章卡片皆呈現一致的深色調性。
 
 ### 2026-07-12 — TOC 錨點跳轉改為平滑捲動動畫
 

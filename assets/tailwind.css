@@ -33,13 +33,20 @@
 @theme {
   --font-serif: "Lora", "Noto Serif TC", "Songti TC", ui-serif, Georgia, "Times New Roman", serif;
   --font-sans: "Open Sans", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
-  --color-ink: #343434;         /* 標題、主要內文、深色元件底色 */
-  --color-muted: #8E8B82;       /* 僅用於邊框/分隔線/大面積裝飾底色，不可用於內文文字 */
-  --color-muted-text: #6E6B62;  /* 內文級次要文字專用（meta、副標、版權宣告），對比約 5:1 通過 AA */
-  --color-sand: #E9DCBE;        /* 米色，hover 底色/標籤底/分隔裝飾 */
-  --color-paper: #F3F3F3;       /* 頁面整體底色 */
-  --color-primary: #6B4A34;     /* 咖啡色強調色，CTA/連結/hover，對比已驗證通過 AA */
-  --color-primary-dark: #56392A;
+  /* 2026-07-12 三版改版：白底＋灰色為主的深色字體，偶爾搭配四色票中的暖褐色系當強調色
+     （取代二版一度嘗試的全站深色主題——使用者確認要保留白色底色）。
+     四色 #222831/#393E46/#948979/#DFD0B8 拆成兩個家族運用：#222831/#393E46 這組偏冷的
+     深灰供「灰色為主」的文字使用；#948979/#DFD0B8 這組偏暖的褐/米供「偶爾搭配的其他
+     顏色」（強調色/邊框/標籤底）使用。詳見 doc/project.md 設計決策章節。 */
+  --color-ink: #222831;         /* 標題、主要內文——灰色為主的深色字體 */
+  --color-muted-text: #61656B;  /* 次要文字（meta、副標、版權宣告），由 #393E46 淺化衍生，對白底約 5.86:1 通過 AA */
+  --color-muted: #888B90;       /* 淺灰，僅供 disabled 文字／裝飾（常搭配 opacity-40 使用），不可用於一般內文 */
+  --color-sand: #948979;        /* 暖灰褐（色票原色），邊框/分隔線/標籤底/hover 底色——偶爾搭配的其他顏色 */
+  --color-paper: #FFFFFF;       /* 頁面整體底色：白色 */
+  --color-surface: #FFFFFF;     /* 卡片/導覽列/下拉選單/抽屜等「抬升面」底色，與 paper 同白，靠 border-sand 區隔層次 */
+  --color-primary: #6F675B;     /* 由 #948979 加深衍生的暖褐強調色，CTA/連結/hover/TOC active，對白底雙向約 5.57:1 通過 AA */
+  --color-primary-dark: #595249;
+  --color-hero-text: #F4ECDD;   /* 封面圖遮罩上的標題文字專用，與站內底色無關（Hero 一律深遮罩＋淺字），確保深/淺封面圖雙情境都過 AA */
 }
 
 @layer base {
@@ -78,15 +85,24 @@
   }
 
   ::selection {
-    color: #fff;
+    color: var(--color-paper);
     background: var(--color-primary);
+  }
+
+  /* 深色主題下表單控制項需明確指定底色/文字色，否則會落回瀏覽器預設的白底黑字 */
+  input, textarea, select {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+  }
+  input::placeholder, textarea::placeholder {
+    color: var(--color-muted-text);
   }
 }
 
 @layer components {
   /* Buttons */
   .btn-primary {
-    @apply inline-block rounded-none px-6 py-4 font-sans text-sm font-extrabold uppercase tracking-wider text-white;
+    @apply inline-block rounded-none px-6 py-4 font-sans text-sm font-extrabold uppercase tracking-wider text-paper;
     background-color: var(--color-primary);
   }
   .btn-primary:hover,
@@ -98,13 +114,19 @@
   .masthead {
     @apply relative mb-12 bg-gray-600 bg-cover bg-center;
   }
+  /* Hero 遮罩必須維持深色，與全站底色（--color-paper，現為白色）無關——故意固定用
+     --color-ink（#222831，深灰）而非 --color-paper，兩者三版改版前後語意已分岔。
+     0.78 不透明度是用 WCAG 對比公式反推：文字改用比一般內文更亮的 --color-hero-text，
+     在「近乎純白」封面圖最壞情境下仍需 ≥4.5:1（一般粗細副標/meta 門檻），近乎全黑封面圖
+     情境對比只會更高，必然過關。刻意維持單層純色遮罩（不做 Canvas 動態偵測圖片明暗）——
+     零額外運算成本、對任何背景圖一體適用。 */
   .masthead .overlay {
-    @apply absolute inset-0 bg-ink opacity-70;
+    @apply absolute inset-0 bg-ink opacity-[0.78];
   }
   .page-heading,
   .post-heading,
   .site-heading {
-    @apply relative z-10 py-24 text-white md:py-32;
+    @apply relative z-10 py-24 text-hero-text md:py-32;
   }
   .page-heading,
   .site-heading {
@@ -127,7 +149,7 @@
     @apply block font-serif text-lg font-light italic leading-tight;
   }
   .post-heading .meta a {
-    @apply text-white underline;
+    @apply text-hero-text underline;
   }
 
   /* Section heading used inside post/page body content */
@@ -234,7 +256,7 @@
     align-items: center;
     justify-content: center;
     background: var(--color-primary);
-    color: #fff;
+    color: var(--color-paper);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     opacity: 0;
     pointer-events: none;
@@ -254,7 +276,7 @@
     position: fixed;
     inset: 0;
     z-index: 50;
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     opacity: 0;
@@ -270,7 +292,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: #fff;
+    background: var(--color-surface);
     border-radius: 1rem 1rem 0 0;
     max-height: 80vh;
     display: flex;
@@ -307,7 +329,7 @@
     color: var(--color-muted-text);
   }
   .toc-sheet .toc-link.is-active {
-    background: rgba(107, 74, 52, 0.08);
+    background: rgba(111, 103, 91, 0.12);
   }
 
   /* 文章目錄 (Catalog) —— 高雅低調的膠囊標籤 */

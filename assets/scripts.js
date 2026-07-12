@@ -90,7 +90,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'tag-dropdown-btn';
-    btn.className = 'inline-flex w-full justify-between items-center gap-x-1.5 rounded bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm border border-sand hover:bg-sand/30 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-primary';
+    btn.className = 'inline-flex w-full justify-between items-center gap-x-1.5 rounded bg-surface px-3 py-2 text-sm font-semibold text-ink shadow-sm border border-sand hover:bg-sand/30 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-primary';
     btn.innerHTML = `
       <span>篩選標籤 (<span id="selected-count">0</span>)</span>
       <svg class="h-4 w-4 text-muted-text transition-transform duration-200" id="dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -102,7 +102,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     // Create Dropdown Menu Wrapper
     const menu = document.createElement('div');
     menu.id = 'tag-dropdown-menu';
-    menu.className = 'hidden absolute left-0 z-50 mt-2 w-64 max-w-[calc(100vw-2.5rem)] origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none p-4 transition-all duration-200 opacity-0 scale-95';
+    menu.className = 'hidden absolute left-0 z-50 mt-2 w-64 max-w-[calc(100vw-2.5rem)] origin-top-left rounded-md bg-surface shadow-lg ring-1 ring-sand/40 focus:outline-none p-4 transition-all duration-200 opacity-0 scale-95';
     menu.style.transformOrigin = 'top left';
 
     // Dropdown Content (Scrollable checkbox list, capped at roughly 6 items height)
@@ -216,7 +216,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
           <circle cx="11" cy="11" r="7"></circle>
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35"></path>
         </svg>
-        <input type="text" id="search-input" placeholder="標題" class="w-full rounded border border-sand bg-white pl-9 pr-3 py-2 text-sm focus:border-primary focus:outline-none text-ink shadow-sm">
+        <input type="text" id="search-input" placeholder="標題" class="w-full rounded border border-sand bg-surface pl-9 pr-3 py-2 text-sm focus:border-primary focus:outline-none text-ink shadow-sm">
       </div>
     `;
 
@@ -354,9 +354,9 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
         btn.disabled = true;
         baseClass += 'text-muted opacity-40 cursor-not-allowed';
       } else if (isActive) {
-        baseClass += 'bg-primary text-white font-bold cursor-default';
+        baseClass += 'bg-primary text-paper font-bold cursor-default';
       } else {
-        baseClass += 'text-ink bg-white border border-sand hover:bg-sand/30 hover:text-primary active:bg-sand/50';
+        baseClass += 'text-ink bg-surface border border-sand hover:bg-sand/30 hover:text-primary active:bg-sand/50';
       }
 
       btn.className = baseClass;
