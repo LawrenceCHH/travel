@@ -65,6 +65,9 @@
 - [x] 修正文章預覽與 Hero section 內的中英文元資料（meta）排版：去除 CJK 漢字之斜體（`italic`）呈現以解決不對稱歪斜問題，並調小尺寸（`text-sm`）及改為無襯線 `font-sans`（Inter）以確保高資訊密度易讀性
 - [x] 移除專案中未使用的 `Open Sans` 字型檔，縮減成品包體積
 - [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v23 → v24），配合字體與排版修正強制舊快取失效
+- [x] 恢復頁尾建議連結的實心圓形樣式，並配合目前配色 Token 系統（bg-ink / text-paper）
+- [x] 修復文章詳細頁 Hero 區內閱讀時間之字色，使其強制使用 `text-hero-text` 以免被全域暗灰色規則覆蓋導致在深色遮罩下不可見
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v24 → v25），配合本次 CSS 與字色修正強制舊快取失效
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
@@ -97,6 +100,13 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-12 — 恢復頁尾連結圓圈與修正文章詳細頁閱讀時間字色
+
+修復因配色改版與字型重構引入的微觀視覺瑕疵，確保全站細節一致性與可讀性符合無障礙標準：
+*   **頁尾連結圓圈樣式恢復**：先前配色改版中，頁尾的建議跳轉連結背景被改為與頁面底色同白的 `bg-surface`，造成圓圈在日常狀態下「隱形」。現已恢復其實心圓圈外觀，並配合目前設計系統使用 `bg-ink`（深灰，`#222831`）與 `text-paper`（白，`#FFFFFF`）配色 token，Hover 時呈現 `hover:bg-primary`（暖褐）。
+*   **文章詳細頁閱讀時間字色修正**：修復因先前字型重構將 `.post-heading .reading-time` 專屬覆蓋樣式誤刪，導致詳細頁 Hero 內閱讀時間字色繼承全域暗灰色（對比度低至 1.25:1）的問題。加回專屬規則使其強制使用 `text-hero-text`（`#F4ECDD`），在深色 Hero 遮罩下對比度提升至 **6.19:1**，通過 WCAG AA 標準。
+*   **PWA `CACHE_NAME`**：`clean-blog-v24` ➔ `clean-blog-v25` 以強制讀者瀏覽器載入最新樣式。
 
 ### 2026-07-12 — 優化全站字體系統、Hero 副標題與元資料（Meta）排版
 
