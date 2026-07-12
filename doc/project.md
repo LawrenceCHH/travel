@@ -129,7 +129,9 @@ index.html                     首頁
 about.html                     關於我們頁面
 contact.html                   聯絡建議頁面，包含 Formspree 表單提交
 posts/
-  index.html                   文章目錄頁面（橫線列表，每列標題→日期→膠囊標籤垂直堆疊，分頁大小為 100）
+  index.html                   文章目錄頁面（橫線列表，每列標題在上、日期+膠囊標籤同排 meta 帶在下，
+                                分頁大小為 100；篩選列左側即時結果計數、右側標籤篩選+搜尋；
+                                過濾為 0 筆時顯示空狀態提示列）
   detail.html                  通用文章內頁（動態 Fetch 文章、剔除 Front matter、利用 marked 渲染、桌機/手機文章大綱 TOC）
 ```
 
@@ -193,6 +195,34 @@ posts/
         `false`，因為搜尋框位於列表容器上方，若自動捲動到列表頂端會把輸入框推出可視
         範圍；分頁按鈕點擊與瀏覽器上一頁/下一頁（`popstate`）維持預設 `true`，因為那是
         使用者主動的換頁操作，捲動到清單頂端提供正確的視覺錨點。
+    *   **即時結果計數**（2026-07-12 新增）：`initPagination` 內新增 `updateResultCount()`
+        helper，靠 DOM 探測 `#result-count` 是否存在（未改變 `initPagination` 對外呼叫
+        簽名），存在才更新 `textContent = filteredItems.length`；在 `applyFilters()` 與
+        `render()` 兩處呼叫，涵蓋首次載入、篩選、換頁全部情境。`posts/index.html` 篩選列
+        由「單純右側兩控制元件、`justify-end`」改為「左側計數＋右側控制、`justify-between`」。
+        **實作陷阱記錄**：右側控制元件的包裹 wrapper 若不給明確寬度（僅 `flex gap-3`），
+        內部兩個子元素的 `w-1/2` 會相對於「不定寬度、shrink-to-fit 自動運算」的父層形成
+        循環依賴，375px 手機寬度實測會造成計數文字擠壓換行、控制元件寬度不穩定；修正方式
+        是 wrapper 加 `flex-1 min-w-0`，讓寬度改吃外層 flex 容器扣掉計數文字後的剩餘空間
+        這個明確值，`w-1/2` 才有穩定基準可算，計數 `<span>` 另加 `shrink-0 whitespace-nowrap`
+        防止換行。日後若再對這個篩選列做版面調整，注意任何「相對寬度子元素」都需要一個
+        有明確（非 auto shrink-to-fit）寬度的父層才能正確運算。
+    *   **空狀態**（2026-07-12 新增）：`filteredItems.length === 0` 時，`render()` 於
+        `#archive-table-body`（即 `<tbody>`）注入一列 `.toc-empty-row` 提示（找不到符合的
+        文章／試試調整標籤或清除搜尋關鍵字）；每次 `render()` 先移除舊的 `.toc-empty-row`
+        再視情況重新注入避免累積。用獨立 class（非 `itemSelector` 的 `.archive-row`）確保
+        不會混入 `allItems` 初始快照或干擾分頁/計數邏輯。
+    *   **視覺細節收斂**（2026-07-12，資深 UI/UX 審查回饋）：分頁器一般頁碼/disabled/省略號
+        由冷灰（`text-gray-*`）改暖色 Token（`text-ink`/`border-sand`/`hover:bg-sand/30`/
+        `text-muted opacity-40`/`text-muted-text`），避免脫離全站暖色設計系統；列內日期由
+        `font-mono`（`@theme` 未定義 mono Token，會 fallback 到冷硬等寬字）改
+        `tabular-nums`（只固定數字寬度、不改字體家族）；日期與標籤合併為同一橫排 meta 帶
+        （`flex items-center flex-wrap gap-2 mt-1`），列間距統一交給 `gap` 而非多處零散
+        margin；`.tag-pill` 行高由 `leading-5` 收緊為 `leading-4`；下拉主鈕/清除鈕/確定鈕/
+        checkbox 補上 `focus-visible:ring-1 focus-visible:ring-primary`（原本
+        `focus:outline-none` 卻無替代焦點樣式，屬 a11y 缺口）；搜尋框 placeholder 的 emoji
+        `🔍︎` 改為內聯 SVG 放大鏡圖示（`stroke="currentColor"`，與下拉箭頭風格一致），未
+        引入任何外部圖示套件。
 7.  **PWA 靜態資源預快取防刷 (swPrecachePlugin)**：
     由於 Vite 打包後的 CSS/JS 檔名會帶有隨機雜湊碼（例如 `tailwind-XyZ123.css`），為了讓 Service Worker (`sw.js`) 能夠精確預快取這些資源以供離線訪問，自訂了 Vite 插件 `swPrecachePlugin`，在 Vite 完成 Bundling 後，動態將帶有雜湊值的資源名稱取代並更新至 `dist/sw.js` 的預快取陣列中。
 8.  **文章大綱元件 (TOC，2026-07-12 新增)**：

@@ -33,6 +33,12 @@
       背景改毛玻璃遮罩（`backdrop-filter: blur`）
 - [x] 目錄頁文章列重排：標題字改小、日期移至標題下方、標籤改高雅低調膠囊 (`.tag-pill`)
 - [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v15 → v16），配合抽屜與目錄頁樣式變更強制舊快取失效
+- [x] 目錄頁視覺強化（資深 UI/UX 審查回饋全採納）：分頁器改暖色 Token、篩選列改左結果計數+
+      右控制並補即時更新、空狀態提示列、日期改 `tabular-nums`、列內 meta 帶收斂垂直節奏、
+      `.tag-pill` 行高收緊、下拉/清除/確定/checkbox 補 `focus-visible` 焦點樣式、搜尋框
+      emoji 改內聯 SVG 放大鏡圖示
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v16 → v17），配合本次目錄頁視覺強化的 CSS/JS
+      行為變更強制舊快取失效
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
@@ -65,6 +71,64 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-12 — 文章目錄頁視覺強化（資深 UI/UX 審查回饋逐項落實）
+
+由資深 UI/UX 設計師對目錄頁提出審查回饋，Sonnet 逐項實作，硬約束：不新增 npm 套件/外部
+字型/CDN、維持既有色彩 Token 系統、維持 WCAG AA、中文標題不加 `tracking-*`。
+
+*   **分頁器改暖色 Token**（`assets/scripts.js` `renderPaginationControls`）：一般頁碼
+    button 由冷灰 `text-gray-700 bg-white border-gray-200 hover:bg-gray-100 hover:text-primary
+    active:bg-gray-200` 改為 `text-ink bg-white border-sand hover:bg-sand/30 hover:text-primary
+    active:bg-sand/50`；disabled 由 `text-gray-300` 改為 `text-muted opacity-40`；省略號
+    `...` 由 `text-gray-400` 改為 `text-muted-text`。當前頁 `bg-primary text-white font-bold`
+    維持不動。原本的冷灰色調脫離了本站的暖色設計系統，此次收斂統一。
+*   **篩選/搜尋列改左資訊＋右控制，補結果計數**（`posts/index.html` + `assets/scripts.js`）：
+    外層由 `justify-end` 改 `justify-between`，左側新增 `<span id="result-count">` 顯示
+    「共 N 篇」，右側維持一個 `flex gap-3` 包住原本兩個並排控制元件。**實作時發現並修正一個
+    潛在版面陷阱**：原始設計稿字面上是把控制元件包一層無明確寬度的 `flex` wrapper，但兩個
+    子元素仍用 `w-1/2`（相對父層寬度的百分比）——當父層（wrapper）本身沒有明確寬度、靠
+    shrink-to-fit 自動運算時，`w-1/2` 對「不定寬度」父層屬於循環依賴，375px 手機寬度實測
+    會造成結果計數文字被擠到換行、控制元件寬度不穩定。修正為 wrapper 加 `flex-1 min-w-0`
+    使其寬度改吃「外層 flex 容器扣掉計數文字後的剩餘空間」這個明確值，`w-1/2` 才有穩定的
+    百分比基準；計數 `<span>` 加 `shrink-0 whitespace-nowrap` 避免被擠壓換行。結果計數靠
+    `initPagination` 內新增的 `updateResultCount()` helper（讀 DOM `#result-count` 是否存在，
+    存在才更新 `textContent = filteredItems.length`），在 `applyFilters()` 與 `render()`
+    兩處呼叫，涵蓋首次載入、篩選、換頁全部情境；未改變 `initPagination` 對外呼叫簽名。
+*   **空狀態「查無結果」**（`assets/scripts.js` `render()`）：`filteredItems.length === 0`
+    時於 `#archive-table-body`（即 `<tbody>`）注入一列 `.toc-empty-row` 提示（「找不到符合的
+    文章／試試調整標籤或清除搜尋關鍵字」），每次 `render()` 先移除舊的 `.toc-empty-row`
+    再視情況重新注入，避免累積；因為用獨立 class 與 `itemSelector`（`.archive-row`）區隔，
+    不會混入 `allItems` 快照或干擾分頁計數邏輯。
+*   **日期不用 `font-mono`**（`posts/index.html`）：`<time>` 的 `font-mono` 改
+    `tabular-nums`——`@theme` 未定義 mono 字體 Token，`font-mono` 會 fallback 到瀏覽器預設
+    冷硬等寬字體，破壞編輯質感；`tabular-nums` 純粹讓數字等寬對齊，不影響字體家族。
+*   **收斂列內垂直節奏**（`posts/index.html`）：把日期與標籤視為同一「meta 帶」，合併進
+    `<div class="flex items-center flex-wrap gap-2 mt-1">`（日期在前、標籤群組在後），移除
+    標籤 `<div>` 原本多餘的 `mt-0.5`，外層改 `flex flex-col gap-1`，間距統一交給 `gap`
+    控制，讓「標題為主、meta 為輔」的層次更清楚，列與列之間更緊湊。
+*   **膠囊標籤行高收緊**（`assets/tailwind.css` `.tag-pill`）：`leading-5` 改 `leading-4`，
+    其餘（`rounded-full border-sand bg-sand/20 px-2.5 py-0.5 text-muted-text`）不動，維持
+    低調基調。
+*   **補鍵盤 focus 態**（`assets/scripts.js` `renderTagDropdown`）：下拉主鈕、清除鈕、確定鈕、
+    checkbox 原本 `focus:outline-none` 卻無替代焦點樣式（a11y 缺口），統一補
+    `focus-visible:ring-1 focus-visible:ring-primary`。搜尋框已有 `focus:border-primary`
+    維持不動。
+*   **搜尋框圖示改內聯 SVG**（`assets/scripts.js` `renderSearchBox`）：placeholder 的 emoji
+    `🔍︎`（跨平台字重/對齊不一致、非設計系統一部分）移除，改為 placeholder 純文字「搜尋標題」
+    ＋ input 左側 `absolute` 定位的內聯 SVG 放大鏡圖示（`stroke="currentColor"` 呼應下拉箭頭
+    風格，`text-muted-text`），input 加 `pl-9` 留出圖示空間，外層容器加 `relative`；未引入
+    任何外部圖示套件或 CDN。
+*   **PWA `CACHE_NAME`**：`clean-blog-v16` → `clean-blog-v17`。
+*   **驗證**：`npm run build` 建置成功；grep 編譯後的 `dist/assets/scripts-*.css` 確認
+    `.tag-pill` 的 `leading-4`（`--tw-leading:calc(var(--spacing) * 4)`）、
+    `.focus-visible\:ring-1:focus-visible`、`.focus-visible\:ring-primary:focus-visible`、
+    `.opacity-40`、`.tabular-nums` 均已進 bundle。另用 `npm run preview` + headless
+    Chromium 在 375px 寬度實際截圖驗證：篩選列計數與控制元件排版正確（未發現上述循環寬度
+    陷阱前的破版）、分頁器暖色調＋disabled 狀態變淡、標籤行高收緊、搜尋框放大鏡圖示正確
+    顯示、meta 帶（日期＋標籤同排）版面更緊湊。空狀態與 focus-visible 互動態因缺乏
+    headless CDP 驅動工具（專案未安裝 puppeteer/playwright），改以程式邏輯覆核＋CSS bundle
+    grep 確認規則存在，未做即時互動截圖。
 
 ### 2026-07-12 — TOC 底部抽屜與文章目錄頁樣式微調
 

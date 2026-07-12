@@ -306,6 +306,6 @@
 
   /* 文章目錄 (Catalog) —— 高雅低調的膠囊標籤 */
   .tag-pill {
-    @apply inline-flex items-center rounded-full border border-sand bg-sand/20 px-2.5 py-0.5 text-[11px] leading-5 text-muted-text;
+    @apply inline-flex items-center rounded-full border border-sand bg-sand/20 px-2.5 py-0.5 text-[11px] leading-4 text-muted-text;
   }
 }

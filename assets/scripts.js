@@ -90,7 +90,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'tag-dropdown-btn';
-    btn.className = 'inline-flex w-full justify-between items-center gap-x-1.5 rounded bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm border border-sand hover:bg-sand/30 cursor-pointer focus:outline-none';
+    btn.className = 'inline-flex w-full justify-between items-center gap-x-1.5 rounded bg-white px-3 py-2 text-sm font-semibold text-ink shadow-sm border border-sand hover:bg-sand/30 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-primary';
     btn.innerHTML = `
       <span>篩選標籤 (<span id="selected-count">0</span>)</span>
       <svg class="h-4 w-4 text-muted-text transition-transform duration-200" id="dropdown-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -112,8 +112,8 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
       
       <!-- Footer actions (Clear on left, Confirm on right) -->
       <div class="flex items-center justify-between border-t border-sand pt-3 mt-3">
-        <button type="button" id="clear-tags-btn" class="text-xs font-bold text-muted-text hover:text-primary cursor-pointer focus:outline-none">清除標籤</button>
-        <button type="button" id="confirm-tags-btn" class="text-xs font-bold text-muted-text hover:text-primary cursor-pointer focus:outline-none">確定</button>
+        <button type="button" id="clear-tags-btn" class="text-xs font-bold text-muted-text hover:text-primary cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-primary">清除標籤</button>
+        <button type="button" id="confirm-tags-btn" class="text-xs font-bold text-muted-text hover:text-primary cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-primary">確定</button>
       </div>
     `;
     tagContainer.appendChild(menu);
@@ -126,7 +126,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
       label.className = 'flex items-center justify-between text-xs font-semibold text-ink cursor-pointer hover:bg-sand/30 p-1.5 rounded transition-colors duration-150';
       label.innerHTML = `
         <span class="flex items-center gap-2">
-          <input type="checkbox" value="${tag}" class="tag-checkbox rounded text-primary focus:ring-primary cursor-pointer">
+          <input type="checkbox" value="${tag}" class="tag-checkbox rounded text-primary focus:ring-primary cursor-pointer focus-visible:ring-1 focus-visible:ring-primary">
           <span>${tag}</span>
         </span>
         <span class="text-muted-text font-mono">(${counts[tag]})</span>
@@ -211,8 +211,12 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
 
   function renderSearchBox(searchContainer) {
     searchContainer.innerHTML = `
-      <div class="w-full">
-        <input type="text" id="search-input" placeholder="搜尋標題 🔍︎" class="w-full rounded border border-sand bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none text-ink shadow-sm">
+      <div class="relative w-full">
+        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-text" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35"></path>
+        </svg>
+        <input type="text" id="search-input" placeholder="搜尋標題" class="w-full rounded border border-sand bg-white pl-9 pr-3 py-2 text-sm focus:border-primary focus:outline-none text-ink shadow-sm">
       </div>
     `;
 
@@ -254,7 +258,8 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     // Recalculate pagination properties
     totalItems = filteredItems.length;
     totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-    
+    updateResultCount();
+
     // Hide all items first
     allItems.forEach(item => item.style.display = 'none');
     
@@ -263,6 +268,13 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     // Filtering keeps the user where they are (e.g. still typing in the search box
     // above the list) — only explicit pagination navigation should scroll the page.
     render(1, false, false);
+  }
+
+  function updateResultCount() {
+    const countEl = document.getElementById('result-count');
+    if (countEl) {
+      countEl.textContent = filteredItems.length;
+    }
   }
 
   function getCurrentPage() {
@@ -296,6 +308,20 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
         }
       });
 
+      // Empty state: clear any previous empty-row first, then inject if no results
+      const existingEmptyRow = container.querySelector('.toc-empty-row');
+      if (existingEmptyRow) existingEmptyRow.remove();
+      if (filteredItems.length === 0) {
+        container.insertAdjacentHTML('beforeend', `
+          <tr class="toc-empty-row"><td class="py-16 text-center text-muted-text" colspan="2">
+            <p class="text-base">找不到符合的文章</p>
+            <p class="text-sm mt-1">試試調整標籤或清除搜尋關鍵字</p>
+          </td></tr>
+        `);
+      }
+
+      updateResultCount();
+
       // 2. Scroll Reset
       if (!isFirstLoad && shouldScroll) {
         const offsetTop = container.getBoundingClientRect().top + window.pageYOffset - 100;
@@ -326,11 +352,11 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
       
       if (isDisabled) {
         btn.disabled = true;
-        baseClass += 'text-gray-300 cursor-not-allowed';
+        baseClass += 'text-muted opacity-40 cursor-not-allowed';
       } else if (isActive) {
         baseClass += 'bg-primary text-white font-bold cursor-default';
       } else {
-        baseClass += 'text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 hover:text-primary active:bg-gray-200';
+        baseClass += 'text-ink bg-white border border-sand hover:bg-sand/30 hover:text-primary active:bg-sand/50';
       }
 
       btn.className = baseClass;
@@ -364,7 +390,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
       if (lastNum) {
         if (i - lastNum > 1) {
           const dots = document.createElement('span');
-          dots.className = 'px-2 py-2 text-gray-400 text-sm select-none';
+          dots.className = 'px-2 py-2 text-muted-text text-sm select-none';
           dots.innerText = '...';
           nav.appendChild(dots);
         }
