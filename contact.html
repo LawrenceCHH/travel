@@ -49,21 +49,20 @@
   <div id="footer-placeholder"></div>
 
   <script type="module" src="/assets/scripts.js"></script>
-  <!-- Formspree 聯絡表單專屬邏輯 -->
+  <!-- Google Apps Script 聯絡表單專屬邏輯 -->
   <script>
     (function () {
       var form = document.getElementById('contactForm');
       var button = document.getElementById('sendMessageButton');
       var successBox = document.getElementById('success');
-      var FORMSPREE_ENDPOINT = 'https://formspree.io/f/YOUR_FORM_ID';
+      var GOOGLE_SCRIPT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxZGBV_UaqQB1ywUa84zmWzA6hgt4d65Ky4VrQSuFdp6_NP6RYu9iJXg-0BA0O-SeCj/exec';
 
       form.addEventListener('submit', function (event) {
         event.preventDefault();
         button.disabled = true;
 
-        fetch(FORMSPREE_ENDPOINT, {
+        fetch(GOOGLE_SCRIPT_ENDPOINT, {
           method: 'POST',
-          headers: { 'Accept': 'application/json' },
           body: new FormData(form)
         }).then(function (response) {
           if (response.ok) {
@@ -72,7 +71,8 @@
           } else {
             throw new Error('Form submission failed');
           }
-        }).catch(function () {
+        }).catch(function (error) {
+          console.error('Error submitting form:', error);
           successBox.innerHTML = '<div class="rounded bg-red-50 border border-red-200 text-red-800 px-4 py-3">抱歉，郵件伺服器似乎沒有回應，請稍後再試！</div>';
         }).finally(function () {
           setTimeout(function () { button.disabled = false; }, 1000);
