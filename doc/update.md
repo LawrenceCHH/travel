@@ -60,6 +60,11 @@
 - [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v21 → v22），配合白底配色修正強制舊快取失效
 - [x] 修正文章詳細頁封面照片（Hero）中閱讀時間字色與標籤配色，使其在深色遮罩背景上具有足夠對比度，符合風格並通過 WCAG AA 規範
 - [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v22 → v23），配合 Hero 配色修正強制舊快取失效
+- [x] 全站無襯線字型升級：自架 `Open Sans` 替換為現代極簡高清晰度之 `Inter` 變數型字型
+- [x] 修正首頁與詳細頁 Hero section 的副標題字體：由無襯線 `font-sans` 改為與大標題呼應之 `font-serif`（Lora / 襯線）
+- [x] 修正文章預覽與 Hero section 內的中英文元資料（meta）排版：去除 CJK 漢字之斜體（`italic`）呈現以解決不對稱歪斜問題，並調小尺寸（`text-sm`）及改為無襯線 `font-sans`（Inter）以確保高資訊密度易讀性
+- [x] 移除專案中未使用的 `Open Sans` 字型檔，縮減成品包體積
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v23 → v24），配合字體與排版修正強制舊快取失效
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
@@ -92,6 +97,16 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-12 — 優化全站字體系統、Hero 副標題與元資料（Meta）排版
+
+依據資深 UI/UX 設計師的排版評估，全面重構字型與微觀排版設計，解決內文字體、副標題與斜體不對稱的問題：
+*   **字型系統升級**：將全站英文與數字的無襯線字型從 `Open Sans` 升級為當前螢幕排版黃金標準的 `Inter` 變數型字型（`assets/fonts/inter-latin-var.woff2`），並移除未使用的舊 `Open Sans` 檔案，有效減小快取體積。全站 CJK（中日韓）無襯線字體維持系統優選以保證效能。
+*   **副標題風格對齊**：主頁與文章頁 Hero 區的副標題（`.subheading`）字體由 `font-sans` 改為 `font-serif`（Lora / 襯線體），與中文大標題的「宋體/襯線」相呼應，建立一致高雅、具編輯雜誌感的排版氛圍。
+*   **元資料不對稱與斜體問題修正**：
+    *   **移除 CJK 斜體抗鋸齒失真**：由於中文/日文字元沒有原生斜體，瀏覽器強制斜化（Oblique）會破壞漢字筆畫平衡，顯得歪斜且「不對稱」。將文章清單的 `.post-preview .post-meta` 與文章頁的 `.post-heading .meta` 中英文元資料完全去除 `italic` 屬性，改為正常體（`not-italic`）。
+    *   **資訊密度與層次優化**：元資料的文字大小由偏大的 `text-lg` 收斂至 `text-sm`，字型由 `font-serif` 統一改為更清晰易讀的 `font-sans`（Inter），大幅提升閱讀時的資訊層次與精緻感。
+*   **PWA `CACHE_NAME`**：`clean-blog-v23` → `clean-blog-v24` 以強制失效舊快取。
 
 ### 2026-07-12 — 修正文章詳細頁封面照片（Hero）中閱讀時間字色與標籤樣式
 

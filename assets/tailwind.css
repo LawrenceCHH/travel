@@ -16,23 +16,16 @@
   src: url("fonts/lora-700.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Open Sans";
+  font-family: "Inter";
   font-style: normal;
-  font-weight: 400;
+  font-weight: 100 900;
   font-display: swap;
-  src: url("fonts/open-sans-regular.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Open Sans";
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url("fonts/open-sans-700.woff2") format("woff2");
+  src: url("fonts/inter-latin-var.woff2") format("woff2");
 }
 
 @theme {
   --font-serif: "Lora", "Noto Serif TC", "Songti TC", ui-serif, Georgia, "Times New Roman", serif;
-  --font-sans: "Open Sans", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  --font-sans: "Inter", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
   /* 2026-07-12 三版改版：白底＋灰色為主的深色字體，偶爾搭配四色票中的暖褐色系當強調色
      （取代二版一度嘗試的全站深色主題——使用者確認要保留白色底色）。
      四色 #222831/#393E46/#948979/#DFD0B8 拆成兩個家族運用：#222831/#393E46 這組偏冷的
@@ -140,19 +133,16 @@
     @apply mt-0 font-serif text-3xl font-bold md:text-5xl;
   }
   .subheading {
-    @apply mt-2 block font-sans text-xl font-normal leading-tight;
+    @apply mt-2 block font-serif text-xl font-normal leading-tight;
   }
   .post-heading .subheading {
     @apply mb-6 mt-2 font-bold;
   }
   .post-heading .meta {
-    @apply block font-serif text-lg font-light italic leading-tight;
+    @apply block font-sans text-sm font-normal leading-tight text-hero-text;
   }
   .post-heading .meta a {
     @apply text-hero-text underline;
-  }
-  .post-heading .reading-time {
-    @apply text-hero-text;
   }
   .post-heading #post-tags span {
     @apply inline-flex items-center rounded-full border border-hero-text/30 bg-hero-text/10 px-2.5 py-0.5 text-xs text-hero-text font-normal transition-colors duration-150 hover:bg-hero-text/20;
@@ -178,7 +168,7 @@
     @apply mb-2 font-light text-muted-text;
   }
   .post-preview .post-meta {
-    @apply mt-0 font-serif text-lg italic text-muted-text;
+    @apply mt-0 font-sans text-sm text-muted-text;
   }
   .post-preview .post-meta a {
     @apply text-ink no-underline;
