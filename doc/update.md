@@ -39,6 +39,16 @@
       emoji 改內聯 SVG 放大鏡圖示
 - [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v16 → v17），配合本次目錄頁視覺強化的 CSS/JS
       行為變更強制舊快取失效
+- [x] 修正手機版 TOC 底部抽屜（Bottom Sheet）快速索引列設計不佳問題：清單改回左對齊＋
+      左側色條縮排階層語彙，並補上桌機側欄原有的 active 目前章節高亮，抽屜高度改為
+      隨內容自然撐開（不再強制置中/固定 60vh）
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v17 → v18），配合本次抽屜樣式變更強制舊快取失效
+- [x] 修正 TOC 抽屜標題「本文章節」置中對齊為靠左；修正 scroll-spy 次像素捨入導致錨點
+      跳轉後重開抽屜時反白停留在前一個標題的 off-by-one 判斷錯誤
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v18 → v19），配合本次修正強制舊快取失效
+- [x] TOC 錨點跳轉改為平滑捲動動畫（`scrollIntoView({behavior:'smooth'})`），取代瀏覽器
+      原生瞬間跳轉，尊重 `prefers-reduced-motion`
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v19 → v20），配合本次修正強制舊快取失效
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
@@ -71,6 +81,103 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-12 — TOC 錨點跳轉改為平滑捲動動畫
+
+使用者回報 TOC 連結（桌機側欄／手機頂部速覽／手機底部抽屜三處皆同）點擊後移動到定位點
+是瞬間跳轉，希望改成有捲動動畫的效果。
+
+*   **問題根因**：三處 TOC 連結都只是普通 `<a href="#id">`，捲動行為完全交給瀏覽器原生
+    錨點跳轉處理——若頁面沒有設定 `scroll-behavior: smooth`，原生行為就是瞬間跳轉，
+    沒有任何動畫。
+*   **修法**：`assets/scripts.js` `initTOC()` 新增共用的 `smoothJump(e)` click handler，
+    在三處連結建立時（`buildDesktopSidebar()`、`buildMobileOutlineAndSheet()` 內的頂部
+    速覽清單與底部抽屜清單）各自 `addEventListener('click', smoothJump)`。
+    `smoothJump` 先排除修飾鍵點擊（Ctrl/Cmd/Shift/Alt，保留原生「開新分頁」行為不受影響）
+    與已被攔截的事件，才 `preventDefault()` 並呼叫 `el.scrollIntoView({ behavior, block:
+    'start' })`；`behavior` 依 `window.matchMedia('(prefers-reduced-motion: reduce)')`
+    動態切換 `'smooth'` 或 `'auto'`，符合無障礙規範不強迫有動暈症狀使用者看動畫。因為
+    `preventDefault()` 取消了瀏覽器原生的 hash 跳轉，改用 `history.replaceState(null, '',
+    '#'+id)` 手動同步網址列 hash（維持可分享的深層連結網址），刻意用 `replaceState`
+    而非 `pushState`——避免每點一次標題就在瀏覽器歷史堆疊多塞一筆，導致使用者連續點好幾個
+    章節後按上一頁要按好幾次才能真正離開文章頁。底部抽屜原本「點連結即關閉」的行為
+    （`sheetList` 上的委派 click listener）不受影響，因為 `smoothJump` 只呼叫
+    `preventDefault()` 沒有 `stopPropagation()`，事件仍會冒泡到 `sheetList` 觸發
+    `closeSheet()`。`scrollIntoView` 直接沿用標題已有的 `scroll-margin-top: 6rem`
+    CSS（與 `NAV_OFFSET` 常數對應同一個 sticky navbar 遮擋高度），不需要另外手動計算
+    捲動終點座標。
+*   **PWA `CACHE_NAME`**：`clean-blog-v19` → `clean-blog-v20`。
+*   **驗證**：`npm run build` 成功；用系統內建 `/usr/local/bin/chromium --headless=new` +
+    `chrome-remote-interface` 在點擊後以 80ms 間隔連續取樣 `window.scrollY` 八次，
+    確認數值連續遞增（例如 `54→154→482→1034→1749→2495→3124→3545`）而非一次到位，
+    證實動畫確實生效；同時確認點擊後網址 hash 正確更新、手機抽屜點擊連結後仍會自動關閉。
+    桌機側欄連結另外用 1440px 寬度重複同一組取樣驗證同樣有平滑捲動效果。
+
+### 2026-07-12 — 修正 TOC 抽屜標題對齊與 scroll-spy off-by-one 反白錯誤
+
+使用者在實際點擊使用後回報兩個問題：(1) 抽屜標題「本文章節」仍置中，(2) 點擊抽屜索引
+跳轉到對應章節後，再次打開抽屜，反白的項目跟實際所在章節不一致（永遠停留在「上一個」
+標題）。
+
+*   **標題置中**：`assets/scripts.js` `buildMobileOutlineAndSheet()` 內 sheet template
+    的標題容器由 `class="px-4 pb-3 text-center"` 改為 `class="px-5 pb-3"`（移除
+    `text-center`，靠左對齊呼應下方清單的靠左排版）。
+*   **scroll-spy off-by-one（實際根因，非只是巧合的顯示延遲）**：用 headless Chromium
+    重現後，在瀏覽器 DevTools Protocol 裡直接讀取錨點跳轉落點後目標標題的
+    `getBoundingClientRect().top`，量到的值是 `96.625px`，而非預期的精確
+    `96px`（`NAV_OFFSET`／`scroll-margin-top: 6rem`）。`computeCurrentId()` 原本的判斷式
+    `top - NAV_OFFSET <= 0` 因此以 0.625px 之差判定「還沒到」，於是把反白權重留在
+    上一個標題身上——這是瀏覽器對 `scroll-margin-top` 錨點跳轉套用次像素捨入造成的
+    既有計算誤差，先前只是沒被注意到（桌機側欄同一套公式理論上也會遇到，只是使用情境
+    較少人剛好卡在這個邊界值上測試）。修法為把嚴格比較放寬 2px 容忍值
+    （`top - NAV_OFFSET <= 2`），已用相同的 headless 重現腳本確認修正後跳轉並重開抽屜
+    可正確反白「目前所在」標題。
+*   **PWA `CACHE_NAME`**：`clean-blog-v18` → `clean-blog-v19`。
+*   **驗證**：`npm run build` 成功；用系統內建 `/usr/local/bin/chromium --headless=new` +
+    `chrome-remote-interface`（暫時安裝於 scratchpad）在 390×844 模擬下完整重現「開啟
+    抽屜 → 點擊第 3 項連結跳轉 → 重新開啟抽屜」流程，確認反白項目與 `getBoundingClientRect`
+    量測到的實際目前章節一致，且截圖確認標題已靠左對齊。
+
+### 2026-07-12 — 修正手機版 TOC 底部抽屜快速索引列設計（UI/UX 審查）
+
+使用者回報文章內頁「手機版 TOC 底部抽屜」的快速索引清單設計不好看。用 `ui-ux-pro-max`
+skill 查詢導覽清單／bottom sheet 相關準則交叉比對後，定位出三個具體問題並修正，皆只動
+`assets/tailwind.css` 的 `.toc-sheet*` 規則與 `assets/scripts.js` 的 `initTOC`，未新增
+套件。
+
+*   **問題 1：清單置中對齊，長短不一的標題造成左緣參差不齊、難以掃視**——導覽類清單的
+    標準做法是靠左對齊而非置中（置中僅適合單行、等長或純裝飾性文字）。`.toc-sheet-list`
+    移除 `text-align: center` + `justify-content: center`；`.toc-sheet .toc-link` 移除
+    `text-align: center`。
+*   **問題 2：h2/h3 階層線索被拿掉**——前次改版（見下方 2026-07-12 抽屜微調記錄）為了置中
+    刻意移除了桌機側欄用的左側色條縮排（`border-left`），導致手機抽屜裡 h2/h3 只能靠字級
+    大小分辨，長清單容易搞不清楚 h3 是屬於哪個 h2。此次讓抽屜沿用桌機側欄的
+    `.toc-link` 基底樣式（保留 `border-left` 色條），額外用 `margin-left` + 加大
+    `padding-left` 讓 h3 縮排更明顯。
+*   **問題 3：抽屜沒有「目前章節」高亮，桌機側欄卻有**——導覽準則明確要求目前所在位置要有
+    視覺標示，先前只有桌機側欄的連結會被 `updateActive()` 加上 `.is-active`，手機抽屜的
+    清單完全沒有這個機制。`assets/scripts.js` 把原本寫在 `buildDesktopSidebar()` 內部的
+    scroll-spy 計算邏輯（`computeCurrentId()`／IntersectionObserver／scroll listener）
+    提升到 `initTOC` 頂層共用一份，新增 `activeUpdaters` 陣列讓桌機側欄與手機抽屜各自
+    註冊自己的清單、各自訂閱同一份「目前章節 id」廣播，避免重複掛兩份 IO/scroll
+    listener。`.toc-sheet .toc-link.is-active` 額外補一個淡咖啡色底 tint
+    （`rgba(107,74,52,0.08)`）加強在抽屜裡的辨識度（純色條在較寬的抽屜清單裡不夠明顯）。
+*   **順手修正**：抽屜高度原本 `min-height: 60vh` 強制撐開、內容用
+    `justify-content: center` 塞進置中，造成標題少的文章清單懸浮在一大片空白中間、
+    視覺上不像清單反而像單張卡片。改為移除 `min-height`，讓抽屜隨內容自然撐高（僅保留
+    `max-height: 80vh` 上限），清單改由上往下正常排列，並補上
+    `padding-bottom: env(safe-area-inset-bottom)` 處理 iOS 底部安全區域。清單項目
+    `padding` 加大至 `0.75rem` 上下確保觸控熱區，`li` 間距改用 CSS `gap`（原本
+    Tailwind `space-y-1` 與新的 flex `gap` 會疊加，已移除 `space-y-1`）。
+*   **PWA `CACHE_NAME`**：`clean-blog-v17` → `clean-blog-v18`。
+*   **驗證**：`npm run build` 成功；grep 編譯後 CSS 確認 `.toc-sheet-list`／
+    `.toc-sheet .toc-link` 規則已依新設計進 bundle（無 `text-align:center`、無
+    `min-height:60vh`）。用系統內建 `/usr/local/bin/chromium --headless=new` 搭配
+    `chrome-remote-interface`（暫時安裝於 scratchpad，未寫入專案 `package.json`）在
+    390×844 模擬手機寬度下實際開啟兩篇文章的抽屜截圖驗證：純 h2 文章（技術文）清單
+    左對齊、目前章節（`引言：高併發下的系統瓶頸`）有色條＋淡咖啡底＋粗體高亮；含
+    h2+h3 的學術文抽屜清單中 `參考文獻 (References)`（h3）正確縮排、字級縮小、
+    `muted-text` 灰字表現階層，且抽屜高度隨清單項目數量自然撐開、未強制置中撐版。
 
 ### 2026-07-12 — 文章目錄頁視覺強化（資深 UI/UX 審查回饋逐項落實）
 

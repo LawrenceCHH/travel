@@ -272,7 +272,6 @@
     bottom: 0;
     background: #fff;
     border-radius: 1rem 1rem 0 0;
-    min-height: 60vh;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
@@ -285,23 +284,30 @@
   .toc-sheet-list {
     flex: 1;
     overflow-y: auto;
-    padding: 0 1rem 1.5rem;
-    text-align: center;
+    padding: 0.25rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    gap: 0.125rem;
   }
-  /* 抽屜內連結置中，覆寫桌機側欄用的左側色條縮排樣式 */
+  /* 抽屜內連結延續桌機側欄的左側色條縮排階層語彙（左對齊優於置中——標題長短不一，
+     置中會讓清單左緣參差不齊、難以掃視），並放大點擊區塊與 active 底色供觸控使用 */
   .toc-sheet .toc-link {
-    text-align: center;
-    border-left: none;
-    padding: 0.5rem 0;
+    padding: 0.75rem 0.75rem 0.75rem 1rem;
     font-size: 1rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.15s ease;
+  }
+  .toc-sheet .toc-link:active {
+    background: var(--color-sand);
   }
   .toc-sheet .toc-link[data-level="3"] {
-    padding-left: 0;
+    margin-left: 0.5rem;
+    padding-left: 1.5rem;
     font-size: 0.875rem;
     color: var(--color-muted-text);
+  }
+  .toc-sheet .toc-link.is-active {
+    background: rgba(107, 74, 52, 0.08);
   }
 
   /* 文章目錄 (Catalog) —— 高雅低調的膠囊標籤 */

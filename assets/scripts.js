@@ -216,7 +216,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
           <circle cx="11" cy="11" r="7"></circle>
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35"></path>
         </svg>
-        <input type="text" id="search-input" placeholder="搜尋標題" class="w-full rounded border border-sand bg-white pl-9 pr-3 py-2 text-sm focus:border-primary focus:outline-none text-ink shadow-sm">
+        <input type="text" id="search-input" placeholder="標題" class="w-full rounded border border-sand bg-white pl-9 pr-3 py-2 text-sm focus:border-primary focus:outline-none text-ink shadow-sm">
       </div>
     `;
 
@@ -458,10 +458,66 @@ function initTOC(contentContainer) {
     el: h,
   }));
 
+  // 所有需要反映「目前章節」高亮的清單（桌機側欄／手機底部抽屜）共用同一份幾何判斷，
+  // 避免各自掛 IntersectionObserver／scroll listener 重複計算。
+  const activeUpdaters = [];
+
+  function computeCurrentId() {
+    let currentId = toc[0].id;
+    for (const item of toc) {
+      // 容許 2px 誤差：錨點跳轉後瀏覽器套用 scroll-margin-top 定位常有次像素捨入
+      // （例如落在 96.6px 而非精確 96px），嚴格的 <= 0 會讓剛跳轉抵達的目標標題
+      // 判定為「還沒到」，導致抽屜重新開啟時反白停留在前一個標題。
+      if (item.el.getBoundingClientRect().top - NAV_OFFSET <= 2) {
+        currentId = item.id;
+      } else {
+        break;
+      }
+    }
+    // 捲到頁面最底時強制高亮最後一項，避免最後一段太短永遠選不到
+    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) {
+      currentId = toc[toc.length - 1].id;
+    }
+    return currentId;
+  }
+
+  function updateActive() {
+    const currentId = computeCurrentId();
+    activeUpdaters.forEach(fn => fn(currentId));
+  }
+
+  // 攔截 TOC 連結點擊，改用 scrollIntoView 平滑捲動到定位點（取代瀏覽器原生錨點
+  // 瞬間跳轉），並尊重 prefers-reduced-motion；保留 Ctrl/Cmd/Shift 等修飾鍵點擊
+  // 開新分頁的原生行為不受影響。
+  function smoothJump(e) {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const href = e.currentTarget.getAttribute('href') || '';
+    if (!href.startsWith('#')) return;
+    const id = href.slice(1);
+    const el = document.getElementById(id);
+    if (!el) return;
+    e.preventDefault();
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    history.replaceState(null, '', `#${id}`);
+  }
+
   buildDesktopSidebar(toc);
   buildMobileOutlineAndSheet(toc, contentContainer);
 
-  // --- 桌機固定側欄 + Scroll Spy（僅在 xl 以上顯示，1024-1279px 沿用行動版） ---
+  // IntersectionObserver 只當觸發器，真正的「目前章節」由幾何位置重算決定，
+  // 避免短小節或多標題同時可見時，用單純 isIntersecting 誤判。
+  const io = new IntersectionObserver(updateActive, {
+    rootMargin: `-${NAV_OFFSET}px 0px -70% 0px`,
+    threshold: 0,
+  });
+  toc.forEach(item => io.observe(item.el));
+  // IO 只在標題跨越 rootMargin 邊界時觸發，大幅捲動（例如點擊分頁跳轉、瀏覽器還原捲動位置）
+  // 可能在下一次跨越前不會重算，故額外掛一個被動 scroll 監聽當保險，兩者共用同一份幾何判斷。
+  window.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+
+  // --- 桌機固定側欄（僅在 xl 以上顯示，1024-1279px 沿用行動版） ---
   function buildDesktopSidebar(toc) {
     const sidebar = document.createElement('nav');
     sidebar.className = 'toc-sidebar hidden xl:block';
@@ -478,42 +534,18 @@ function initTOC(contentContainer) {
       a.dataset.level = String(item.level);
       a.href = `#${item.id}`;
       a.textContent = item.text;
+      a.addEventListener('click', smoothJump);
       sidebar.appendChild(a);
     });
 
     document.body.appendChild(sidebar);
 
     const sidebarLinks = Array.from(sidebar.querySelectorAll('.toc-link'));
-
-    // IntersectionObserver 只當觸發器，真正的「目前章節」由幾何位置重算決定，
-    // 避免短小節或多標題同時可見時，用單純 isIntersecting 誤判。
-    function updateActive() {
-      let currentId = toc[0].id;
-      for (const item of toc) {
-        if (item.el.getBoundingClientRect().top - NAV_OFFSET <= 0) {
-          currentId = item.id;
-        } else {
-          break;
-        }
-      }
-      // 捲到頁面最底時強制高亮最後一項，避免最後一段太短永遠選不到
-      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) {
-        currentId = toc[toc.length - 1].id;
-      }
+    activeUpdaters.push(currentId => {
       sidebarLinks.forEach(a => {
         a.classList.toggle('is-active', a.getAttribute('href') === `#${currentId}`);
       });
-    }
-
-    const io = new IntersectionObserver(updateActive, {
-      rootMargin: `-${NAV_OFFSET}px 0px -70% 0px`,
-      threshold: 0,
     });
-    toc.forEach(item => io.observe(item.el));
-    // IO 只在標題跨越 rootMargin 邊界時觸發，大幅捲動（例如點擊分頁跳轉、瀏覽器還原捲動位置）
-    // 可能在下一次跨越前不會重算，故額外掛一個被動 scroll 監聽當保險，兩者共用同一份幾何判斷。
-    window.addEventListener('scroll', updateActive, { passive: true });
-    updateActive();
   }
 
   // --- 手機/平板（<1280px）：頂部速覽區塊 + 浮動按鈕 + 底部抽屜 ---
@@ -540,6 +572,7 @@ function initTOC(contentContainer) {
         a.className = 'text-sm text-primary no-underline hover:underline';
         a.href = `#${item.id}`;
         a.textContent = item.text;
+        a.addEventListener('click', smoothJump);
         li.appendChild(a);
         list.appendChild(li);
       });
@@ -580,10 +613,10 @@ function initTOC(contentContainer) {
       <div class="flex justify-center pt-3 pb-1">
         <span class="h-1.5 w-10 rounded-full bg-sand"></span>
       </div>
-      <div class="px-4 pb-3 text-center">
+      <div class="px-5 pb-3">
         <p class="text-base font-bold text-ink">本文章節</p>
       </div>
-      <ul class="toc-sheet-list space-y-1"></ul>
+      <ul class="toc-sheet-list"></ul>
     `;
     scrim.appendChild(sheet);
     document.body.appendChild(scrim);
@@ -596,8 +629,16 @@ function initTOC(contentContainer) {
       a.dataset.level = String(item.level);
       a.href = `#${item.id}`;
       a.textContent = item.text;
+      a.addEventListener('click', smoothJump);
       li.appendChild(a);
       sheetList.appendChild(li);
+    });
+
+    const sheetLinks = Array.from(sheetList.querySelectorAll('.toc-link'));
+    activeUpdaters.push(currentId => {
+      sheetLinks.forEach(a => {
+        a.classList.toggle('is-active', a.getAttribute('href') === `#${currentId}`);
+      });
     });
 
     function openSheet() {

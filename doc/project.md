@@ -248,19 +248,48 @@ posts/
         直接沿用行動版模式，不留 TOC 消失的空窗。
     *   **手機/平板（< 1280px）**：文章開頭插入僅列 h2 的靜態速覽區塊（無巢狀、無
         scroll-spy，維持開頭簡潔）；使用者往下捲動、速覽區塊完全離開視窗後，右下角浮動
-        圓鈕淡入，點擊開啟含 h2+h3 完整清單的 Bottom Sheet。抽屜 `min-height: 60vh` /
-        `max-height: 80vh`（刻意固定高度過半，讓它像頁面主要焦點而非小卡片），清單以
-        flex 垂直＋水平置中，連結置中且移除桌機側欄用的左側色條縮排（h3 子項改以較小字級
-        與 muted 色表現層級）；scrim 為 `rgba(0,0,0,0.25)` + `backdrop-filter: blur(4px)`
-        毛玻璃遮罩。關閉方式三選一：點擊 scrim、下滑手勢（`touchmove` 簡易位移判斷，非物理
-        引擎，且僅在清單已捲到頂端時才允許拖曳避免與內部捲動衝突）、點擊任一連結（自動
-        關閉後交由原生 hash 錨點捲動），另加 Esc 鍵。**刻意不放 X 關閉按鈕**——頂端 grabber
-        拖曳條即關閉提示，維持置中版面簡潔。
+        圓鈕淡入，點擊開啟含 h2+h3 完整清單的 Bottom Sheet。scrim 為 `rgba(0,0,0,0.25)` +
+        `backdrop-filter: blur(4px)` 毛玻璃遮罩。關閉方式三選一：點擊 scrim、下滑手勢
+        （`touchmove` 簡易位移判斷，非物理引擎，且僅在清單已捲到頂端時才允許拖曳避免與
+        內部捲動衝突）、點擊任一連結（自動關閉後交由原生 hash 錨點捲動），另加 Esc 鍵。
+        **刻意不放 X 關閉按鈕**——頂端 grabber 拖曳條即關閉提示。
+        **抽屜清單版面（2026-07-12 二次修正，UI/UX 審查回饋）**：初版曾將清單改為置中
+        對齊、`min-height: 60vh` 強制撐開、移除桌機側欄用的左側色條縮排，理由是「置中版面
+        更簡潔」；但使用者實際使用後回報「快速索引列設計不好看」。用 `ui-ux-pro-max` skill
+        查詢導覽清單準則交叉比對後定位出三個問題並改回：(1) 置中對齊在標題長短不一時會讓
+        清單左緣參差不齊、難以掃視——導覽類清單應靠左對齊，置中僅適合單行等長文字；
+        (2) 移除左側色條縮排讓 h2/h3 階層線索只剩字級大小可辨，長清單容易搞不清楚 h3
+        歸屬——改回沿用桌機側欄 `.toc-link` 基底（保留 `border-left` 色條），h3 用
+        `margin-left` + 加大 `padding-left` 加強縮排；(3) 抽屜缺乏「目前章節」高亮，桌機
+        側欄卻有——`assets/scripts.js` 的 `initTOC` 把 scroll-spy 計算邏輯
+        （`computeCurrentId()`／IntersectionObserver／scroll listener）從
+        `buildDesktopSidebar()` 內部提升到頂層共用，新增 `activeUpdaters` 陣列讓桌機側欄
+        與手機抽屜的清單各自訂閱同一份「目前章節 id」廣播（避免重複掛兩份 IO/scroll
+        listener），抽屜的 `.is-active` 額外加淡咖啡色底 tint 加強辨識度。**高度改為隨
+        內容自然撐開**：移除 `min-height: 60vh` 與置中的 `justify-content: center`（標題
+        少的文章會讓清單懸浮在大片空白中間，視覺上不像清單像單張卡片），僅保留
+        `max-height: 80vh` 上限，並補 `padding-bottom: env(safe-area-inset-bottom)`
+        處理 iOS 安全區域。
     *   **sticky navbar 遮擋處理**：所有標題統一加 `scroll-margin-top: 6rem`（對應 navbar
         實測高度），錨點跳轉與 scroll-spy 判斷線共用同一個 `NAV_OFFSET = 96` 常數，不需要
         在各個點擊處分別計算 offset。
+        **實作陷阱記錄（2026-07-12）**：`computeCurrentId()` 判斷「目前章節」原本用嚴格的
+        `top - NAV_OFFSET <= 0`；實測發現瀏覽器對 `scroll-margin-top` 錨點跳轉的定位計算
+        有次像素捨入誤差（例如落在 `96.625px` 而非精確 `96px`），嚴格比較會讓剛跳轉抵達
+        的目標標題被誤判為「還沒到」，導致反白停留在上一個標題（點擊 TOC 抽屜索引跳轉後
+        重新開啟抽屜最容易看到）。已放寬為 2px 容忍值（`<= 2`）。這個計算是桌機側欄與
+        手機抽屜共用的同一份邏輯，日後若再改動判斷式須注意保留這個容忍值。
     *   **未新增任何 npm 套件或 CDN script**：`IntersectionObserver` 與 `touch` 事件皆為
         瀏覽器原生 API，與本專案「純 vanilla JS、無元件庫」的既有慣例一致。
+    *   **錨點跳轉平滑捲動（2026-07-12 新增）**：三處 TOC 連結（桌機側欄／手機頂部速覽／
+        手機底部抽屜）皆掛上共用的 `smoothJump(e)` click handler，`preventDefault()`
+        瀏覽器原生瞬間跳轉、改呼叫 `el.scrollIntoView({ behavior, block: 'start' })`；
+        `behavior` 依 `prefers-reduced-motion` 動態切換 `smooth`/`auto`。因為攔截了原生
+        跳轉，手動用 `history.replaceState`（非 `pushState`）同步網址 hash——用
+        `replaceState` 是刻意選擇，避免每次點擊 TOC 都在瀏覽器歷史堆疊多塞一筆記錄。
+        `smoothJump` 排除 Ctrl/Cmd/Shift/Alt 修飾鍵點擊（保留原生開新分頁行為），且只
+        `preventDefault()` 不 `stopPropagation()`，讓底部抽屜原有的「點連結即關閉」委派
+        監聽仍正常運作。
 
 ---
 
