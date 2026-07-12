@@ -147,177 +147,33 @@ posts/
     為了避免在每個獨立 HTML 頁面中複製重複的導覽列與頁尾，透過 `assets/scripts.js` 在網頁載入時動態 `fetch()` 共用的元件 HTML 並置換 placeholder，同時透過 URL 比對來動態將目前頁面選單項目標記為啟用狀態。
 4.  **Markdown 動態編譯與 Front Matter 剝離**：
     `posts/detail.html` 作為唯一的通用文章內頁，在載入時透過 `marked.js` 對 Markdown 文章原始碼進行即時轉譯。在轉譯前，利用正則表達式剝離 Jekyll 遺留的 Front Matter 區塊，並支持原始 HTML 與 Markdown 文章格式的雙重相容。
-5.  **視覺設計系統（2026-07-12 初版；同日再改版為新色票，見下方「配色改版」）**：
-    網站風格定位為「簡潔、乾淨、高雅」，設計 Token 全部定義於 `assets/tailwind.css` 的
-    `@theme` 區塊：
-    *   **色彩（已於同日「配色改版」取代，此段落保留供歷史對照，現行色票見下方）**：
-        初版捨棄舊有青藍色主題色 `#0085a1`，改用中性沉穩色系——`--color-ink (#343434)`
-        標題/主要文字、`--color-muted (#8E8B82)` 僅供邊框/分隔線/裝飾底色、
-        `--color-muted-text (#6E6B62)` 內文級次要文字、`--color-sand (#E9DCBE)` 米色
-        hover 底/標籤底、`--color-paper (#F3F3F3)` 頁面整體底色、`--color-primary
-        (#6B4A34)` 咖啡色強調色。
-    *   **配色改版（2026-07-12，現行色票）**：使用者提供四色色票
-        `#222831`/`#393E46`/`#948979`/`#DFD0B8` 要求全站換色，並指定「灰色為主要代表色」。
-        流程：Sonnet 盤點現有 token 用途 → Opus（資深 UI/UX 設計師角色）判斷「灰色主導」
-        應落地為全站深色主題（因這組色票明度連續遞進，只有深色方案能讓深灰真正鋪滿主導
-        畫面）並產出色碼規格 → Sonnet 依規格全站落地 → **使用者實際看過後推翻深色方向**，
-        改指定「底色為白色，深色字體以灰色為主，偶爾搭其他顏色」→ Sonnet 直接用 Node
-        手算 WCAG 對比（純算術驗證，不需要重跑一次開放式設計決策）重新分配 token。
-        **現行（白底）token 值**：色票拆兩個家族運用——`#222831`/`#393E46` 這組偏冷深灰
-        供「灰色為主」的文字使用，`#948979`/`#DFD0B8` 這組偏暖褐/米供「偶爾搭配的其他
-        顏色」（強調色/邊框/標籤底）使用。`--color-paper`/`--color-surface` 均為
-        `#FFFFFF`（頁面與卡片/導覽列同白，靠 `border-sand` 區隔層次）、`--color-ink:
-        #222831`（主要文字/標題）、`--color-muted-text: #61656B`（由 `#393E46` 淺化衍生，
-        對白底約 5.86:1 通過 AA）、`--color-muted: #888B90`（僅供 disabled 文字，常搭配
-        `opacity-40`；曾誤用更淺的 `#B0B2B5` 但實測疊加後過於淡到近乎不可見，已改用與
-        改版前 `#8E8B82` 相近的深淺度）、`--color-sand: #948979`（色票原色，邊框/分隔線/
-        標籤底/hover 底）、`--color-primary/-dark: #6F675B / #595249`（由 `#948979`
-        加深衍生，對白底雙向皆約 5.57:1 通過 AA，同時滿足「文字疊白底」與「白字疊強調色
-        底」兩種方向）、新增 `--color-hero-text: #F4ECDD`（見下方 Hero 段落，與站內底色
-        無關）。**關鍵陷阱**：Hero 遮罩色不可跟著 `--color-paper` 連動——深色主題階段
-        `.masthead .overlay` 曾改綁 `bg-paper`（當時 paper 是深色），改回白底時若沒同步
-        把遮罩改綁回 `bg-ink`（`--color-ink` 這次仍是深灰），遮罩會變成白色蓋在封面圖上，
-        直接讓深色封面圖上的淺色標題文字失去對比，等於重新製造使用者最初詢問的問題；
-        已修正為固定綁 `bg-ink`，與站內底色变化解耦。因為大部分元件（導覽列/頁尾/按鈕/
-        分頁器/下拉選單/表單/TOC 抽屜）都是引用 token 而非寫死色碼，兩次改版（深色→白底）
-        大多只需要動 `@theme` 區塊本身，不需要逐檔案重新掃過一遍。
-    *   **字體分工**：大字級展示型標題（Hero、文章標題、Nav wordmark）與 Hero 副標題（`.subheading`）使用 Lora 襯線字體，建立統一且兼具編輯雜誌感的視覺風格；小字級高資訊密度的 UI（表格、按鈕、標籤、導覽次要連結）與內文中的英文及數字，皆升級為現代高解析度的 `Inter` 無襯線變數字型，以確保極致清晰度。中文字重僅使用 400/700（因自架字型檔只有這兩種字重），標題不加 `tracking-tight`/`tracking-wide` 等字距 utility——這類拉丁排版習慣套用在全形中文字上會造成擠字或鬆散，不符合 CJK 排版慣例。此外，元資料（Meta）排版部分全面去除 CJK 斜體（`italic`）屬性以避免瀏覽器強制傾斜產生的鋸齒歪斜與不對稱感，並收細尺寸至 `text-sm` 以拉開視覺排版層次。
-    *   **已知限制（刻意取捨）**：中文標題目前仍會 fallback 到作業系統內建的中文襯線字型
-        （macOS Songti/Windows 新細明體），多數 Android 裝置無內建中文襯線會退回無襯線字體，
-        跨平台呈現不完全一致。這是為了維持 PWA 離線能力與零外部字型依賴（不引入 Google
-        Fonts CDN）而做的刻意權衡，未來如需求更一致的跨裝置襯線效果，需自行 subset 打包
-        Noto Serif TC 字型檔並承擔額外資源體積。
-    *   **文章內文排版**：安裝 `@tailwindcss/typography` 外掛處理 Markdown 渲染出的標題、
-        清單、表格、code block、blockquote 等元素樣式，透過官方 `--tw-prose-*` CSS 變數
-        覆寫配色（見 `.prose` 區塊），而非手刻各元素選擇器，降低未來新文章格式若用到外掛
-        涵蓋範圍的維護成本。`posts/detail.html` 在 Markdown/HTML 雙格式渲染完成後，額外用
-        JS 為每個 `<table>` 動態包一層 `overflow-x-auto` 容器，避免窄螢幕表格撐破版面
-        （typography 外掛本身不會自動處理表格橫向捲動）。
-    *   **Navbar**：拿掉原本的房屋 SVG 圖示，改為純文字 wordmark「旅遊指南」（serif、
-        `font-bold`），維持只有 2 個導覽項目（首頁 Logo + 目錄）的極簡資訊架構，sticky nav
-        改用毛玻璃效果（class 現為 `bg-surface/90 backdrop-blur-sm`，`--color-surface`
-        token 現行值即白色，效果等同原本的 `bg-white/90`，見上方「配色改版」段落）。
-    *   **Hero 遮罩對比度（2026-07-12 修正；同日配色改版又調整一次不透明度與文字色，
-        見上方「配色改版」段落）**：`.masthead .overlay` 由 `opacity-60` 調高為
-        `opacity-70`。經 WCAG 對比度試算，60% 疊加在最壞情境（近純白背景圖）下白字對比僅
-        約 3.68:1，大標題（大字門檻 3:1）過關但副標題/meta 等一般粗細文字（門檻 4.5:1）
-        不通過；數學上需要 α ≥ 0.672 才達標，故調至 70%（對比約 4.9:1）。刻意不做「依圖片
-        動態偵測明暗調整遮罩」——那需要 Canvas 像素取樣、有 CORS/效能成本，對此規模的部落格
-        是過度工程，用「保守調高固定值覆蓋最壞情境」一次解決所有現有與未來背景圖的疑慮。
-        **現行值**：配色改版後不透明度再調到 `0.78`、文字改用專屬的
-        `--color-hero-text (#F4ECDD)` 而非 `--color-ink`，遮罩色固定綁 `bg-ink`（不可
-        綁 `bg-paper`，因為 `--color-paper` 現在是白色），詳見上方「配色改版」段落。
-        同時，修正了文章詳細頁 Hero section 內閱讀時間（`.reading-time`）因為全域繼承樣式而顯示為暗灰色的問題（改為強制使用 `text-hero-text`），
-        並將 Hero 內的標籤（`#post-tags span`）重新設計為專屬的半透明 pill 樣式（`border-hero-text/30 bg-hero-text/10 text-hero-text text-xs`），
-        兼顧視覺設計層次與高對比無障礙規格。
-6.  **目錄頁篩選/搜尋互動細節（2026-07-12 修正）**：
-    *   **標籤篩選下拉選單定位**：`assets/scripts.js` 的 `renderTagDropdown()` 選單錨點採
-        `left-0`（而非 `right-0`）並搭配 `w-64 max-w-[calc(100vw-2.5rem)]`。原因是按鈕
-        容器（`tag-filter-container`）在 `posts/index.html` 中只是 `flex-row justify-end`
-        裡的 `w-1/2` 子元素，落在整列左半邊而非螢幕右緣，若選單用 `right-0` 往左展開，
-        窄螢幕下會超出可視範圍左側；改為 `left-0` 往右展開並限制 `max-width`，可確保
-        任何螢幕寬度下選單都落在視窗內。清單 `overflow-y-auto` 高度定為 `max-h-48`
-        （約可見 6 筆），第 6 筆刻意露出一半作為「可捲動」視覺提示，其餘標籤靠捲動選取。
-    *   **篩選/搜尋不觸發畫面捲動，僅分頁換頁才捲動**：`render(page, isFirstLoad, shouldScroll)`
-        新增 `shouldScroll` 參數。`applyFilters()`（標籤確定/搜尋輸入觸發）呼叫時傳
-        `false`，因為搜尋框位於列表容器上方，若自動捲動到列表頂端會把輸入框推出可視
-        範圍；分頁按鈕點擊與瀏覽器上一頁/下一頁（`popstate`）維持預設 `true`，因為那是
-        使用者主動的換頁操作，捲動到清單頂端提供正確的視覺錨點。
-    *   **即時結果計數**（2026-07-12 新增）：`initPagination` 內新增 `updateResultCount()`
-        helper，靠 DOM 探測 `#result-count` 是否存在（未改變 `initPagination` 對外呼叫
-        簽名），存在才更新 `textContent = filteredItems.length`；在 `applyFilters()` 與
-        `render()` 兩處呼叫，涵蓋首次載入、篩選、換頁全部情境。`posts/index.html` 篩選列
-        由「單純右側兩控制元件、`justify-end`」改為「左側計數＋右側控制、`justify-between`」。
-        **實作陷阱記錄**：右側控制元件的包裹 wrapper 若不給明確寬度（僅 `flex gap-3`），
-        內部兩個子元素的 `w-1/2` 會相對於「不定寬度、shrink-to-fit 自動運算」的父層形成
-        循環依賴，375px 手機寬度實測會造成計數文字擠壓換行、控制元件寬度不穩定；修正方式
-        是 wrapper 加 `flex-1 min-w-0`，讓寬度改吃外層 flex 容器扣掉計數文字後的剩餘空間
-        這個明確值，`w-1/2` 才有穩定基準可算，計數 `<span>` 另加 `shrink-0 whitespace-nowrap`
-        防止換行。日後若再對這個篩選列做版面調整，注意任何「相對寬度子元素」都需要一個
-        有明確（非 auto shrink-to-fit）寬度的父層才能正確運算。
-    *   **空狀態**（2026-07-12 新增）：`filteredItems.length === 0` 時，`render()` 於
-        `#archive-table-body`（即 `<tbody>`）注入一列 `.toc-empty-row` 提示（找不到符合的
-        文章／試試調整標籤或清除搜尋關鍵字）；每次 `render()` 先移除舊的 `.toc-empty-row`
-        再視情況重新注入避免累積。用獨立 class（非 `itemSelector` 的 `.archive-row`）確保
-        不會混入 `allItems` 初始快照或干擾分頁/計數邏輯。
-    *   **視覺細節收斂**（2026-07-12，資深 UI/UX 審查回饋）：分頁器一般頁碼/disabled/省略號
-        由冷灰（`text-gray-*`）改暖色 Token（`text-ink`/`border-sand`/`hover:bg-sand/30`/
-        `text-muted opacity-40`/`text-muted-text`），避免脫離全站暖色設計系統；列內日期由
-        `font-mono`（`@theme` 未定義 mono Token，會 fallback 到冷硬等寬字）改
-        `tabular-nums`（只固定數字寬度、不改字體家族）；日期與標籤合併為同一橫排 meta 帶
-        （`flex items-center flex-wrap gap-2 mt-1`），列間距統一交給 `gap` 而非多處零散
-        margin；`.tag-pill` 行高由 `leading-5` 收緊為 `leading-4`；下拉主鈕/清除鈕/確定鈕/
-        checkbox 補上 `focus-visible:ring-1 focus-visible:ring-primary`（原本
-        `focus:outline-none` 卻無替代焦點樣式，屬 a11y 缺口）；搜尋框 placeholder 的 emoji
-        `🔍︎` 改為內聯 SVG 放大鏡圖示（`stroke="currentColor"`，與下拉箭頭風格一致），未
-        引入任何外部圖示套件。
+5.  **視覺設計系統**：
+    網站風格定位為「簡潔、乾淨、高雅」，採用使用者指定的四色色票（`#222831`/`#393E46`/`#948979`/`#DFD0B8`），設計 Token 全部定義於 `assets/tailwind.css` 的 `@theme` 區塊。
+    *   **色彩 Token 設計（現行白底方案）**：
+        色票拆分為兩個家族運用：`#222831`/`#393E46`（偏冷深灰）作為主要文字與標題字色，`#948979`/`#DFD0B8`（偏暖褐/米）作為強調色、邊框與標籤背景。
+        *   `--color-paper` / `--color-surface`：`#FFFFFF`（頁面整體與元件卡片底色，靠邊框區隔層次）。
+        *   `--color-ink`：`#222831`（主要文字與標題）。
+        *   `--color-muted-text`：`#61656B`（次要與 Meta 文字，對白底通過 WCAG AA）。
+        *   `--color-muted`：`#888B90`（Disabled 狀態文字）。
+        *   `--color-sand`：`#948979`（邊框、分隔線、標籤與 hover 背景）。
+        *   `--color-primary` / `-dark`：`#6F675B` / `#595249`（暖褐強調色，對白底通過 WCAG AA，同時滿足文字疊白底與白字疊強調底的可讀性）。
+        *   `--color-hero-text`：`#F4ECDD`（Hero 區文字專用色，在深色遮罩下提供高對比）。
+    *   **Hero 遮罩與文字對比**：`.masthead .overlay` 遮罩固定使用 `bg-ink`，不透明度設為 `0.78`，文字強制使用 `text-hero-text`（`#F4ECDD`）。此組合可確保不論背景圖明暗，標題與 Meta 文字皆能通過 WCAG AA 對比度規範。
+    *   **字體分工**：展示型標題（Hero、文章標題、Nav wordmark）與 Hero 副標題使用 `Lora` 襯線字型，建立編輯雜誌感；UI 與內文字體升級為 `Inter` 無襯線變數字型以確保清晰。中文字型維持系統優選。元資料（Meta）完全去除 CJK 漢字之斜體，收細至 `text-sm` 以拉開視覺層次。
+    *   **文章內文排版**：安裝 `@tailwindcss/typography` 處理 Markdown 元素樣式。詳細頁在渲染完成後以 JS 為 `<table>` 動態包覆 `overflow-x-auto` 容器，以防表格橫向溢出。
+    *   **Navbar**：Logo 改為純文字 wordmark「旅遊指南」之極簡二項目架構，Navbar 具毛玻璃特效（`bg-surface/90 backdrop-blur-sm`）。
+6.  **目錄頁篩選/搜尋互動細節**：
+    *   **標籤篩選下拉選單定位**：選單錨點採 `left-0`，搭配 `w-64 max-w-[calc(100vw-2.5rem)]` 與 `max-h-48`，確保窄螢幕下選單完整落在可視範圍內，並提供捲動提示。
+    *   **篩選/搜尋不觸發畫面捲動**：搜尋與篩選操作時 `shouldScroll` 設為 `false`，避免搜尋框被捲出視窗；僅在分頁換頁與上一頁/下一頁時才捲動至清單頂端。
+    *   **即時結果計數與空狀態**：新增結果計數更新機制，優化寬度計算防止小螢幕擠壓換行。當無搜尋結果時，動態注入空狀態提示列。
+    *   **視覺細節收斂**：分頁器改用暖色 Token，日期改用 `tabular-nums` 並與標籤合併為單一橫排 Meta 帶以緊湊版面。加入鍵盤 `focus-visible` 焦點樣式，並以內聯 SVG 放大鏡取代 emoji。
 7.  **PWA 靜態資源預快取防刷 (swPrecachePlugin)**：
-    由於 Vite 打包後的 CSS/JS 檔名會帶有隨機雜湊碼（例如 `tailwind-XyZ123.css`），為了讓 Service Worker (`sw.js`) 能夠精確預快取這些資源以供離線訪問，自訂了 Vite 插件 `swPrecachePlugin`，在 Vite 完成 Bundling 後，動態將帶有雜湊值的資源名稱取代並更新至 `dist/sw.js` 的預快取陣列中。
-8.  **文章大綱元件 (TOC，2026-07-12 新增)**：
-    設計流程為統籌者提規劃 → Opus（資深 UI/UX 設計師角色）拍板響應式行為 → Opus（資深
-    前端工程師角色）依設計決策產出技術規格 → Sonnet 實作，三方分工存檔於本次任務的暫存
-    規劃書中（未納入版控）。
-    *   **完全 runtime 動態生成，不寫死 DOM**：`assets/scripts.js` 新增 `initTOC(contentContainer)`
-        （掛為 `window.initTOC`），由 `posts/detail.html` 在文章內容注入、表格 RWD 修正
-        （8b）完成後呼叫（8c）。因為標題只存在於「注入後」的 `#post-content` DOM（無論
-        來源是 marked.js 解析的 Markdown 還是手寫 HTML 格式文章），TOC 必須走訪渲染後的
-        `h2`/`h3` 元素才能同時支援兩種文章格式，與既有的 table `overflow-x-auto` 包裹邏輯
-        同一套模式。只有 2 個以上 h2/h3 標題時才渲染整組功能；h4 以下層級一律忽略。
-    *   **繁中安全 slug**：標題若無 `id` 才自動指派，slug 策略為保留 Unicode
-        `\p{L}`/`\p{N}` 字元（含中日韓文字），非 ASCII-only 轉寫，並用 `Set` 去重確保
-        全域唯一；已有 `id` 的手寫 HTML 文章尊重原值不覆寫。
-    *   **桌機（`xl:` 1280px 以上）**：`position: fixed` 側欄浮於 `max-w-3xl` 文章卡片
-        左側頁面留白區（文章卡片本身不位移），定位公式
-        `left: max(1.5rem, calc(50vw - 37rem))`（依卡片 768px 寬 + 20px padding + 32px
-        間距 + 176px 側欄寬反推）。Active 章節由 `IntersectionObserver` 觸發、但實際判斷
-        邏輯是每次重新計算「目前捲動位置以上最後一個標題」的幾何位置（而非單純
-        `isIntersecting`），避免短小節被跳過；另外掛一個被動 `scroll` 監聽同一份判斷邏輯
-        當保險，避免大幅跳轉捲動時 IO 未即時觸發。1024–1279px（平板）刻意不做過渡樣式，
-        直接沿用行動版模式，不留 TOC 消失的空窗。
-    *   **手機/平板（< 1280px）**：文章開頭插入僅列 h2 的靜態速覽區塊（無巢狀、無
-        scroll-spy，維持開頭簡潔）；使用者往下捲動、速覽區塊完全離開視窗後，右下角浮動
-        圓鈕淡入，點擊開啟含 h2+h3 完整清單的 Bottom Sheet。scrim 為 `rgba(0,0,0,0.25)` +
-        `backdrop-filter: blur(4px)` 毛玻璃遮罩。關閉方式三選一：點擊 scrim、下滑手勢
-        （`touchmove` 簡易位移判斷，非物理引擎，且僅在清單已捲到頂端時才允許拖曳避免與
-        內部捲動衝突）、點擊任一連結（自動關閉後交由原生 hash 錨點捲動），另加 Esc 鍵。
-        **刻意不放 X 關閉按鈕**——頂端 grabber 拖曳條即關閉提示。
-        **抽屜清單版面（2026-07-12 二次修正，UI/UX 審查回饋）**：初版曾將清單改為置中
-        對齊、`min-height: 60vh` 強制撐開、移除桌機側欄用的左側色條縮排，理由是「置中版面
-        更簡潔」；但使用者實際使用後回報「快速索引列設計不好看」。用 `ui-ux-pro-max` skill
-        查詢導覽清單準則交叉比對後定位出三個問題並改回：(1) 置中對齊在標題長短不一時會讓
-        清單左緣參差不齊、難以掃視——導覽類清單應靠左對齊，置中僅適合單行等長文字；
-        (2) 移除左側色條縮排讓 h2/h3 階層線索只剩字級大小可辨，長清單容易搞不清楚 h3
-        歸屬——改回沿用桌機側欄 `.toc-link` 基底（保留 `border-left` 色條），h3 用
-        `margin-left` + 加大 `padding-left` 加強縮排；(3) 抽屜缺乏「目前章節」高亮，桌機
-        側欄卻有——`assets/scripts.js` 的 `initTOC` 把 scroll-spy 計算邏輯
-        （`computeCurrentId()`／IntersectionObserver／scroll listener）從
-        `buildDesktopSidebar()` 內部提升到頂層共用，新增 `activeUpdaters` 陣列讓桌機側欄
-        與手機抽屜的清單各自訂閱同一份「目前章節 id」廣播（避免重複掛兩份 IO/scroll
-        listener），抽屜的 `.is-active` 額外加淡咖啡色底 tint 加強辨識度。**高度改為隨
-        內容自然撐開**：移除 `min-height: 60vh` 與置中的 `justify-content: center`（標題
-        少的文章會讓清單懸浮在大片空白中間，視覺上不像清單像單張卡片），僅保留
-        `max-height: 80vh` 上限，並補 `padding-bottom: env(safe-area-inset-bottom)`
-        處理 iOS 安全區域。
-    *   **sticky navbar 遮擋處理**：所有標題統一加 `scroll-margin-top: 6rem`（對應 navbar
-        實測高度），錨點跳轉與 scroll-spy 判斷線共用同一個 `NAV_OFFSET = 96` 常數，不需要
-        在各個點擊處分別計算 offset。
-        **實作陷阱記錄（2026-07-12）**：`computeCurrentId()` 判斷「目前章節」原本用嚴格的
-        `top - NAV_OFFSET <= 0`；實測發現瀏覽器對 `scroll-margin-top` 錨點跳轉的定位計算
-        有次像素捨入誤差（例如落在 `96.625px` 而非精確 `96px`），嚴格比較會讓剛跳轉抵達
-        的目標標題被誤判為「還沒到」，導致反白停留在上一個標題（點擊 TOC 抽屜索引跳轉後
-        重新開啟抽屜最容易看到）。已放寬為 2px 容忍值（`<= 2`）。這個計算是桌機側欄與
-        手機抽屜共用的同一份邏輯，日後若再改動判斷式須注意保留這個容忍值。
-    *   **未新增任何 npm 套件或 CDN script**：`IntersectionObserver` 與 `touch` 事件皆為
-        瀏覽器原生 API，與本專案「純 vanilla JS、無元件庫」的既有慣例一致。
-    *   **錨點跳轉平滑捲動（2026-07-12 新增）**：三處 TOC 連結（桌機側欄／手機頂部速覽／
-        手機底部抽屜）皆掛上共用的 `smoothJump(e)` click handler，`preventDefault()`
-        瀏覽器原生瞬間跳轉、改呼叫 `el.scrollIntoView({ behavior, block: 'start' })`；
-        `behavior` 依 `prefers-reduced-motion` 動態切換 `smooth`/`auto`。因為攔截了原生
-        跳轉，手動用 `history.replaceState`（非 `pushState`）同步網址 hash——用
-        `replaceState` 是刻意選擇，避免每次點擊 TOC 都在瀏覽器歷史堆疊多塞一筆記錄。
-        `smoothJump` 排除 Ctrl/Cmd/Shift/Alt 修飾鍵點擊（保留原生開新分頁行為），且只
-        `preventDefault()` 不 `stopPropagation()`，讓底部抽屜原有的「點連結即關閉」委派
-        監聽仍正常運作。
+    由於 Vite 打包後的 CSS/JS 檔名會帶有隨機雜湊碼，自訂 Vite 插件 `swPrecachePlugin`，在建置完成後，動態將帶有雜湊值的資源名稱取代並更新至 `dist/sw.js` 的預快取陣列中。
+8.  **文章大綱元件 (TOC)**：
+    *   **Runtime 動態生成**：於文章渲染後動態走訪 `h2`/`h3` 生成大綱，支援 Markdown 與手寫 HTML 格式。若標題無 `id` 則自動指派繁中安全 slug。
+    *   **桌機版（>= 1280px）**：固定於文章卡片左側留白區，以 `IntersectionObserver` 搭配捲動幾何計算進行精準的 Scroll Spy 章節高亮。
+    *   **行動版（< 1280px）**：文章開頭插入 h2 靜態速覽。向下捲動後淡入右下角浮動按鈕，點擊開啟 Bottom Sheet 抽屜（高度自適應，最大 `80vh`，支援下滑、點 scrim、Esc 或點連結關閉）。清單採靠左對齊並保留階層色條縮排與目前章節高亮。
+    *   **平滑捲動跳轉**：點擊 TOC 連結時攔截原生瞬間跳轉，改用 `scrollIntoView({ behavior: 'smooth' })` 平滑捲動（尊重減速動效設定），並以 `history.replaceState` 更新 hash 且不增加歷史堆疊。統一設定 `scroll-margin-top: 6rem` 避開 sticky navbar 遮擋，並放寬 2px 誤差以修正 active 章節誤判。
 
 ---
 
