@@ -51,6 +51,11 @@
 
 ## 更新歷史
 
+### 2026-07-12 — 新增開發模式文章自動監聽更新插件
+
+*   **Vite 開發伺服器自動化**：在 [vite.config.js](file:///home/lawrencechh/j/travel/vite.config.js) 中新增自訂插件 `watchPostsMetadataPlugin`，在本地開發模式下（`npm run dev`）會自動偵測 [src/posts/](file:///home/lawrencechh/j/travel/src/posts) 目錄中的變動（包含新增、修改、刪除 `.md` 和 `.html` 檔案）。
+*   **熱更新 (Hot reload)**：偵測到變動後，插件會使用防抖動（Debounce）機制調用 `scripts/generate-posts-metadata.js` 重新編譯 `posts.json` 索引檔，並自動對瀏覽器發送 `full-reload` 訊號重載網頁，徹底解決新增/修改文章網頁未同步更新的問題。
+
 ### 2026-07-12 — 視覺與字型排版演進（白底配色、Inter字型與Meta排版優化）
 
 *   **全站配色定案（白底方案）**：採用使用者指定的四色色票（`#222831`/`#393E46`/`#948979`/`#DFD0B8`）。經歷了「深色主題」嘗試後，最終確立白底（`#FFFFFF`）與偏冷深灰文字（`#222831`/`#393E46`），並搭配暖褐（`#948979`）作為強調色與邊框 Token 的設計。

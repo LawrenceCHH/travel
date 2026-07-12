@@ -56,6 +56,19 @@
     "markdownPath": "src/posts/2026-07-12-travel-style.md"
   },
   {
+    "id": "2026-07-12-韓國首爾旅行規劃",
+    "title": "首爾秋日漫遊手帳",
+    "subtitle": "詳細的旅遊攻略",
+    "date": "2026-07-12 12:00:00 +0800",
+    "background": "",
+    "tags": [
+      "韓國",
+      "首爾"
+    ],
+    "readTime": "閱讀時間約 112 分鐘",
+    "markdownPath": "src/posts/2026-07-12-韓國首爾旅行規劃.md"
+  },
+  {
     "id": "2026-07-12-academic-pure-md",
     "title": "[純MD版] 深度學習在自然語言處理中的幾何結構分析",
     "subtitle": "從流形假說與特徵空間幾何探索語意表徵的拓撲演變",

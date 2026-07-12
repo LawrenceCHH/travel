@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { exec } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -10,7 +11,8 @@ export default defineConfig({
   base: '/travel/',
   plugins: [
     tailwindcss(),
-    swPrecachePlugin()
+    swPrecachePlugin(),
+    watchPostsMetadataPlugin()
   ],
   build: {
     rollupOptions: {
@@ -24,6 +26,7 @@ export default defineConfig({
     }
   }
 });
+
 
 /**
  * 自訂 Vite 插件：在打包完成時，動態將雜湊化的 tailwind.css 與 scripts.js 寫入 sw.js 中，
@@ -78,3 +81,55 @@ function swPrecachePlugin() {
     }
   };
 }
+
+/**
+ * 自訂 Vite 插件：在開發模式下監聽 src/posts/ 的變動，
+ * 自動執行 npm run build:metadata 更新 posts.json，並觸發頁面重載。
+ */
+function watchPostsMetadataPlugin() {
+  let timer = null;
+  return {
+    name: 'watch-posts-metadata',
+    configureServer(server) {
+      const postsDir = resolve(__dirname, 'src/posts');
+      
+      // 確保目錄存在
+      if (!fs.existsSync(postsDir)) {
+        fs.mkdirSync(postsDir, { recursive: true });
+      }
+      
+      server.watcher.add(postsDir);
+      
+      const rebuildMetadata = (filePath) => {
+        // 僅針對 md 與 html 文章變動進行反應
+        if (!filePath.endsWith('.md') && !filePath.endsWith('.html')) return;
+        
+        // 使用防抖動限制，避免多個檔案同時變動（如複製整個資料夾）導致多次重複執行
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          console.log(`[watch-posts-metadata] 文章變動: ${filePath}，正在重新編譯元資料...`);
+          exec('node scripts/generate-posts-metadata.js', (err, stdout, stderr) => {
+            if (err) {
+              console.error('[watch-posts-metadata] 重新編譯失敗:', err);
+              return;
+            }
+            if (stdout) console.log(stdout.trim());
+            if (stderr) console.error(stderr.trim());
+            
+            // 觸發全頁熱重載
+            server.ws.send({
+              type: 'full-reload',
+              path: '*'
+            });
+            console.log('[watch-posts-metadata] 索引已更新並完成熱重載。');
+          });
+        }, 200);
+      };
+
+      server.watcher.on('add', rebuildMetadata);
+      server.watcher.on('change', rebuildMetadata);
+      server.watcher.on('unlink', rebuildMetadata);
+    }
+  };
+}
+
