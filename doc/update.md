@@ -25,6 +25,10 @@
 - [x] 修復目錄頁標題搜尋輸入時畫面自動捲動、蓋住搜尋框看不到打字內容的問題
 - [x] 提高 Hero 遮罩不透明度以確保各背景圖情境下文字對比度符合 WCAG AA
 - [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v13 → v14），配合本次 CSS/JS 行為變更強制舊快取失效
+- [x] 新增文章大綱 (TOC) 元件：桌機固定側欄 + Scroll Spy、手機頂部速覽區塊 + 浮動按鈕 +
+      底部抽屜快速跳轉，設計流程由 Opus（UI/UX）與 Opus（工程）分工審核後實作
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v14 → v15），配合 TOC 功能新增的 `scripts.js`/CSS
+      行為變更強制舊快取失效
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
@@ -57,6 +61,48 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-12 — 新增文章大綱 (TOC) 元件（Opus UI/UX × Opus 工程雙審核流程）
+
+由統籌者提出需求規格（桌機左側固定大綱 + Scroll Spy、手機頂部速覽區塊 + 捲動後浮現的
+懸浮按鈕 + 底部抽屜快速跳轉），開放兩個關鍵設計決策交由 Opus 判斷：桌機側欄的確切定位/
+斷點/active 樣式，以及手機快速跳轉面板該用左側 drawer 還是底部 sheet。流程為 Sonnet 先
+彙整技術事實 → Opus（資深 UI/UX 設計師角色）拍板響應式行為決策 → Opus（資深前端工程師
+角色）依決策產出逐檔技術規格 → Sonnet 依規格實作。
+
+*   **UI/UX 決策**：桌機側欄斷點訂在 `xl:`（1280px），因為 1024px 時 `max-w-3xl`
+    文章卡片單邊留白僅約 128px，放不下側欄；1280px 起單邊約 256px 才夠。1024–1279px
+    平板區間直接沿用行動版模式，不留 TOC 消失的空窗。Active 章節用文字轉咖啡色
+    `text-primary` + 字重轉 500 + 左側 2px 色條標示，不用色塊/膠囊高亮（維持極簡調性）。
+    行動版快速跳轉面板決定用 **Bottom Sheet**（非左側 drawer）：按鈕在右下拇指熱區，
+    出現位置與觸發點同一垂直動線，且左側 drawer 的心智模型是「全站導覽」，用在單篇文章
+    段內跳轉語意錯位；Bottom Sheet 是 Medium、Bear、iOS 閱讀類 App、Notion 行動版處理
+    頁內動作的共通慣例。頂部速覽區塊只列 h2（維持文章開頭簡潔），Bottom Sheet 給完整
+    h2+h3（使用者已有精確跳轉意圖）。h4 以下層級一律排除。
+*   **技術實作**：`assets/scripts.js` 新增 `initTOC(contentContainer)`
+    （`window.initTOC`），由 `posts/detail.html` 在文章內容注入與表格 RWD 修正完成後
+    呼叫。TOC 走訪「渲染後」的 `#post-content` DOM 抓取 `h2`/`h3`（而非解析 Markdown
+    原始碼），確保 Markdown 與手寫 HTML 兩種文章格式都能正確產生大綱；標題若無 `id`
+    才自動指派繁中安全的 slug（保留 Unicode 文字字元，非 ASCII-only 轉寫，`Set` 去重
+    保證唯一）。桌機側欄用 `position: fixed` 搭配算式
+    `left: max(1.5rem, calc(50vw - 37rem))` 浮在文章卡片左側留白區（卡片本身不位移），
+    Scroll Spy 用 `IntersectionObserver` 觸發、但由幾何位置重算決定實際 active 項目
+    （避免短小節被跳過），另掛一個被動 `scroll` 監聽同一份邏輯當保險。行動版：頂部速覽
+    區塊插入 `#post-content` 最前面；速覽區塊捲出視窗後浮動按鈕淡入；Bottom Sheet 提供
+    四種關閉方式（點擊 scrim、簡易 `touchmove` 位移判斷下滑手勢、右上 X 按鈕、點擊連結）。
+    所有標題統一加 `scroll-margin-top: 6rem` 處理 sticky navbar 遮擋，跳轉與 scroll-spy
+    共用同一個 `NAV_OFFSET = 96` 常數。CSS 新增於 `assets/tailwind.css` 的
+    `@layer components`（`.toc-sidebar`/`.toc-link`/`.toc-fab`/`.toc-sheet-*`），顯示/
+    隱藏斷點交給 Tailwind 既有的 `hidden xl:block` / `xl:hidden` utility 而非另寫
+    `@media` 區塊，避免斷點邏輯在 CSS 與 JS 兩處重複維護。未引入任何新 npm 套件或 CDN
+    script（`IntersectionObserver`/`touch` 事件皆瀏覽器原生）。`public/sw.js` 的
+    `CACHE_NAME` bump 至 `clean-blog-v15`。
+*   **驗證**：`npm run build` 成功。用 headless Chromium 透過暫存 iframe 測試頁
+    （未納入版控）模擬桌機 1440px 寬度捲動、確認側欄正確浮於留白區且 Scroll Spy 高亮
+    對應章節；模擬 375px 手機寬度確認文章開頭速覽區塊正常渲染、程式化點擊浮動按鈕後
+    Bottom Sheet 正確開啟（DOM 確認 `is-open` class 與內容清單皆正確；因 headless
+    `--virtual-time-budget` 模式無法正確推進 CSS transition 動畫，另用暫時關閉
+    transition 的方式截圖確認開啟後的靜態最終狀態）。
 
 ### 2026-07-12 — 修復目錄頁篩選/搜尋互動問題與 Hero 對比度（規劃由 Opus 資深前端工程師審核）
 

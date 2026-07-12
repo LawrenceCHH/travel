@@ -136,6 +136,11 @@
           wrapper.appendChild(table);
         });
 
+        // 8c. 文章大綱 (TOC)：解析標題產生桌機側欄 / 手機速覽區塊
+        if (typeof window.initTOC === 'function') {
+          window.initTOC(contentContainer);
+        }
+
         // 9. 上下一篇導覽 (Jekyll 排序為新到舊，即 posts[0] 最新)
         // 舊文章 (Previous) 在 posts 陣列 index + 1，新文章 (Next) 在 index - 1
         const prevPost = posts[index + 1]; // 較舊的

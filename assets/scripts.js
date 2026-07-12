@@ -390,6 +390,241 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
 }
 window.initPagination = initPagination;
 
+// 文章大綱 (TOC)：桌機固定側欄 + Scroll Spy／手機頂部速覽 + 浮動按鈕 + 底部抽屜
+function initTOC(contentContainer) {
+  // 需與 CSS 裡 heading 的 scroll-margin-top 一致，用來扣除 sticky navbar 高度
+  const NAV_OFFSET = 96;
+
+  const headings = Array.from(contentContainer.querySelectorAll('h2, h3'));
+  if (headings.length < 2) return; // 0 或 1 個標題時，大綱沒有意義，整組不渲染
+
+  // 1. 指派繁中安全、全域唯一的 slug id（若標題已有 id 則尊重原值不覆寫）
+  const usedIds = new Set();
+  headings.forEach(h => { if (h.id) usedIds.add(h.id); });
+
+  function slugify(text, index) {
+    const base = (text || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\p{L}\p{N}-]+/gu, '') // 保留 Unicode 文字（含中日韓）與數字
+      .replace(/-{2,}/g, '-')
+      .replace(/^-+|-+$/g, '');
+    let slug = base || `heading-${index}`;
+    let unique = slug;
+    let n = 1;
+    while (usedIds.has(unique)) {
+      unique = `${slug}-${n++}`;
+    }
+    usedIds.add(unique);
+    return unique;
+  }
+
+  headings.forEach((h, i) => {
+    if (!h.id) h.id = slugify(h.textContent, i);
+    h.style.scrollMarginTop = '6rem';
+  });
+
+  const toc = headings.map(h => ({
+    id: h.id,
+    text: h.textContent.trim(),
+    level: h.tagName === 'H2' ? 2 : 3,
+    el: h,
+  }));
+
+  buildDesktopSidebar(toc);
+  buildMobileOutlineAndSheet(toc, contentContainer);
+
+  // --- 桌機固定側欄 + Scroll Spy（僅在 xl 以上顯示，1024-1279px 沿用行動版） ---
+  function buildDesktopSidebar(toc) {
+    const sidebar = document.createElement('nav');
+    sidebar.className = 'toc-sidebar hidden xl:block';
+    sidebar.setAttribute('aria-label', '本文章節');
+
+    const label = document.createElement('p');
+    label.className = 'mb-2 text-xs font-bold tracking-wide text-muted-text';
+    label.textContent = '本文章節';
+    sidebar.appendChild(label);
+
+    toc.forEach(item => {
+      const a = document.createElement('a');
+      a.className = 'toc-link';
+      a.dataset.level = String(item.level);
+      a.href = `#${item.id}`;
+      a.textContent = item.text;
+      sidebar.appendChild(a);
+    });
+
+    document.body.appendChild(sidebar);
+
+    const sidebarLinks = Array.from(sidebar.querySelectorAll('.toc-link'));
+
+    // IntersectionObserver 只當觸發器，真正的「目前章節」由幾何位置重算決定，
+    // 避免短小節或多標題同時可見時，用單純 isIntersecting 誤判。
+    function updateActive() {
+      let currentId = toc[0].id;
+      for (const item of toc) {
+        if (item.el.getBoundingClientRect().top - NAV_OFFSET <= 0) {
+          currentId = item.id;
+        } else {
+          break;
+        }
+      }
+      // 捲到頁面最底時強制高亮最後一項，避免最後一段太短永遠選不到
+      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) {
+        currentId = toc[toc.length - 1].id;
+      }
+      sidebarLinks.forEach(a => {
+        a.classList.toggle('is-active', a.getAttribute('href') === `#${currentId}`);
+      });
+    }
+
+    const io = new IntersectionObserver(updateActive, {
+      rootMargin: `-${NAV_OFFSET}px 0px -70% 0px`,
+      threshold: 0,
+    });
+    toc.forEach(item => io.observe(item.el));
+    // IO 只在標題跨越 rootMargin 邊界時觸發，大幅捲動（例如點擊分頁跳轉、瀏覽器還原捲動位置）
+    // 可能在下一次跨越前不會重算，故額外掛一個被動 scroll 監聽當保險，兩者共用同一份幾何判斷。
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+  }
+
+  // --- 手機/平板（<1280px）：頂部速覽區塊 + 浮動按鈕 + 底部抽屜 ---
+  function buildMobileOutlineAndSheet(toc, contentContainer) {
+    const topLevelItems = toc.filter(item => item.level === 2);
+
+    // 1. 文章開頭的靜態大綱區塊（僅列 h2，無巢狀、無 scroll-spy）
+    let outline = null;
+    if (topLevelItems.length > 0) {
+      outline = document.createElement('nav');
+      outline.className = 'toc-outline not-prose my-2 rounded-md border border-sand bg-paper/60 p-4 xl:hidden';
+      outline.setAttribute('aria-label', '章節速覽');
+
+      const label = document.createElement('p');
+      label.className = 'mb-2 text-sm font-bold text-ink';
+      label.textContent = '本文章節';
+      outline.appendChild(label);
+
+      const list = document.createElement('ul');
+      list.className = 'space-y-1';
+      topLevelItems.forEach(item => {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.className = 'text-sm text-primary no-underline hover:underline';
+        a.href = `#${item.id}`;
+        a.textContent = item.text;
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+      outline.appendChild(list);
+
+      contentContainer.insertBefore(outline, contentContainer.firstChild);
+    }
+
+    // 2. 浮動按鈕：捲過大綱區塊後淡入
+    const fab = document.createElement('button');
+    fab.type = 'button';
+    fab.className = 'toc-fab xl:hidden';
+    fab.setAttribute('aria-label', '開啟章節目錄');
+    fab.innerHTML = `
+      <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"></path>
+      </svg>
+    `;
+    document.body.appendChild(fab);
+
+    const fabSentinel = outline || toc[0].el;
+    const fabIO = new IntersectionObserver(([entry]) => {
+      const scrolledPast = entry.boundingClientRect.bottom < NAV_OFFSET;
+      fab.classList.toggle('is-visible', !entry.isIntersecting && scrolledPast);
+    }, { threshold: 0 });
+    fabIO.observe(fabSentinel);
+
+    // 3. 底部抽屜 (Bottom Sheet)：完整 h2+h3 清單
+    const scrim = document.createElement('div');
+    scrim.className = 'toc-sheet-scrim xl:hidden';
+    scrim.setAttribute('role', 'dialog');
+    scrim.setAttribute('aria-modal', 'true');
+    scrim.setAttribute('aria-label', '本文章節');
+
+    const sheet = document.createElement('div');
+    sheet.className = 'toc-sheet';
+    sheet.innerHTML = `
+      <div class="flex justify-center pt-3 pb-1">
+        <span class="h-1.5 w-10 rounded-full bg-sand"></span>
+      </div>
+      <div class="flex items-center justify-between px-4 pb-2">
+        <p class="text-base font-bold text-ink">本文章節</p>
+        <button type="button" class="toc-sheet-close p-1 text-muted-text hover:text-primary cursor-pointer" aria-label="關閉">&#10005;</button>
+      </div>
+      <ul class="toc-sheet-list space-y-1"></ul>
+    `;
+    scrim.appendChild(sheet);
+    document.body.appendChild(scrim);
+
+    const sheetList = sheet.querySelector('.toc-sheet-list');
+    toc.forEach(item => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.className = 'toc-link';
+      a.dataset.level = String(item.level);
+      a.href = `#${item.id}`;
+      a.textContent = item.text;
+      li.appendChild(a);
+      sheetList.appendChild(li);
+    });
+
+    function openSheet() {
+      scrim.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeSheet() {
+      scrim.classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
+    fab.addEventListener('click', openSheet);
+    sheet.querySelector('.toc-sheet-close').addEventListener('click', closeSheet);
+    // 關閉方式 1：點擊遮罩本體（不含 sheet 自身冒泡上來的點擊）
+    scrim.addEventListener('click', (e) => {
+      if (e.target === scrim) closeSheet();
+    });
+    // 關閉方式 2：點擊任一連結，跳轉交給預設 hash 行為
+    sheetList.addEventListener('click', (e) => {
+      if (e.target.closest('a')) closeSheet();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && scrim.classList.contains('is-open')) closeSheet();
+    });
+
+    // 關閉方式 3：下滑手勢（僅在清單已捲到頂端時才允許拖曳關閉，避免與內部捲動衝突）
+    let startY = null;
+    sheet.addEventListener('touchstart', (e) => {
+      if (sheetList.scrollTop > 0) {
+        startY = null;
+        return;
+      }
+      startY = e.touches[0].clientY;
+      sheet.style.transition = 'none';
+    }, { passive: true });
+    sheet.addEventListener('touchmove', (e) => {
+      if (startY === null) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy > 0) sheet.style.transform = `translateY(${dy}px)`;
+    }, { passive: true });
+    sheet.addEventListener('touchend', (e) => {
+      if (startY === null) return;
+      const dy = e.changedTouches[0].clientY - startY;
+      sheet.style.transition = '';
+      sheet.style.transform = '';
+      if (dy > 80) closeSheet();
+      startY = null;
+    });
+  }
+}
+window.initTOC = initTOC;
+
 // 附加元件動態載入與 PWA 註冊邏輯
 document.addEventListener("DOMContentLoaded", function() {
   const base = '/travel/';

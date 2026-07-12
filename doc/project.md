@@ -109,7 +109,7 @@ npm run preview
 .github/workflows/pages.yml   CI/CD 部署設定，使用 Node/Vite 環境建置，部署 dist 到 Pages
 assets/
   tailwind.css                 Tailwind v4 CSS 原始碼（定義主題 Tokens 與自訂組件）
-  scripts.js                   通用 JS，含雙頁面分頁 (initPagination)、元件動態載入與 PWA 註冊
+  scripts.js                   通用 JS，含雙頁面分頁 (initPagination)、文章大綱 (initTOC)、元件動態載入與 PWA 註冊
   fonts/                       自我託管的 Lora + Open Sans 字型 (woff2)
 public/
   components/                  共用佈局元件
@@ -130,7 +130,7 @@ about.html                     關於我們頁面
 contact.html                   聯絡建議頁面，包含 Formspree 表單提交
 posts/
   index.html                   文章目錄頁面（橫線表格，分頁大小為 100）
-  detail.html                  通用文章內頁（動態 Fetch 文章、剔除 Front matter、利用 marked 渲染）
+  detail.html                  通用文章內頁（動態 Fetch 文章、剔除 Front matter、利用 marked 渲染、桌機/手機文章大綱 TOC）
 ```
 
 ---
@@ -195,6 +195,38 @@ posts/
         使用者主動的換頁操作，捲動到清單頂端提供正確的視覺錨點。
 7.  **PWA 靜態資源預快取防刷 (swPrecachePlugin)**：
     由於 Vite 打包後的 CSS/JS 檔名會帶有隨機雜湊碼（例如 `tailwind-XyZ123.css`），為了讓 Service Worker (`sw.js`) 能夠精確預快取這些資源以供離線訪問，自訂了 Vite 插件 `swPrecachePlugin`，在 Vite 完成 Bundling 後，動態將帶有雜湊值的資源名稱取代並更新至 `dist/sw.js` 的預快取陣列中。
+8.  **文章大綱元件 (TOC，2026-07-12 新增)**：
+    設計流程為統籌者提規劃 → Opus（資深 UI/UX 設計師角色）拍板響應式行為 → Opus（資深
+    前端工程師角色）依設計決策產出技術規格 → Sonnet 實作，三方分工存檔於本次任務的暫存
+    規劃書中（未納入版控）。
+    *   **完全 runtime 動態生成，不寫死 DOM**：`assets/scripts.js` 新增 `initTOC(contentContainer)`
+        （掛為 `window.initTOC`），由 `posts/detail.html` 在文章內容注入、表格 RWD 修正
+        （8b）完成後呼叫（8c）。因為標題只存在於「注入後」的 `#post-content` DOM（無論
+        來源是 marked.js 解析的 Markdown 還是手寫 HTML 格式文章），TOC 必須走訪渲染後的
+        `h2`/`h3` 元素才能同時支援兩種文章格式，與既有的 table `overflow-x-auto` 包裹邏輯
+        同一套模式。只有 2 個以上 h2/h3 標題時才渲染整組功能；h4 以下層級一律忽略。
+    *   **繁中安全 slug**：標題若無 `id` 才自動指派，slug 策略為保留 Unicode
+        `\p{L}`/`\p{N}` 字元（含中日韓文字），非 ASCII-only 轉寫，並用 `Set` 去重確保
+        全域唯一；已有 `id` 的手寫 HTML 文章尊重原值不覆寫。
+    *   **桌機（`xl:` 1280px 以上）**：`position: fixed` 側欄浮於 `max-w-3xl` 文章卡片
+        左側頁面留白區（文章卡片本身不位移），定位公式
+        `left: max(1.5rem, calc(50vw - 37rem))`（依卡片 768px 寬 + 20px padding + 32px
+        間距 + 176px 側欄寬反推）。Active 章節由 `IntersectionObserver` 觸發、但實際判斷
+        邏輯是每次重新計算「目前捲動位置以上最後一個標題」的幾何位置（而非單純
+        `isIntersecting`），避免短小節被跳過；另外掛一個被動 `scroll` 監聽同一份判斷邏輯
+        當保險，避免大幅跳轉捲動時 IO 未即時觸發。1024–1279px（平板）刻意不做過渡樣式，
+        直接沿用行動版模式，不留 TOC 消失的空窗。
+    *   **手機/平板（< 1280px）**：文章開頭插入僅列 h2 的靜態速覽區塊（無巢狀、無
+        scroll-spy，維持開頭簡潔）；使用者往下捲動、速覽區塊完全離開視窗後，右下角浮動
+        圓鈕淡入，點擊開啟含 h2+h3 完整清單的 Bottom Sheet（`max-height: 70vh` 可內部
+        捲動，`bg-black/40` scrim）。關閉方式四選一：點擊 scrim、下滑手勢（`touchmove`
+        簡易位移判斷，非物理引擎，且僅在清單已捲到頂端時才允許拖曳避免與內部捲動衝突）、
+        右上 X 按鈕、點擊任一連結（自動關閉後交由原生 hash 錨點捲動）。
+    *   **sticky navbar 遮擋處理**：所有標題統一加 `scroll-margin-top: 6rem`（對應 navbar
+        實測高度），錨點跳轉與 scroll-spy 判斷線共用同一個 `NAV_OFFSET = 96` 常數，不需要
+        在各個點擊處分別計算 offset。
+    *   **未新增任何 npm 套件或 CDN script**：`IntersectionObserver` 與 `touch` 事件皆為
+        瀏覽器原生 API，與本專案「純 vanilla JS、無元件庫」的既有慣例一致。
 
 ---
 
