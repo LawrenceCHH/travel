@@ -99,7 +99,7 @@
     @apply relative mb-12 bg-gray-600 bg-cover bg-center;
   }
   .masthead .overlay {
-    @apply absolute inset-0 bg-ink opacity-60;
+    @apply absolute inset-0 bg-ink opacity-70;
   }
   .page-heading,
   .post-heading,

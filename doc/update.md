@@ -21,6 +21,10 @@
 - [x] 將 GitHub Pages 設定 (Settings) → 來源 (Source) 切換至 "GitHub Actions"（若是首次部署）
 - [x] 視覺與排版全面改版：設計 Token 系統化（新中性色票 + 咖啡強調色）、標題改用襯線字體、
       Navbar 改為文字 Logo、文章內文導入 `@tailwindcss/typography` 排版、修正表格 RWD 溢出問題
+- [x] 修復目錄頁標籤篩選下拉選單手機版破版（超出螢幕左側邊界）與清單可見高度過高的問題
+- [x] 修復目錄頁標題搜尋輸入時畫面自動捲動、蓋住搜尋框看不到打字內容的問題
+- [x] 提高 Hero 遮罩不透明度以確保各背景圖情境下文字對比度符合 WCAG AA
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v13 → v14），配合本次 CSS/JS 行為變更強制舊快取失效
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
@@ -46,14 +50,6 @@
       只有 2 個導覽項目（Logo + 目錄），單排橫向排列在小螢幕也不會擠壓，因此沒有實際啟用。
       若未來導覽項目增加（例如加回「關於」），需要重新評估是否啟用漢堡選單，或考慮直接
       移除這段死程式碼。
-- [ ] **Hero 遮罩對比度隨圖片內容浮動**：`.masthead .overlay` 目前用固定的
-      `bg-ink opacity-60` 疊加深色遮罩讓白字可讀，但沒有針對每張背景圖（`bg-index.jpg`、
-      `bg-about.jpg`、`bg-contact.jpg`、`bg-post.jpg` 及各文章自訂 `background`）逐一實測
-      對比度，理論上亮色系背景圖仍可能讓白字可讀性不足，未來新增背景圖時建議留意。
-- [ ] **PWA `sw.js` 的 `CACHE_NAME` 未於本次改版更動**：本次僅調整 CSS/HTML 樣式內容，
-      Vite 的雜湊檔名機制已確保新版 CSS/JS 會被以新檔名快取，但如果之後合併本次改版時
-      發現舊訪客瀏覽器仍顯示改版前的殘留樣式，可依 `CLAUDE.md` 規範手動 bump
-      `sw.js` 的 `CACHE_NAME` 強制失效舊快取。
 - 以下三項為改版前既有的待辦，狀態未變，一併列於此處避免與上方「目前目標」重複追蹤：
   取得真實 Formspree 表單 ID、更新 `package.json` 專案元數據、替換
   `your-email@example.com` 佔位信箱（詳見上方「目前目標」清單）。
@@ -61,6 +57,50 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-12 — 修復目錄頁篩選/搜尋互動問題與 Hero 對比度（規劃由 Opus 資深前端工程師審核）
+
+由統籌者（產品負責人）列出四項已知問題與兩項建議修改，Sonnet 撰寫規劃書後交由 Opus
+扮演資深前端工程師審核，依審核意見確認方案後實作。
+
+*   **標籤篩選下拉選單破版（手機）**：`assets/scripts.js` 的 `renderTagDropdown()` 中，
+    選單原本是 `absolute right-0 w-72`（288px 定寬），錨點相對於「按鈕自身容器」
+    （`posts/index.html` 裡 `tag-filter-container` 與 `search-container` 是同一個
+    `flex-row justify-end` 裡的兩個 `w-1/2` 子元素，按鈕容器本身只有 ~130-180px 寬、
+    落在整列的左半邊而非螢幕右緣）。288px 選單以 `right-0` 往左展開，在 320-375px
+    窄螢幕上左緣會算出負值，超出可視範圍。修法：錨點改為 `left-0`（往右展開，左緣
+    貼齊按鈕容器左緣，本來就對齊頁面內容區左側 padding，穩定落在視窗內），寬度改為
+    `w-64 max-w-[calc(100vw-2.5rem)]` 作為安全上限，避免超出視窗。已用 headless
+    Chromium 在 375px 寬度下模擬點擊開啟選單截圖確認完整落在可視範圍內。
+*   **標籤篩選清單可見高度過高**：`#tag-checkbox-list` 的 `max-h-[320px]`（約可見
+    10 筆）改為 `max-h-48`（12rem = 192px，約可見 6 筆），其餘標籤靠內部
+    `overflow-y-auto` 捲動選取；Opus 審核認為第 6 筆被切一半是良好的「可捲動」視覺
+    提示，不需要額外加高緩衝。
+*   **標題搜尋輸入時畫面自動捲動蓋住輸入框**：`renderSearchBox()` 每個 `input` 事件
+    都呼叫 `applyFilters()` → `render(1)`，而 `render()` 只要非首次載入就一定會
+    `window.scrollTo(...smooth)` 捲動到列表容器頂端——因為搜尋框位於列表容器上方，
+    每次打字都會把輸入框捲出可視範圍（手機虛擬鍵盤情境更明顯），導致看不到自己
+    打的關鍵字。修法：`render()` 新增第三個參數 `shouldScroll`（預設 `true`），
+    `applyFilters()` 內的呼叫改為 `render(1, false, false)`（篩選/搜尋造成的重新
+    渲染不捲動畫面）；分頁按鈕點擊與瀏覽器上一頁/下一頁（`popstate`）維持吃預設值
+    `true`，換頁時仍會捲動到清單頂端。已用 headless Chromium 模擬在搜尋框輸入
+    「京都」後截圖確認畫面未捲動、輸入框內容清楚可見、清單已即時篩選。
+*   **Hero 遮罩對比度**：`.masthead .overlay` 原本固定 `bg-ink opacity-60`。經 WCAG
+    對比度試算，60% 疊加在最壞情境（近純白背景圖）下，白字對比約 3.68:1——大標題
+    （屬「大字」，門檻 3:1）過關，但副標題／meta 等一般粗細文字（門檻 4.5:1）不通過。
+    數學上需要 α ≥ 0.672 才能達標，改為 `opacity-70`，換算後對比約 4.9:1，安全超過
+    4.5:1 門檻。Opus 審核同意用「調高固定 opacity 覆蓋最壞情境」取代動態偵測圖片
+    亮度（後者需 Canvas 像素取樣，對此規模的部落格是過度工程），並確認不需要折衷到
+    65%（65% 僅約 4.2:1，仍不過 AA）。
+*   **PWA `sw.js` CACHE_NAME bump**：`CACHE_NAME` 由 `clean-blog-v13` 改為
+    `clean-blog-v14`，配合本次 CSS/JS 行為變更，依 `CLAUDE.md` 規範強制已安裝 PWA
+    的舊訪客清除殘留快取。
+*   **維持不變（僅確認註記，無程式碼異動）**：「關於」頁面無導覽入口、Navbar 手機版
+    漢堡選單死程式碼——這兩項先前已記錄於「未來建議修改方向」，本次統籌者明確表示
+    不做修改，維持現狀。
+*   **驗證**：`npm run build` 建置成功；`npm run preview` 起本地伺服器後，用 headless
+    Chromium 在 375px 寬度下透過暫存驗證頁（iframe + 模擬點擊/輸入事件，未納入版控）
+    截圖確認標籤選單完整落在可視範圍內、搜尋輸入不觸發畫面捲動。
 
 ### 2026-07-12 — 視覺與排版全面改版（簡潔高雅風格，色彩/字體系統重構）
 

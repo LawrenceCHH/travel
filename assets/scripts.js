@@ -102,13 +102,12 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     // Create Dropdown Menu Wrapper
     const menu = document.createElement('div');
     menu.id = 'tag-dropdown-menu';
-    menu.className = 'hidden absolute right-0 z-50 mt-2 w-72 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none p-4 transition-all duration-200 opacity-0 scale-95';
-    menu.style.transformOrigin = 'top right';
-    
-    // Dropdown Content (Scrollable checkbox list and confirm actions)
+    menu.className = 'hidden absolute left-0 z-50 mt-2 w-64 max-w-[calc(100vw-2.5rem)] origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none p-4 transition-all duration-200 opacity-0 scale-95';
+    menu.style.transformOrigin = 'top left';
+
+    // Dropdown Content (Scrollable checkbox list, capped at roughly 6 items height)
     menu.innerHTML = `
-      <!-- Checkbox List (Scrollable, roughly 10 items height) -->
-      <div class="max-h-[320px] overflow-y-auto space-y-2 pr-1" id="tag-checkbox-list">
+      <div class="max-h-48 overflow-y-auto space-y-2 pr-1" id="tag-checkbox-list">
       </div>
       
       <!-- Footer actions (Clear on left, Confirm on right) -->
@@ -213,7 +212,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
   function renderSearchBox(searchContainer) {
     searchContainer.innerHTML = `
       <div class="w-full">
-        <input type="text" id="search-input" placeholder="搜尋標題... 🔍" class="w-full rounded border border-sand bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none text-ink shadow-sm">
+        <input type="text" id="search-input" placeholder="搜尋標題 🔍︎" class="w-full rounded border border-sand bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none text-ink shadow-sm">
       </div>
     `;
 
@@ -261,7 +260,9 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     
     // Reset query page to 1
     setPageUrl(1);
-    render(1);
+    // Filtering keeps the user where they are (e.g. still typing in the search box
+    // above the list) — only explicit pagination navigation should scroll the page.
+    render(1, false, false);
   }
 
   function getCurrentPage() {
@@ -276,7 +277,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
     window.history.pushState({ page }, '', url.pathname + url.search);
   }
 
-  function render(page, isFirstLoad = false) {
+  function render(page, isFirstLoad = false, shouldScroll = true) {
     // 1. Loading Pattern: Smooth transitions (fade out, then fade in)
     container.style.transition = 'opacity 0.2s ease-in-out';
     container.style.opacity = '0';
@@ -296,7 +297,7 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
       });
 
       // 2. Scroll Reset
-      if (!isFirstLoad) {
+      if (!isFirstLoad && shouldScroll) {
         const offsetTop = container.getBoundingClientRect().top + window.pageYOffset - 100;
         window.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
       }

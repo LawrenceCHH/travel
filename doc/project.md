@@ -174,7 +174,26 @@ posts/
     *   **Navbar**：拿掉原本的房屋 SVG 圖示，改為純文字 wordmark「旅遊指南」（serif、
         `font-bold`），維持只有 2 個導覽項目（首頁 Logo + 目錄）的極簡資訊架構，sticky nav
         改用 `bg-white/90 backdrop-blur-sm` 毛玻璃效果。
-6.  **PWA 靜態資源預快取防刷 (swPrecachePlugin)**：
+    *   **Hero 遮罩對比度（2026-07-12 修正）**：`.masthead .overlay` 由 `opacity-60` 調高為
+        `opacity-70`。經 WCAG 對比度試算，60% 疊加在最壞情境（近純白背景圖）下白字對比僅
+        約 3.68:1，大標題（大字門檻 3:1）過關但副標題/meta 等一般粗細文字（門檻 4.5:1）
+        不通過；數學上需要 α ≥ 0.672 才達標，故調至 70%（對比約 4.9:1）。刻意不做「依圖片
+        動態偵測明暗調整遮罩」——那需要 Canvas 像素取樣、有 CORS/效能成本，對此規模的部落格
+        是過度工程，用「保守調高固定值覆蓋最壞情境」一次解決所有現有與未來背景圖的疑慮。
+6.  **目錄頁篩選/搜尋互動細節（2026-07-12 修正）**：
+    *   **標籤篩選下拉選單定位**：`assets/scripts.js` 的 `renderTagDropdown()` 選單錨點採
+        `left-0`（而非 `right-0`）並搭配 `w-64 max-w-[calc(100vw-2.5rem)]`。原因是按鈕
+        容器（`tag-filter-container`）在 `posts/index.html` 中只是 `flex-row justify-end`
+        裡的 `w-1/2` 子元素，落在整列左半邊而非螢幕右緣，若選單用 `right-0` 往左展開，
+        窄螢幕下會超出可視範圍左側；改為 `left-0` 往右展開並限制 `max-width`，可確保
+        任何螢幕寬度下選單都落在視窗內。清單 `overflow-y-auto` 高度定為 `max-h-48`
+        （約可見 6 筆），第 6 筆刻意露出一半作為「可捲動」視覺提示，其餘標籤靠捲動選取。
+    *   **篩選/搜尋不觸發畫面捲動，僅分頁換頁才捲動**：`render(page, isFirstLoad, shouldScroll)`
+        新增 `shouldScroll` 參數。`applyFilters()`（標籤確定/搜尋輸入觸發）呼叫時傳
+        `false`，因為搜尋框位於列表容器上方，若自動捲動到列表頂端會把輸入框推出可視
+        範圍；分頁按鈕點擊與瀏覽器上一頁/下一頁（`popstate`）維持預設 `true`，因為那是
+        使用者主動的換頁操作，捲動到清單頂端提供正確的視覺錨點。
+7.  **PWA 靜態資源預快取防刷 (swPrecachePlugin)**：
     由於 Vite 打包後的 CSS/JS 檔名會帶有隨機雜湊碼（例如 `tailwind-XyZ123.css`），為了讓 Service Worker (`sw.js`) 能夠精確預快取這些資源以供離線訪問，自訂了 Vite 插件 `swPrecachePlugin`，在 Vite 完成 Bundling 後，動態將帶有雜湊值的資源名稱取代並更新至 `dist/sw.js` 的預快取陣列中。
 
 ---
