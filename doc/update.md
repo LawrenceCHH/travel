@@ -29,6 +29,10 @@
       底部抽屜快速跳轉，設計流程由 Opus（UI/UX）與 Opus（工程）分工審核後實作
 - [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v14 → v15），配合 TOC 功能新增的 `scripts.js`/CSS
       行為變更強制舊快取失效
+- [x] 調整 TOC 底部抽屜：移除 X 關閉按鈕、內容置中且高度過半（`min-height: 60vh`）、
+      背景改毛玻璃遮罩（`backdrop-filter: blur`）
+- [x] 目錄頁文章列重排：標題字改小、日期移至標題下方、標籤改高雅低調膠囊 (`.tag-pill`)
+- [x] Bump PWA `sw.js` 的 `CACHE_NAME`（v15 → v16），配合抽屜與目錄頁樣式變更強制舊快取失效
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
@@ -61,6 +65,36 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-12 — TOC 底部抽屜與文章目錄頁樣式微調
+
+由統籌者列出兩區塊調整項目，Opus 讀取現有程式碼後彙整逐檔規劃並實作。
+
+*   **TOC 底部抽屜 (Bottom Sheet)**（`assets/scripts.js` `buildMobileOutlineAndSheet` +
+    `assets/tailwind.css` `.toc-sheet*`）：
+    *   **移除 X 關閉按鈕**：刪除 sheet template 內的 `.toc-sheet-close` 與其事件監聽，標題列
+        由 `justify-between` 改為 `text-center`。保留其餘四種關閉方式（點 scrim、下滑手勢、
+        Esc、點連結），頂端 grabber 拖曳條作為主要關閉提示。
+    *   **內容置中、高度過半**：`.toc-sheet` 加 `min-height: 60vh`（原僅 `max-height: 70vh`，
+        短清單時抽屜過矮不像主要重點），`max-height` 放寬至 `80vh`；`.toc-sheet-list` 改
+        `flex: 1` + `justify-content: center` + `text-align: center` 讓清單在多出的高度內
+        垂直＋水平置中。新增 `.toc-sheet .toc-link` scope 覆寫，移除桌機側欄用的左側色條縮排
+        （`border-left`/`padding-left`），h3 子項改用較小字級與 muted 色表現層級而非縮排
+        （不影響桌機側欄共用的基底 `.toc-link`）。
+    *   **背景毛玻璃**：`.toc-sheet-scrim` 加 `backdrop-filter: blur(4px)`（含 `-webkit-`
+        前綴），黑度由 `rgba(0,0,0,0.4)` 降為 `0.25` 避免疊加模糊後過暗。
+*   **文章目錄頁 (`posts/index.html` inline render + `assets/tailwind.css`)**：
+    *   **版面重排**：由雙欄 `<td>`（左日期／右標題+標籤）改為單一 `<td>` 垂直堆疊——
+        標題 → 日期 → 標籤，日期改置於標題下方。維持 `<tr class="archive-row">` + `<a>`
+        結構，`initPagination` 的 `itemSelector`/`data-title` 衍生邏輯不受影響。
+    *   **標題字改小**：列內文章標題由繼承的 18px + `font-bold` 改為 `text-base` +
+        `font-semibold`（頁首 masthead `<h1>` 不動）。
+    *   **高雅膠囊標籤**：原 `#tag` 純文字 + `truncate` 改為會換行的 `.tag-pill`
+        （`rounded-full` + `border-sand` + `bg-sand/20` 極淡米底 + `muted-text` 灰字 +
+        11px），去掉 `#` 前綴。
+*   **PWA `CACHE_NAME`**：`clean-blog-v15` → `clean-blog-v16`。
+*   **驗證**：`npm run build` 建置成功，並確認編譯後的 `dist/assets/scripts-*.css` 含
+    `.tag-pill`、`backdrop-filter:blur(4px)`、`.toc-sheet .toc-link` 等新規則。
 
 ### 2026-07-12 — 新增文章大綱 (TOC) 元件（Opus UI/UX × Opus 工程雙審核流程）
 

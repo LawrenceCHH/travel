@@ -254,7 +254,9 @@
     position: fixed;
     inset: 0;
     z-index: 50;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.25s ease;
@@ -270,7 +272,8 @@
     bottom: 0;
     background: #fff;
     border-radius: 1rem 1rem 0 0;
-    max-height: 70vh;
+    min-height: 60vh;
+    max-height: 80vh;
     display: flex;
     flex-direction: column;
     transform: translateY(100%);
@@ -280,7 +283,29 @@
     transform: translateY(0);
   }
   .toc-sheet-list {
+    flex: 1;
     overflow-y: auto;
     padding: 0 1rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  /* 抽屜內連結置中，覆寫桌機側欄用的左側色條縮排樣式 */
+  .toc-sheet .toc-link {
+    text-align: center;
+    border-left: none;
+    padding: 0.5rem 0;
+    font-size: 1rem;
+  }
+  .toc-sheet .toc-link[data-level="3"] {
+    padding-left: 0;
+    font-size: 0.875rem;
+    color: var(--color-muted-text);
+  }
+
+  /* 文章目錄 (Catalog) —— 高雅低調的膠囊標籤 */
+  .tag-pill {
+    @apply inline-flex items-center rounded-full border border-sand bg-sand/20 px-2.5 py-0.5 text-[11px] leading-5 text-muted-text;
   }
 }

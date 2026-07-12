@@ -554,9 +554,8 @@ function initTOC(contentContainer) {
       <div class="flex justify-center pt-3 pb-1">
         <span class="h-1.5 w-10 rounded-full bg-sand"></span>
       </div>
-      <div class="flex items-center justify-between px-4 pb-2">
+      <div class="px-4 pb-3 text-center">
         <p class="text-base font-bold text-ink">本文章節</p>
-        <button type="button" class="toc-sheet-close p-1 text-muted-text hover:text-primary cursor-pointer" aria-label="關閉">&#10005;</button>
       </div>
       <ul class="toc-sheet-list space-y-1"></ul>
     `;
@@ -585,7 +584,7 @@ function initTOC(contentContainer) {
     }
 
     fab.addEventListener('click', openSheet);
-    sheet.querySelector('.toc-sheet-close').addEventListener('click', closeSheet);
+    // 已移除 X 關閉按鈕，頂端 grabber 拖曳條為主要關閉提示（下滑手勢）
     // 關閉方式 1：點擊遮罩本體（不含 sheet 自身冒泡上來的點擊）
     scrim.addEventListener('click', (e) => {
       if (e.target === scrim) closeSheet();

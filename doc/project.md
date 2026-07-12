@@ -129,7 +129,7 @@ index.html                     首頁
 about.html                     關於我們頁面
 contact.html                   聯絡建議頁面，包含 Formspree 表單提交
 posts/
-  index.html                   文章目錄頁面（橫線表格，分頁大小為 100）
+  index.html                   文章目錄頁面（橫線列表，每列標題→日期→膠囊標籤垂直堆疊，分頁大小為 100）
   detail.html                  通用文章內頁（動態 Fetch 文章、剔除 Front matter、利用 marked 渲染、桌機/手機文章大綱 TOC）
 ```
 
@@ -218,10 +218,14 @@ posts/
         直接沿用行動版模式，不留 TOC 消失的空窗。
     *   **手機/平板（< 1280px）**：文章開頭插入僅列 h2 的靜態速覽區塊（無巢狀、無
         scroll-spy，維持開頭簡潔）；使用者往下捲動、速覽區塊完全離開視窗後，右下角浮動
-        圓鈕淡入，點擊開啟含 h2+h3 完整清單的 Bottom Sheet（`max-height: 70vh` 可內部
-        捲動，`bg-black/40` scrim）。關閉方式四選一：點擊 scrim、下滑手勢（`touchmove`
-        簡易位移判斷，非物理引擎，且僅在清單已捲到頂端時才允許拖曳避免與內部捲動衝突）、
-        右上 X 按鈕、點擊任一連結（自動關閉後交由原生 hash 錨點捲動）。
+        圓鈕淡入，點擊開啟含 h2+h3 完整清單的 Bottom Sheet。抽屜 `min-height: 60vh` /
+        `max-height: 80vh`（刻意固定高度過半，讓它像頁面主要焦點而非小卡片），清單以
+        flex 垂直＋水平置中，連結置中且移除桌機側欄用的左側色條縮排（h3 子項改以較小字級
+        與 muted 色表現層級）；scrim 為 `rgba(0,0,0,0.25)` + `backdrop-filter: blur(4px)`
+        毛玻璃遮罩。關閉方式三選一：點擊 scrim、下滑手勢（`touchmove` 簡易位移判斷，非物理
+        引擎，且僅在清單已捲到頂端時才允許拖曳避免與內部捲動衝突）、點擊任一連結（自動
+        關閉後交由原生 hash 錨點捲動），另加 Esc 鍵。**刻意不放 X 關閉按鈕**——頂端 grabber
+        拖曳條即關閉提示，維持置中版面簡潔。
     *   **sticky navbar 遮擋處理**：所有標題統一加 `scroll-margin-top: 6rem`（對應 navbar
         實測高度），錨點跳轉與 scroll-spy 判斷線共用同一個 `NAV_OFFSET = 96` 常數，不需要
         在各個點擊處分別計算 offset。

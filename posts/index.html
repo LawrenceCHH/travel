@@ -71,16 +71,16 @@
             : `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 
           const tagsHtml = post.tags.length > 0
-            ? `<div class="truncate text-xs text-muted-text w-full" title="${post.tags.join(', ')}">
-                ${post.tags.map(tag => `<span class="mr-2">#${tag}</span>`).join('')}
+            ? `<div class="flex flex-wrap gap-1.5 mt-0.5">
+                ${post.tags.map(tag => `<span class="tag-pill">${tag}</span>`).join('')}
                </div>`
             : '';
 
           tr.innerHTML = `
-            <td class="py-3 px-4 text-muted-text font-mono text-sm w-1/4">${formattedDate}</td>
-            <td class="py-3 px-4">
-              <div class="flex flex-col gap-1 w-full max-w-[180px] sm:max-w-[300px] md:max-w-[400px] lg:max-w-[500px]">
-                <a class="text-ink font-bold hover:text-primary no-underline" href="${base}posts/detail.html?id=${post.id}">${post.title}</a>
+            <td class="py-4 px-4">
+              <div class="flex flex-col gap-1.5">
+                <a class="text-ink font-semibold text-base hover:text-primary no-underline" href="${base}posts/detail.html?id=${post.id}">${post.title}</a>
+                <time class="text-xs text-muted-text font-mono">${formattedDate}</time>
                 ${tagsHtml}
               </div>
             </td>
