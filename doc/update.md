@@ -18,6 +18,9 @@
 - [x] 調整建議頁面版面，簡化表單欄位，並將觸發入口改為頁尾信件按鈕
 - [x] 移除所有舊 Jekyll 遺留檔案與未使用的 Open Sans 字型檔，清理專案體積
 - [x] 新增學術、旅遊與技術三種風格的 HTML 及純 Markdown 演示文章
+- [x] 首爾文章手機閱讀體驗優化：機場接駁表格改垂直卡片、美食項目新增長輩友善屬性晶片、開場擴充 30 秒行前速覽、保險/違禁品細節改用 `<details class="fold">` 摺疊、統一「長輩」術語
+- [x] 修正 CLAUDE.md 文件 drift：記錄 `npm run build:css` 指令已不存在於 `package.json`，CSS 實際由 `@tailwindcss/vite` 外掛在 `dev`/`build` 時即時編譯，驗證應改跑 `npm run build`（CLAUDE.md 本文尚未同步修正，見下方後續項）
+- [ ] **後續**：CLAUDE.md「Build reminders」一節仍寫著 `npm run build:css`，與實際建置流程不符，建議找機會直接修正 CLAUDE.md 原文（本次任務範圍未涵蓋修改 CLAUDE.md 本身，僅在此記錄 drift）
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
 - [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
@@ -50,6 +53,17 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-14 — 首爾文章「手機閱讀體驗」優化：機場接駁卡片化、美食長輩友善晶片、條款摺疊、術語統一（feature/travel-guide-style-match 分支）
+
+*   **P0-A 機場接駁比較改為垂直卡片**：`### 機場接駁比較` 下原本的 5 欄 Markdown 表格在 375px 手機寬度下必然橫向擠壓／水平捲動，且下方「方案 A／方案 B」散文與表格內容重複。改為 4 張 `.compare-card`（Klook 商務車／機場巴士 6701／AREX／現場計程車），每卡含卡頭（方案名 + `.stars` 星等）、一句話 tagline、`.compare-row` 明細列（車資／時間／班次．購票），並將原本藏在「方案 B」散文裡、表格沒有的 6701 搭乘月台與首末班車時間併入該卡的明細列，確保資訊零遺漏後刪除重複散文。
+*   **P0-B 美食項目新增「長輩友善」屬性晶片**：30 個 `.food-item` 依既有「為何適合此同伴」文字，逐項機械式比對關鍵詞（不辣／軟嫩好入口／無內臟／無生食／桌邊代烤／需排隊）推導出 1–3 顆 `.diet-chip`，插入 `.food-item-meta-row`（餐別晶片）下方的新 `.food-diet-row`。其中「需排隊」使用警示變體 `.diet-chip.is-warn`。26/30 項目有對應晶片，4 項（珈琲島市廳店／大林倉庫／Point of View／Index Caramel）原文無可推導關鍵詞，依規則不硬湊、不新增 diet-row。
+*   **P0-C 開場擴充為「30 秒行前速覽」**：`### 行前提醒膠囊` 標題改為 `### 30 秒行前速覽`，`.prep-pill-row` 由 3 條擴充為 5 條（新增網路方案、機場進市區首選/備選、現金備妥金額；保留原本的暖暖包與通關系統提醒），沿用既有 `.prep-pill` class，未新增樣式。
+*   **P1-D 保險理賠細節／違禁品清單改用原生 `<details class="fold">` 摺疊**：「保額與理賠必知要點」保留醫療保額建議可見，其餘不便險新制／行李損失延誤／理賠三寶收進摺疊；「2026 最新航空違禁品規定」整段收進摺疊，`<summary>` 只露結論標題。`<details>` 內 Markdown 清單依 marked.js 對 raw HTML 內解析的既有慣例（比照 `.alert-box`/`.stepper` 寫法）在前後與清單間留空行，避免渲染成純文字。新增 `.fold`／`.fold summary` 樣式。
+*   **P1-E 統一「同伴」術語**：精確字串「休憩處成員」（僅 2 處）改為「長輩」，並在首次出現處（旅遊相關保險段落開頭）加一句「本行程為帶長輩同遊設計：步調慢、每站都有休憩點、餐食忌辣與生冷」定位說明。刻意不動「年輕隨行成員」「隨行成員」（語意為年輕家人，與長輩不同），避免全域盲替換誤傷。
+*   **新增 CSS class**（`assets/tailwind.css` `@layer components` 末尾）：`.compare-card`／`.compare-card-head`／`.compare-card-name`／`.compare-tagline`／`.compare-row`；`.food-diet-row`／`.diet-chip`／`.diet-chip.is-warn`；`.fold`／`.fold > summary`。全部沿用既有色彩 Token，未引入新色票、圖片或 JS。
+*   **修正文件 drift**：CLAUDE.md 提到的 `npm run build:css` 指令在目前 `package.json` 已不存在——CSS 樣式實際由 `@tailwindcss/vite` 外掛在 `npm run dev`／`npm run build` 時即時編譯（`assets/main.css` 是未被引用的舊檔，不應編輯）。驗證編譯改跑 `npm run build`。
+*   **驗證方式**：`npm run build` 編譯通過無誤；以既有的 Playwright（`node_modules` 快取於暫存目錄，透過 `NODE_PATH` 引入）驅動 headless Chromium，在 375px 寬度下對機場接駁卡、美食晶片列、行前速覽、兩處 `<details class="fold">`（含點擊展開）分別截圖與程式化斷言：4 張比較卡皆無水平捲動（`document.documentElement.scrollWidth === clientWidth === 375`）、晶片正確換行、5 條行前速覽、`<details>` 展開後內部確實渲染成 `<ul><li>` 而非純文字、`grep -c "休憩處成員"` 為 0，且瀏覽器 console 無錯誤。
 
 ### 2026-07-14 — 首爾文章改版：移植 travel_guide/index.html 卡片式排版體驗（feature/travel-guide-style-match 分支）
 
