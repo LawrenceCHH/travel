@@ -345,4 +345,132 @@
   .tag-pill {
     @apply inline-flex items-center rounded-full border border-sand bg-sand/20 px-2.5 py-0.5 text-[11px] leading-4 text-muted-text;
   }
+
+  /* ===================================================================
+     文章內文組件系統（旅遊手帳卡片排版）
+     移植自 travel_guide/index.html 的卡片/手風琴/星等/晶片視覺語彙，
+     色彩改用全站既有 Token（ink/muted-text/sand/primary/surface），
+     不沿用原檔案自帶的侘寂綠色票，以維持全站配色一致。
+     互動行為改用原生 <details>/<summary>（手風琴）與純錨點跳轉
+     （不移植原檔案的分頁 JS 與底部快捷列，因本站已有 Navbar／TOC 側欄）。
+     =================================================================== */
+
+  /* --- 提示框（取代純文字 blockquote 版的 [!NOTE]/[!WARNING]/[!IMPORTANT]） --- */
+  .alert-box {
+    @apply my-6 rounded-md border p-4 text-[15px] leading-relaxed;
+  }
+  .alert-box > :first-child { margin-top: 0; }
+  .alert-box > :last-child { margin-bottom: 0; }
+  /* 直接套用在標題文字本身（可以是 h3，維持文章大綱可追蹤），而非另包一層 div */
+  .alert-box-title {
+    @apply mb-2 flex items-center gap-2 font-serif text-[16px] font-bold;
+  }
+  .alert-warning {
+    @apply border-[#d4a373] bg-[#fdfae6] text-[#8c5e3c];
+  }
+  .alert-important {
+    @apply border-sand bg-sand/15 text-ink;
+  }
+  .alert-note {
+    @apply border-sand/70 bg-paper text-muted-text;
+  }
+
+  /* --- 總覽：主題景點導覽卡片 (2 欄格狀) --- */
+  .gallery-grid {
+    @apply my-6 grid grid-cols-1 gap-3 sm:grid-cols-2;
+  }
+  .gallery-card {
+    @apply flex flex-col gap-1.5 rounded-md border border-sand/60 border-t-4 border-t-primary bg-surface p-4 no-underline transition-colors;
+  }
+  .gallery-card:hover { @apply border-t-primary-dark; }
+  .gallery-card-name { @apply text-[15px] font-bold text-ink; }
+  .gallery-card-theme { @apply text-[13px] leading-normal text-muted-text; }
+
+  /* --- 行前提醒膠囊 + 一鍵緊急 CTA --- */
+  .prep-pill-row { @apply my-6 flex flex-col gap-2.5; }
+  .prep-pill {
+    @apply rounded-md border border-sand/60 bg-surface px-3.5 py-3 text-[14px] font-semibold leading-relaxed text-ink;
+  }
+  .emergency-cta {
+    @apply mt-1 flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3.5 text-[15px] font-extrabold text-paper no-underline transition-colors;
+  }
+  .emergency-cta:hover { @apply bg-primary-dark text-paper; }
+
+  /* --- 景點漫遊：主題章節卡 --- */
+  .spot-card {
+    @apply my-6 rounded-md border border-sand/60 border-l-4 border-l-primary bg-surface p-5;
+  }
+  .day-label {
+    @apply mb-3 inline-flex items-center rounded-full bg-sand/20 px-2.5 py-0.5 text-xs font-bold text-primary-dark;
+  }
+  .spot-title { @apply mb-3 text-lg font-bold text-ink; }
+  .stars { @apply inline-flex items-center gap-0.5 font-bold text-[13px]; color: #b8912e; }
+  .friendly-badge {
+    @apply mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-extrabold;
+  }
+  .friendly-badge.flat { @apply bg-sand/20 text-primary-dark; }
+  .friendly-badge.slope { @apply bg-[#f6eed6] text-[#6e4f0a]; }
+  .friendly-badge.steps { @apply bg-[#f4e6dc] text-[#833411]; }
+  .area-desc { @apply mb-3 text-[16px] text-ink; }
+  .info-subcard {
+    @apply mt-4 border-t border-sand/50 pt-3 text-[14.5px];
+  }
+  .info-subcard-title { @apply mb-1.5 text-sm font-extrabold text-primary-dark; }
+  .spot-walk-link {
+    @apply mt-4 flex items-center gap-2.5 rounded-md border border-sand/50 bg-paper px-3.5 py-3 text-[14px] font-extrabold text-primary-dark no-underline transition-colors;
+  }
+  .spot-walk-link:hover { @apply border-sand bg-sand/15 text-primary-dark; }
+
+  /* --- 美食推薦：條列式項目卡 --- */
+  .food-item { @apply border-b border-sand/40 py-4; }
+  .food-item:last-of-type { @apply border-b-0; }
+  .food-item-title-row { @apply mb-1.5; }
+  .food-item-name { @apply text-[16.5px] font-bold text-ink; }
+  .food-item-meta-row { @apply mb-2.5 flex flex-wrap items-center gap-2; }
+  .food-chip { @apply rounded-[10px] px-2.5 py-1 text-[11px] font-bold whitespace-nowrap; }
+  .chip-meal { @apply bg-sand/20 text-primary-dark; }
+  .chip-snack { @apply bg-[#f6eed6] text-[#8a6d1f]; }
+  .chip-cafe { @apply bg-[#e7ddd0] text-[#7a5c43]; }
+  .chip-gift { @apply bg-[#f4e6dc] text-[#a34e1f]; }
+  .food-item-body { @apply text-[15px] leading-relaxed text-ink; }
+  .food-item-row { @apply mt-2.5; }
+  .food-item-row strong { @apply text-ink; }
+  .food-actions { @apply mt-3 flex flex-wrap gap-2; }
+  .action-btn {
+    @apply inline-flex min-h-10 flex-1 items-center justify-center whitespace-nowrap rounded-md px-2 py-2 text-[13px] font-bold no-underline transition-transform;
+  }
+  .action-btn:active { transform: scale(0.98); }
+  .btn-naver { background-color: #03cf5d; color: #ffffff; }
+  .btn-kakao { background-color: #fee500; color: #191919; }
+  .btn-ref { @apply border border-sand/60 bg-paper text-ink; }
+
+  /* --- 機場通關：垂直時間軸 Stepper --- */
+  .stepper { @apply relative my-6 pl-6; }
+  .stepper::before {
+    content: ''; @apply absolute bottom-2 left-[7px] top-2 w-0.5 bg-sand/50;
+  }
+  .step-item { @apply relative mb-7; }
+  .step-item:last-child { @apply mb-0; }
+  .step-node {
+    @apply absolute -left-6 top-1 h-4 w-4 rounded-full border-[3px] border-primary bg-surface;
+  }
+  .step-title { @apply mb-2 text-[17px] font-bold text-ink; }
+  .step-content { @apply text-[15px] text-ink; }
+
+  /* --- 實用資訊：推薦 App 條列 --- */
+  .app-card { @apply flex gap-3.5 border-b border-sand/40 py-4; }
+  .app-card:last-of-type { @apply border-b-0; }
+  .app-icon-wrapper {
+    @apply flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md bg-sand/20 text-lg font-bold text-primary-dark;
+  }
+  .app-info h4 { @apply mb-1.5 text-[16px] font-extrabold text-ink; }
+  .app-info p { @apply mb-0 text-[14px] leading-normal text-muted-text; }
+
+  /* --- 緊急應變：聯絡資訊卡 --- */
+  .emergency-card {
+    @apply my-4 rounded-md border border-sand/60 border-l-4 border-l-[#b56a43] bg-surface p-5;
+  }
+  .emergency-card h3 { @apply mb-2.5 text-[17px] font-extrabold text-ink; }
+  .emergency-card p { @apply mb-3 text-[15px]; }
+  .emergency-card p:last-child { @apply mb-0; }
 }

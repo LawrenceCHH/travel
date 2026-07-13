@@ -51,6 +51,16 @@
 
 ## 更新歷史
 
+### 2026-07-14 — 首爾文章改版：移植 travel_guide/index.html 卡片式排版體驗（feature/travel-guide-style-match 分支）
+
+*   **新增文章內文組件系統**：於 `assets/tailwind.css` 新增一組卡片/清單類別（`.gallery-grid`/`.spot-card`/`.food-item`/`.stepper`/`.app-card`/`.emergency-card`/`.alert-box` 等），移植自 `travel_guide/index.html`（外部旅遊手帳 App 原型）的視覺語彙，但色彩改用本站既有 Token（ink/sand/primary/surface），不沿用原檔案自帶的侘寂綠色票。互動一律改用純錨點跳轉，不移植原檔案的分頁 JS 與底部快捷列（本站已有 Navbar／TOC 側欄可用）。
+*   **改寫 `src/posts/2026-07-13-韓國首爾旅行.md`**：在保留原有 Markdown 標題結構（供 TOC／錨點正常運作）的前提下，將條列文字置換為對應的卡片化 HTML 區塊——總覽的 7 大景點改為 `.gallery-grid` 導覽卡；行前提醒改為 `.prep-pill-row`；機場通關 Step 1-5 改為 `.stepper` 時間軸；7 個景點改為 `.spot-card`（含 `.day-label`/`.friendly-badge`/`.info-subcard`）；30 筆美食改為 `.food-item`（含分類 `.food-chip` 與 Naver/Kakao/食記三個 `.action-btn` 按鈕）；推薦 App 改為 `.app-card`；緊急聯絡改為 `.emergency-card`；所有 `[!NOTE]/[!WARNING]/[!IMPORTANT]` 提示改為 `.alert-box`（同時修正了這些提示先前因未安裝 GFM alert 擴充、只會顯示純文字 `[!WARNING]` 字樣的既有小瑕疵）。
+*   **修正兩個渲染陷阱**（供未來寫作參考）：
+    1.  `**粗體**` 若結尾是標點符號且緊接非空白字元（如 `**嚴禁託運！**必須`），marked/CommonMark 的定界符規則會拒絕收尾，導致literal `**` 殘留不轉換；文中 11 處（含 6 處原有未改動文字）改用 `<strong>` 原生標籤解決。
+    2.  自訂 `not-prose` 不能透過 `@apply` 使用（它是 Typography 外掛的選擇器類，非一般 utility），必須直接寫在 HTML class 上；另外任何 flex 容器若子節點混雜「行內元素 + 純文字節點」，瀏覽器會把它們拆成個別 flex item 橫向排列而非同一段落換行，`.prep-pill` 因此改回區塊排版。
+*   **驗證方式**：以 Playwright 對 `npm run build` + `npm run preview` 產物做全篇 7 個分頁的桌機/手機截圖比對，並用 Node 直接跑 `marked.parse()` 檢查渲染後 HTML 有無殘留 `**`、id 是否齊全、各元件數量是否與來源一致（30 food-item／7 spot-card／7 gallery-card／5 app-card／5 emergency-card／15 info-subcard）。
+*   **後續**：目前變更僅存在於 `feature/travel-guide-style-match` 分支，尚未合併至 `main`；若要推廣此卡片化排版到其他文章，可直接複用 `assets/tailwind.css` 內新增的組件類別。
+
 ### 2026-07-13 — 修正桌機版 TOC 側欄初始蓋住 Banner 的問題，並隱藏側欄捲軸
 
 *   **側欄改為「貼齊 Banner 下緣 → 捲動後固定」**：原本 `.toc-sidebar` 全程 `position: fixed`，導致頁面在最頂端時側欄文字會直接蓋在 Banner 圖片與標題上。改為初始 `position: absolute`，由 `assets/scripts.js` 的 `buildDesktopSidebar` 內 `updatePinnedState()` 監聽 `scroll`/`resize`，動態計算 Banner（`.masthead`）下緣位置；未捲動到該位置前側欄隨頁面捲動貼在 Banner 下方，捲動超過後才切換 `.is-pinned` class 改為 `position: fixed`，效果等同原生 `position: sticky`（因側欄掛載於 `document.body` 而非文章內文的 flow 子節點，無法直接套用原生 sticky）。
