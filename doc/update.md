@@ -51,6 +51,11 @@
 
 ## 更新歷史
 
+### 2026-07-13 — 修正桌機版 TOC 側欄初始蓋住 Banner 的問題，並隱藏側欄捲軸
+
+*   **側欄改為「貼齊 Banner 下緣 → 捲動後固定」**：原本 `.toc-sidebar` 全程 `position: fixed`，導致頁面在最頂端時側欄文字會直接蓋在 Banner 圖片與標題上。改為初始 `position: absolute`，由 `assets/scripts.js` 的 `buildDesktopSidebar` 內 `updatePinnedState()` 監聽 `scroll`/`resize`，動態計算 Banner（`.masthead`）下緣位置；未捲動到該位置前側欄隨頁面捲動貼在 Banner 下方，捲動超過後才切換 `.is-pinned` class 改為 `position: fixed`，效果等同原生 `position: sticky`（因側欄掛載於 `document.body` 而非文章內文的 flow 子節點，無法直接套用原生 sticky）。
+*   **隱藏側欄內部捲軸**：`.toc-sidebar` 加上 `scrollbar-width: none`（Firefox）與 `::-webkit-scrollbar { display: none }`（Chrome/Safari/新版 Edge），僅隱藏視覺捲軸樣式，`overflow-y: auto` 捲動功能不受影響。
+
 ### 2026-07-12 — 新增開發模式文章自動監聽更新插件
 
 *   **Vite 開發伺服器自動化**：在 [vite.config.js](file:///home/lawrencechh/j/travel/vite.config.js) 中新增自訂插件 `watchPostsMetadataPlugin`，在本地開發模式下（`npm run dev`）會自動偵測 [src/posts/](file:///home/lawrencechh/j/travel/src/posts) 目錄中的變動（包含新增、修改、刪除 `.md` 和 `.html` 檔案）。

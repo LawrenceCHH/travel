@@ -540,6 +540,25 @@ function initTOC(contentContainer) {
 
     document.body.appendChild(sidebar);
 
+    // 側欄預設以 position: absolute 貼在 Banner 下緣（隨頁面捲動），避免一開始就以
+    // fixed 蓋在 Banner 文字上；捲動超過該休息位置後才切到 fixed 固定於左側，
+    // 效果等同 position: sticky，但因側欄掛載在 document.body、不在文章的 flow
+    // 子節點內，無法直接用原生 sticky，故以 scroll 監聽手動切換。
+    const masthead = document.querySelector('.masthead');
+    const REST_GAP = 32; // Banner 下緣與側欄的間距（px）
+
+    function updatePinnedState() {
+      if (!masthead) return;
+      const restTop = masthead.getBoundingClientRect().bottom + window.scrollY + REST_GAP;
+      const shouldPin = window.scrollY + NAV_OFFSET >= restTop;
+      sidebar.classList.toggle('is-pinned', shouldPin);
+      sidebar.style.top = shouldPin ? '' : `${restTop}px`;
+    }
+
+    updatePinnedState();
+    window.addEventListener('scroll', updatePinnedState, { passive: true });
+    window.addEventListener('resize', updatePinnedState);
+
     const sidebarLinks = Array.from(sidebar.querySelectorAll('.toc-link'));
     activeUpdaters.push(currentId => {
       sidebarLinks.forEach(a => {

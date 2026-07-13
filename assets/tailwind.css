@@ -210,14 +210,24 @@
     font-weight: 700;
   }
 
-  /* 文章大綱 (TOC) —— 桌機固定側欄 */
+  /* 文章大綱 (TOC) —— 桌機側欄：預設隨頁面捲動貼在 Banner 下緣（避免文字蓋住 Banner），
+     捲動超過該位置後由 JS 切換 .is-pinned 改為 fixed 固定於左側（詳見 scripts.js
+     buildDesktopSidebar 的 updatePinnedState） */
   .toc-sidebar {
-    position: fixed;
-    top: 6rem;
+    position: absolute;
     left: max(1.5rem, calc(50vw - 37rem));
     width: 11rem;
     max-height: calc(100vh - 8rem);
     overflow-y: auto;
+    scrollbar-width: none; /* Firefox：隱藏捲軸但保留捲動功能 */
+    -ms-overflow-style: none; /* 舊版 Edge/IE */
+  }
+  .toc-sidebar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/新版 Edge */
+  }
+  .toc-sidebar.is-pinned {
+    position: fixed;
+    top: 6rem;
   }
 
   .toc-link {
