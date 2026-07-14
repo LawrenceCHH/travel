@@ -421,7 +421,10 @@ function initTOC(contentContainer) {
   // 需與 CSS 裡 heading 的 scroll-margin-top 一致，用來扣除 sticky navbar 高度
   const NAV_OFFSET = 96;
 
-  const headings = Array.from(contentContainer.querySelectorAll('h2, h3'));
+  // 僅收「文章區塊層級」的章節標題：Markdown 產生的 h2/h3 是 contentContainer 的直接子節點，
+  // 而卡片元件（.emergency-card / .alert-box 等）內部自帶的 <h3> 標題是巢狀子孫，不應混入大綱，
+  // 否則像「緊急應變」這種一節內含多張卡片時，TOC 會被救護車/警局/各醫院等卡片標題灌爆。
+  const headings = Array.from(contentContainer.querySelectorAll(':scope > h2, :scope > h3'));
   if (headings.length < 2) return; // 0 或 1 個標題時，大綱沒有意義，整組不渲染
 
   // 1. 指派繁中安全、全域唯一的 slug id（若標題已有 id 則尊重原值不覆寫）

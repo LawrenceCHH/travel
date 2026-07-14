@@ -474,6 +474,12 @@
   .emergency-card p { @apply mb-3 text-[15px]; }
   .emergency-card p:last-child { @apply mb-0; }
 
+  /* 緊急應變區的分組標籤：刻意用 <p> 而非 <h3>，讓 TOC 只保留「緊急應變」一個條目，
+     視覺上仍以小標＋底線分隔「電話／代表處／醫院」三組 */
+  .emergency-group {
+    @apply mb-3 mt-8 border-b border-sand/50 pb-1.5 text-sm font-bold tracking-wide text-muted-text;
+  }
+
   /* --- 實用資訊：機場接駁比較卡（取代 5 欄表格，手機零水平捲動） --- */
   .compare-card {
     @apply my-4 rounded-md border border-sand/60 border-l-4 border-l-primary bg-surface p-4;
