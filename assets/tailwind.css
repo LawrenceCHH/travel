@@ -443,14 +443,14 @@
   }
   .emergency-cta:hover { @apply bg-primary-dark text-paper; }
 
-  /* --- 景點漫遊：主題章節卡 --- */
+  /* --- 景點漫遊：主題章節卡（雜誌感大襯線標題） --- */
   .spot-card {
-    @apply my-6 rounded-md border border-sand/60 border-l-4 border-l-primary bg-surface p-5;
+    @apply my-6 rounded-lg border border-sand/60 border-l-4 border-l-primary bg-surface p-5;
   }
   .day-label {
-    @apply mb-3 inline-flex items-center rounded-full bg-sand/20 px-2.5 py-0.5 text-xs font-bold text-primary-dark;
+    @apply mb-2 inline-flex items-center rounded-full bg-sand/20 px-2.5 py-0.5 text-xs font-bold text-primary-dark;
   }
-  .spot-title { @apply mb-3 text-lg font-bold text-ink; }
+  .spot-title { @apply mb-3 font-serif text-[22px] font-bold leading-snug text-ink; }
   .stars { @apply inline-flex items-center gap-0.5 font-bold text-[13px]; color: #b8912e; }
   .friendly-badge {
     @apply mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-extrabold;
@@ -468,21 +468,37 @@
   }
   .spot-walk-link:hover { @apply border-sand bg-sand/15 text-primary-dark; }
 
-  /* --- 美食推薦：條列式項目卡 --- */
-  .food-item { @apply border-b border-sand/40 py-4; }
-  .food-item:last-of-type { @apply border-b-0; }
-  .food-item-title-row { @apply mb-1.5; }
-  .food-item-name { @apply text-[16.5px] font-bold text-ink; }
-  .food-item-meta-row { @apply mb-2.5 flex flex-wrap items-center gap-2; }
-  .food-chip { @apply rounded-[10px] px-2.5 py-1 text-[11px] font-bold whitespace-nowrap; }
+  /* --- 美食推薦：雜誌感卡片（大襯線店名 + 招牌菜 highlight，一眼掃到想吃什麼） ---
+     不改動 30 筆項目的 HTML：沿用既有 title/meta/diet/body 結構，純以 flex order 把
+     「餐別＋屬性」提到店名上方當 kicker，並用 :nth-of-type 把 body 內既有的
+     價位帶(1)／招牌菜(2)／為何適合(3) 三列重排為「招牌菜(hero)→價位→理由→按鈕」。
+     全 30 筆 body 列順序一致（已驗證），故 nth-of-type 選取穩定。 */
+  .food-item {
+    @apply my-4 flex flex-col rounded-lg border border-sand/50 bg-surface p-5 transition-colors;
+  }
+  .food-item:hover { @apply border-primary/40; }
+  .food-item-meta-row { @apply order-1 mb-1.5 flex flex-wrap items-center gap-1.5; }
+  .food-diet-row { @apply order-2 mb-2 flex flex-wrap gap-1.5; }
+  .food-item-title-row { @apply order-3 mb-2; }
+  .food-item-name { @apply font-serif text-[22px] font-bold leading-snug text-ink; }
+  .food-chip { @apply rounded-full px-2.5 py-0.5 text-[11px] font-bold whitespace-nowrap; }
   .chip-meal { @apply bg-sand/20 text-primary-dark; }
   .chip-snack { @apply bg-[#f6eed6] text-[#8a6d1f]; }
   .chip-cafe { @apply bg-[#e7ddd0] text-[#7a5c43]; }
   .chip-gift { @apply bg-[#f4e6dc] text-[#a34e1f]; }
-  .food-item-body { @apply text-[15px] leading-relaxed text-ink; }
-  .food-item-row { @apply mt-2.5; }
-  .food-item-row strong { @apply text-ink; }
-  .food-actions { @apply mt-3 flex flex-wrap gap-2; }
+
+  .food-item-body { @apply order-4 flex flex-col; }
+  .food-item-row strong { @apply mr-1 text-[11.5px] font-semibold uppercase tracking-wide text-muted-text; }
+  /* 招牌菜 → 視覺主角（承接大店名的暖褐副標） */
+  .food-item-row:nth-of-type(2) {
+    @apply order-1 mb-0.5 text-[17px] font-bold leading-snug;
+    color: var(--color-primary);
+  }
+  /* 價位帶 → 次要 meta */
+  .food-item-row:nth-of-type(1) { @apply order-2 text-[13.5px] leading-normal text-muted-text; }
+  /* 為何適合此同伴 → 說明本文 */
+  .food-item-row:nth-of-type(3) { @apply order-3 mt-3 text-[14.5px] leading-relaxed text-ink; }
+  .food-actions { @apply order-4 mt-4 flex flex-wrap gap-2; }
   .action-btn {
     @apply inline-flex min-h-10 flex-1 items-center justify-center whitespace-nowrap rounded-md px-2 py-2 text-[13px] font-bold no-underline transition-transform;
   }
@@ -513,13 +529,49 @@
   .app-info h4 { @apply mb-1.5 text-[16px] font-extrabold text-ink; }
   .app-info p { @apply mb-0 text-[14px] leading-normal text-muted-text; }
 
-  /* --- 緊急應變：聯絡資訊卡 --- */
-  .emergency-card {
-    @apply my-4 rounded-md border border-sand/60 border-l-4 border-l-[#b56a43] bg-surface p-5;
+  /* --- 緊急應變：分類色碼系統（危急時一眼鎖定該看哪一塊） ---
+     刻意在此區塊引入 5 色語意色票（醫療紅／警察藍／旅遊資訊琥珀／代表處綠／醫院靛），
+     為功能性導引（wayfinding）服務，優先於全站的暖褐單色高雅調性；色相皆取「去飽和的
+     深色版」以維持沉穩，文字色對白底皆 ≥4.5:1 通過 WCAG AA。同一組色碼同時用於置頂的
+     情境速查（triage）與下方聯絡卡的左色條，讓「速查→細節」形成一致的顏色記憶。
+     .cat-* 的 border-left-color 刻意放在本區塊最末（見下方），以在來源順序上壓過
+     .emergency-card／.triage-item 各自的 border 顏色，確保左色條確實吃到分類色。 */
+  .badge-medical  { background: #fbeeee; color: #8f2f2f; }
+  .badge-police   { background: #eef2f9; color: #35507a; }
+  .badge-info     { background: #fbf4e6; color: #8a6420; }
+  .badge-embassy  { background: #eef5ef; color: #3a6144; }
+  .badge-hospital { background: #ecf4f4; color: #2f6060; }
+
+  /* 情境速查：置頂總表，色碼＋可點擊直撥 */
+  .triage-list { @apply my-6 flex flex-col gap-2; }
+  .triage-item {
+    @apply flex items-center gap-3 rounded-lg border border-sand/50 border-l-[5px] bg-surface p-3 no-underline transition-colors;
   }
-  .emergency-card h3 { @apply mb-2.5 text-[17px] font-extrabold text-ink; }
+  .triage-item:hover { @apply bg-sand/10; }
+  .triage-num {
+    @apply flex-none rounded-md px-3 py-2 text-center text-[15px] font-extrabold leading-none;
+    min-width: 3.75rem;
+  }
+  .triage-body { @apply text-[13.5px] leading-snug text-muted-text; }
+  .triage-body strong { @apply mb-0.5 block text-[15px] font-bold text-ink; }
+
+  /* 聯絡資訊卡（承接情境速查的色碼，左色條由 .cat-* 覆寫預設暖褐） */
+  .emergency-card {
+    @apply my-4 rounded-lg border border-sand/60 border-l-4 bg-surface p-5;
+    border-left-color: #b56a43;
+  }
+  .emergency-card h3 { @apply mb-2.5 flex flex-wrap items-center gap-2 text-[17px] font-extrabold text-ink; }
   .emergency-card p { @apply mb-3 text-[15px]; }
   .emergency-card p:last-child { @apply mb-0; }
+  .em-tag {
+    @apply inline-flex flex-none items-center rounded-full px-2 py-0.5 text-[11px] font-bold;
+  }
+  /* 左色條分類色（置於本區塊最末，來源順序壓過 .emergency-card／.triage-item 的 border 色） */
+  .cat-medical  { border-left-color: #b23a3a; }
+  .cat-police   { border-left-color: #3f5e8c; }
+  .cat-info     { border-left-color: #b07d1f; }
+  .cat-embassy  { border-left-color: #4a7a55; }
+  .cat-hospital { border-left-color: #3f7676; }
 
   /* 緊急應變區的分組標籤：刻意用 <p> 而非 <h3>，讓 TOC 只保留「緊急應變」一個條目，
      視覺上仍以小標＋底線分隔「電話／代表處／醫院」三組 */

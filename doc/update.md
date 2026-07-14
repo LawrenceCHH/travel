@@ -26,6 +26,7 @@
 - [x] 新增行動版章節分頁列（chapter tab bar）：`<1280px` 時 navbar 正下方常駐橫向膠囊列，複用既有 `toc`/`smoothJump`/`activeUpdaters`，並將 heading 的 `scroll-margin-top` 改為依斷點動態計算（`updateScrollMargins()`），避免標題被「navbar＋分頁列」蓋住
 - [x] 修正行動版分頁列高亮半拍延遲：抽出共用的 `stickyOffset()`，讓 `computeCurrentId()`（scroll-spy 目前章節判定門檻）與 `updateScrollMargins()`（錨點跳轉落點）共用同一偏移量——行動版含分頁列高度、桌機維持 `NAV_OFFSET`(96)不變——點擊跳轉落地即正確高亮
 - [x] 首爾文章「出發前準備」附錄再整理：標題移除「（主辦人專區）」與開頭「同行家人可略過」提示橫幅；區塊內小節重排為「機場通關步驟／機場接駁比較／免稅與退稅指南」固定置頂三項，其後依重要度排序（旅遊相關保險／網路與漫遊方案評估／支付工具與匯率評估／最新違禁品與行李規定），並將原「現場實用資訊」下的「推薦 App」「在地習俗與避雷」併入此區塊收尾；`## 現場實用資訊` 這個 H2 因此消失，行動版章節分頁列（`buildChapterBar`）為動態衍生標籤、無需改動即自動少一顆膠囊
+- [x] 首爾文章「簡潔高雅」風格重整（美食／景點雜誌感卡片、出發前準備欄位化、緊急應變分類色碼）：`.food-item`／`.spot-card` 改雜誌感大襯線標題＋招牌菜暖褐 highlight（純 CSS flex order／`:nth-of-type` 重排，30 筆 HTML 不動）；出發前準備 4 個巢狀清單（網路漫遊／支付匯率／免稅退稅／在地習俗）改為滿版 `.compare-card` 欄位卡消除縮排右壓；緊急應變新增置頂 `.triage-list` 情境速查與 5 色分類色碼（醫療紅／警察藍／資訊琥珀／代表處綠／醫院靛），聯絡卡拆分並上色左色條
 - [ ] **後續**：CLAUDE.md「Build reminders」一節仍寫著 `npm run build:css`，與實際建置流程不符，建議找機會直接修正 CLAUDE.md 原文（本次任務範圍未涵蓋修改 CLAUDE.md 本身，僅在此記錄 drift）
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
@@ -59,6 +60,15 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-15 — 首爾文章「簡潔高雅」視覺重整：美食／景點雜誌感、出發前準備欄位化、緊急應變分類色碼
+
+*   **背景**：使用者（以資深 UI/UX 設計師視角）指出三個問題——(1) 美食／景點區塊字多但不吸睛、無法一眼掃到「想吃什麼／想去哪」；(2) 出發前準備充斥巢狀清單，內容朝右壓縮、左邊空空（純排版問題）；(3) 緊急應變風格不統一，危急時無法一眼鎖定該看哪一塊。經 `AskUserQuestion`（附 ASCII 預覽）確認三個方向：美食／景點走「雜誌感大標題」、出發前準備走「資訊卡／欄位排版」、緊急應變走「分類色碼＋圖示卡」。
+*   **美食卡（`.food-item`，30 筆）＋景點卡（`.spot-card`，7 筆）→ 雜誌感**：**刻意不改動 30 筆項目的 HTML**，改以純 CSS 達成——`.food-item` 由 `border-b` 清單改為 `rounded-lg` 邊框卡片並設 `flex flex-col`，用 `order` 把「餐別 chip＋長輩友善屬性」提到店名上方當 kicker；店名 `.food-item-name` 放大為 `font-serif text-[22px]`；`.food-item-body` 亦設 flex，用 `:nth-of-type` 把既有的 價位帶(1)／招牌菜(2)／為何適合(3) 三列重排為「招牌菜(hero，暖褐 `--color-primary` 粗體)→價位(muted meta)→理由(本文)→按鈕」。已先以腳本驗證 30 筆 body 列順序完全一致，故 `:nth-of-type` 選取穩定。`.spot-title` 同步放大為 `font-serif text-[22px]`。
+*   **出發前準備 → 欄位卡（消除巢狀縮排）**：4 個原本 2–3 層的 Markdown 巢狀清單改寫為滿版 `.compare-card`＋`.compare-row`（沿用既有機場接駁比較卡的元件，未新增樣式）：**網路與漫遊**（eSIM／實體 SIM／WiFi 分享器／中華電信 4 張卡）、**支付與匯率**（換匯與支付重點／氣候同行卡 2 張卡）、**免稅退稅**（退稅方式卡＋醫美退稅取消 `alert-warning`）、**在地習俗**（交通禮儀／秋季穿搭／無障礙避雷 3 張卡）。每列左標籤右內容、滿版對齊，左右不再失衡。內容逐項保留（連結、金額、警語不變）。
+*   **緊急應變 → 分類色碼＋圖示卡**：置頂 `alert-note` 情境速查改為 `.triage-list`——5 條可點擊直撥（`tel:`／錨點）列，各帶分類色號 badge（119／112／1330／代表部／醫院）與左色條；下方原本「119／112／1330 共擠一張卡」拆成 3 張獨立色碼卡，代表部（綠）、3 間醫院（靛）各自上色，卡片標題加分類 `.em-tag` chip。新增 5 色語意色票（醫療 `#b23a3a`／警察 `#3f5e8c`／資訊 `#b07d1f`／代表處 `#4a7a55`／醫院 `#3f7676`，皆去飽和深色版、文字對白底過 AA），為功能性導引服務，僅用於此區塊。醫院分組 `<p>` 加 `id="em-hospitals"` 供情境速查跳轉。
+*   **一個 cascade 修正**：`.cat-*`（左色條分類色）初版寫在 `.emergency-card`／`.triage-item` 之前，同 specificity 下被後者的 `border`／預設暖褐色壓過（Playwright 實測所有卡左色條都吃到 `#b56a43`）。將 5 條 `.cat-*` 移到緊急應變 CSS 區塊最末，來源順序壓過前者，左色條正確吃到分類色（已重新截圖確認）。
+*   **驗證**：`npm run build` 成功、`swPrecachePlugin` 自動更新 `dist/sw.js` 雜湊（無須手動 bump `CACHE_NAME`）；`marked.parse()` 靜態檢查——無殘留 `**`、food-item 30／spot-card 7／compare-card 14／emergency-card 7、triage 5 條、`em-hospitals` id 存在；Playwright headless 於 390px／1280px 截圖確認雜誌感美食卡、欄位化網路卡、分類色碼緊急卡皆正確渲染，`document.documentElement` 無水平溢出（overflow=0）、console 無錯誤。
 
 ### 2026-07-15 — 首爾文章「出發前準備」附錄重排，併入 App／習俗避雷小節
 
