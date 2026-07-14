@@ -550,9 +550,44 @@ function initTOC(contentContainer) {
     function updatePinnedState() {
       if (!masthead) return;
       const restTop = masthead.getBoundingClientRect().bottom + window.scrollY + REST_GAP;
-      const shouldPin = window.scrollY + NAV_OFFSET >= restTop;
-      sidebar.classList.toggle('is-pinned', shouldPin);
-      sidebar.style.top = shouldPin ? '' : `${restTop}px`;
+
+      // 取得 footer 頂部界線 (優先尋找前面的 HR 分隔線)
+      const footerEl = document.querySelector('footer');
+      let footerBoundary = footerEl;
+      if (footerEl && footerEl.previousElementSibling && footerEl.previousElementSibling.tagName === 'HR') {
+        footerBoundary = footerEl.previousElementSibling;
+      }
+
+      let isBlockedByFooter = false;
+      let blockedTop = 0;
+
+      if (footerBoundary) {
+        const footerBoundaryAbsoluteTop = footerBoundary.getBoundingClientRect().top + window.scrollY;
+        const sidebarHeight = sidebar.offsetHeight;
+        const currentSidebarBottomAbsolute = window.scrollY + NAV_OFFSET + sidebarHeight;
+        const limitBottomAbsolute = footerBoundaryAbsoluteTop - REST_GAP;
+
+        if (currentSidebarBottomAbsolute > limitBottomAbsolute) {
+          isBlockedByFooter = true;
+          blockedTop = limitBottomAbsolute - sidebarHeight;
+        }
+      }
+
+      if (isBlockedByFooter) {
+        sidebar.classList.remove('is-pinned');
+        sidebar.style.position = 'absolute';
+        sidebar.style.top = `${blockedTop}px`;
+      } else {
+        const shouldPin = window.scrollY + NAV_OFFSET >= restTop;
+        sidebar.classList.toggle('is-pinned', shouldPin);
+        if (shouldPin) {
+          sidebar.style.position = '';
+          sidebar.style.top = '';
+        } else {
+          sidebar.style.position = 'absolute';
+          sidebar.style.top = `${restTop}px`;
+        }
+      }
     }
 
     updatePinnedState();
@@ -562,7 +597,21 @@ function initTOC(contentContainer) {
     const sidebarLinks = Array.from(sidebar.querySelectorAll('.toc-link'));
     activeUpdaters.push(currentId => {
       sidebarLinks.forEach(a => {
-        a.classList.toggle('is-active', a.getAttribute('href') === `#${currentId}`);
+        const isActive = a.getAttribute('href') === `#${currentId}`;
+        a.classList.toggle('is-active', isActive);
+        if (isActive) {
+          // 當前項目高亮時，自動滾動側欄以確保其顯示在可見範圍內
+          const containerTop = sidebar.scrollTop;
+          const containerBottom = containerTop + sidebar.clientHeight;
+          const elemTop = a.offsetTop;
+          const elemBottom = elemTop + a.offsetHeight;
+
+          if (elemTop < containerTop) {
+            sidebar.scrollTop = elemTop;
+          } else if (elemBottom > containerBottom) {
+            sidebar.scrollTop = elemBottom - sidebar.clientHeight;
+          }
+        }
       });
     });
   }
@@ -750,6 +799,8 @@ document.addEventListener("DOMContentLoaded", function() {
         if (yearSpan) {
           yearSpan.textContent = new Date().getFullYear();
         }
+        // 動態加載完成後，觸發 scroll 事件以使 TOC 重新計算與 footer 的相對位置
+        window.dispatchEvent(new Event('scroll'));
       })
       .catch(err => console.error(err));
   }

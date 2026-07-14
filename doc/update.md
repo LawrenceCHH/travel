@@ -20,6 +20,7 @@
 - [x] 新增學術、旅遊與技術三種風格的 HTML 及純 Markdown 演示文章
 - [x] 首爾文章手機閱讀體驗優化：機場接駁表格改垂直卡片、美食項目新增長輩友善屬性晶片、開場擴充 30 秒行前速覽、保險/違禁品細節改用 `<details class="fold">` 摺疊、統一「長輩」術語
 - [x] 修正 CLAUDE.md 文件 drift：記錄 `npm run build:css` 指令已不存在於 `package.json`，CSS 實際由 `@tailwindcss/vite` 外掛在 `dev`/`build` 時即時編譯，驗證應改跑 `npm run build`（CLAUDE.md 本文尚未同步修正，見下方後續項）
+- [x] 修正桌機版 TOC 側欄自動滾動聚焦與頁尾防破版遮擋機制
 - [ ] **後續**：CLAUDE.md「Build reminders」一節仍寫著 `npm run build:css`，與實際建置流程不符，建議找機會直接修正 CLAUDE.md 原文（本次任務範圍未涵蓋修改 CLAUDE.md 本身，僅在此記錄 drift）
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
@@ -53,6 +54,12 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-14 — 修正 TOC 側欄自動滾動聚焦與頁尾防破版遮擋機制
+
+*   **自動滾動聚焦**：在 `assets/scripts.js` 中，當 TOC 的當前選中項目 (`.is-active`) 改變時，自動比對該項目相對於側欄容器的偏移量，若是超出可見範圍則手動調整側欄 `scrollTop`。這解決了當右側滾動拉到最底部時，左側 sidebar 聚焦項目因不在可見區域而消失的問題。
+*   **頁尾防破版遮擋**：實作與 Header 類似的邊界阻擋計算。動態尋找 `footer` 及其前面的 `HR` 作為頁尾界線。當側欄底部在 `position: fixed` 狀態下即將穿過頁尾邊界時，自動改用 `position: absolute`，並鎖定它的 `top` 偏移量，使其能貼齊被推回頁尾之上。
+*   **異步頁尾同步更新**：動態 Fetch 載入 `footer.html` 完畢並置換 DOM 時，主動對 window 發送 `scroll` 事件，觸發側欄即時重新計算與頁尾的相對位置。
 
 ### 2026-07-14 — 首爾文章「手機閱讀體驗」優化：機場接駁卡片化、美食長輩友善晶片、條款摺疊、術語統一（feature/travel-guide-style-match 分支）
 
