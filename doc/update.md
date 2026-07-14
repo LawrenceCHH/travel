@@ -23,6 +23,8 @@
 - [x] 修正桌機版 TOC 側欄自動滾動聚焦與頁尾防破版遮擋機制
 - [x] 首爾文章章節重排：改為「行程優先」結構，將行前準備／機場通關／機場接駁／退稅等作業性內容降級收攏進新增的 `## 出發前準備（主辦人專區）` 附錄，`## 景點漫遊` 上移至總覽之後成為主視覺重心
 - [x] 修正 TOC 大綱誤收卡片內部標題：`initTOC` 的 heading 選擇器由 `querySelectorAll('h2, h3')` 收斂為 `:scope > h2, :scope > h3`，只取文章區塊層級（Markdown 產生）的章節標題，排除 `.emergency-card`／`.alert-box` 等卡片元件內自帶的 `<h3>`（如救護車/警局/各醫院、WOWPASS 步驟、行李限重提醒），首爾文章大綱條目由約 42 條降為 30 條，「緊急應變」子索引由約 11 條收斂為 3 條
+- [x] 新增行動版章節分頁列（chapter tab bar）：`<1280px` 時 navbar 正下方常駐橫向膠囊列，複用既有 `toc`/`smoothJump`/`activeUpdaters`，並將 heading 的 `scroll-margin-top` 改為依斷點動態計算（`updateScrollMargins()`），避免標題被「navbar＋分頁列」蓋住
+- [x] 修正行動版分頁列高亮半拍延遲：抽出共用的 `stickyOffset()`，讓 `computeCurrentId()`（scroll-spy 目前章節判定門檻）與 `updateScrollMargins()`（錨點跳轉落點）共用同一偏移量——行動版含分頁列高度、桌機維持 `NAV_OFFSET`(96)不變——點擊跳轉落地即正確高亮
 - [ ] **後續**：CLAUDE.md「Build reminders」一節仍寫著 `npm run build:css`，與實際建置流程不符，建議找機會直接修正 CLAUDE.md 原文（本次任務範圍未涵蓋修改 CLAUDE.md 本身，僅在此記錄 drift）
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
@@ -56,6 +58,25 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-14 — 修正行動版章節分頁列高亮半拍延遲（stickyOffset 統一偏移量）
+
+*   **問題**：章節分頁列初版，scroll-spy 的「目前章節」判定（`computeCurrentId`）沿用固定 `NAV_OFFSET`（96px），但行動版標題的實際 scroll-margin 落點是「navbar＋分頁列高度」。兩者不一致 → 點擊膠囊跳轉落地那一瞬間，高亮短暫停在前一章節，約需再捲動 30 多 px 才切換。
+*   **修正**：抽出共用函式 `stickyOffset()`（`assets/scripts.js` `initTOC` 內）：`>=1280px` 或無分頁列時回傳 `NAV_OFFSET`；`<1280px` 且分頁列存在時回傳 `navbar.offsetHeight + chapterBar.offsetHeight + 12`。`updateScrollMargins()`（錨點落點）與 `computeCurrentId()`（scroll-spy 門檻）改為共用此函式，兩者偏移量一致，跳轉落地即正確高亮。
+*   **桌機不受影響**：`stickyOffset()` 在 `>=1280px` 直接回傳原本的 96；`buildDesktopSidebar` 的釘選/頁尾幾何仍直接使用 `NAV_OFFSET`，行為與修正前完全相同。
+*   **驗證**：`npm run build` 成功；桌機（分頁列隱藏）判定路徑等同修正前。
+
+### 2026-07-14 — 新增行動版章節分頁列（chapter tab bar），為既有 TOC 系統的延伸
+
+*   **目標**：在文章內頁的既有 TOC 系統之上，為手機/平板（`<1280px`）新增一條 navbar 正下方常駐、橫向可捲動的膠囊分頁列，顯示本文各 `## ` 章節，捲動時高亮目前章節並可點擊平滑跳轉。桌機（`>=1280px`）已有左側欄，此分頁列維持隱藏。**沿用既有 TOC 基礎，未另起爐灶**：複用 `initTOC` 內既有的 `toc` 陣列、`smoothJump`、`activeUpdaters`。
+*   **新增函式（`assets/scripts.js` 的 `initTOC` 內）**：
+    *   `buildChapterBar(toc)`：只取 `toc.filter(i => i.level === 2)`（少於 2 個時 `return null` 不建立），逐一建立 `.chapter-pill`（掛 `smoothJump`）append 到一個 `.chapter-bar-scroller` → `.chapter-bar`（`position: fixed`、`xl:hidden`，append 到 `document.body`，比照側欄掛法）。短標籤衍生規則通用（去掉全形/半形括號附註＋只取空白/｜/`|` 分隔前第一段），不寫死本篇字串。內部 `measure()` 讀 `#mainNav` 的 `offsetHeight` 動態設定 `bar.style.top`（找不到 navbar 時預設 64px），掛 `load`/`resize`/`setTimeout(300ms)` 補算，應對 navbar 為非同步 fetch 注入。`updateVisibility()` 依 `.masthead` 下緣（或無 masthead 時 200px 門檻）切換 `.is-visible`，掛 `scroll`(passive)/`resize`。
+    *   `updateScrollMargins()`：取代原本寫死在 `headings.forEach` 內的 `scrollMarginTop = '6rem'`。依 `window.matchMedia('(min-width: 1280px)')` 判斷斷點：`>=1280px` 維持 `96px`；`<1280px` 動態算 `navEl.offsetHeight + chapterBar.offsetHeight + 12`，套用到所有 `toc` 標題。掛 `load`/`resize`/`setTimeout(300ms)` 重算。此為整合關鍵：章節分頁列出現時若標題只避開 navbar 會被「navbar＋分頁列」一起蓋住，故需疊加分頁列高度。
+*   **高亮與自動捲入視野**：`buildChapterBar` 內 push 一個 `activeUpdaters` closure：收到 `currentId`（可能是 h3 id）後在 `toc` 陣列中往回找最近的 `level===2` 項目對應的 id，為對應 `.chapter-pill` 加 `.is-active`，並比照桌機側欄 `offsetLeft`/`offsetWidth` vs 容器 `scrollLeft`/`clientWidth` 的邏輯把 active 膠囊水平捲入可見範圍。
+*   **新增 CSS（`assets/tailwind.css` `@layer components`）**：`.chapter-bar`（`position:fixed`＋淡入淡出/位移 transition，`z-index:40` 低於 Bottom Sheet 的 50、高於一般內容；毛玻璃 `bg-surface/90 backdrop-blur-sm border-b border-sand xl:hidden` 直接以 Tailwind utility class 掛在 JS 建立的元素上）、`.chapter-bar-scroller`（隱藏捲軸，比照 `.toc-sidebar` 寫法）、`.chapter-pill`/`.chapter-pill:hover`/`.chapter-pill.is-active`（`bg-primary text-paper`，沿用站內既有已驗證通過 WCAG AA 的組合）。新增 `@media (prefers-reduced-motion: reduce)` 覆寫略過位移動畫。
+*   **未破壞既有**：`:scope > h2, :scope > h3` heading 選擇器、`buildDesktopSidebar`、`buildMobileOutlineAndSheet`（頂部靜態 `toc-outline`／FAB／Bottom Sheet）皆未更動邏輯，僅 `headings.forEach` 內移除寫死的 `scrollMarginTop` 賦值（改由 `updateScrollMargins()` 動態管理）。scroll-spy 用的 `NAV_OFFSET`（96）依規格維持不變（僅為「目前章節」判定門檻，允許誤差）。
+*   **驗證**：`npm run build` 成功無錯誤。另用 `playwright-core`（`NODE_PATH=$(npm root) node ...`）驅動 headless Chromium 對 `npm run preview` 產物實測 375px 寬度：初始頁頂分頁列隱藏、捲過 Banner 後淡入且 `document.body.scrollWidth` 無橫向溢出、6 顆膠囊短標籤符合預期（總覽/景點漫遊/美食推薦/現場實用資訊/出發前準備/緊急應變）、點擊膠囊後對應 H2 `getBoundingClientRect().top` 落在 navbar+分頁列高度下方（約 130px，正值、未被遮擋）；1280px 寬度時 `.chapter-bar` computed `display: none`、`.toc-sidebar` 正常顯示；全程 console 無錯誤。
+*   **後續已修正（同批次）**：初版 scroll-spy 判定沿用固定 `NAV_OFFSET` 96px，導致剛點擊跳轉落地瞬間高亮短暫停留在前一章節。已抽出共用的 `stickyOffset()`（行動版＝navbar＋分頁列高度＋12，桌機＝`NAV_OFFSET`），供 `computeCurrentId()` 與 `updateScrollMargins()` 共用同一偏移量，跳轉落地即正確高亮；桌機邏輯不受影響。詳見上方「修正行動版章節分頁列高亮半拍延遲」更新歷史。
 
 ### 2026-07-14 — 首爾文章「緊急應變」改為情境速查導向、TOC 只留一個條目
 

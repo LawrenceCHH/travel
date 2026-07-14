@@ -341,6 +341,53 @@
     background: rgba(111, 103, 91, 0.12);
   }
 
+  /* 文章大綱 (TOC) —— 行動版/平板常駐章節分頁列（<1280px，navbar 正下方橫向捲動膠囊列）。
+     色彩沿用毛玻璃 navbar 的 bg-surface/90 backdrop-blur-sm border-b border-sand（於 JS
+     建立時直接以 Tailwind utility class 套用，此處只負責定位與淡入/淡出過場）。
+     z-index 40：低於 Bottom Sheet 的 scrim/sheet（50），抽屜開啟時仍蓋在分頁列之上；
+     高於一般內容、低於 navbar（50）。 */
+  .chapter-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    opacity: 0;
+    transform: translateY(-100%);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .chapter-bar.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chapter-bar {
+      transition: opacity 0.25s ease; /* 尊重減速動效：略過位移動畫，僅保留淡入淡出 */
+      transform: none;
+    }
+    .chapter-bar.is-visible {
+      transform: none;
+    }
+  }
+  /* 內層橫向捲動容器：比照 .toc-sidebar 的做法隱藏捲軸但保留捲動功能 */
+  .chapter-bar-scroller {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .chapter-bar-scroller::-webkit-scrollbar {
+    display: none;
+  }
+  .chapter-pill {
+    @apply flex-none whitespace-nowrap rounded-full px-3 py-1 text-sm text-muted-text transition-colors duration-150;
+  }
+  .chapter-pill:hover {
+    @apply text-ink;
+  }
+  .chapter-pill.is-active {
+    @apply bg-primary text-paper;
+  }
+
   /* 文章目錄 (Catalog) —— 高雅低調的膠囊標籤 */
   .tag-pill {
     @apply inline-flex items-center rounded-full border border-sand bg-sand/20 px-2.5 py-0.5 text-[11px] leading-4 text-muted-text;

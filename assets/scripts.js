@@ -451,7 +451,8 @@ function initTOC(contentContainer) {
 
   headings.forEach((h, i) => {
     if (!h.id) h.id = slugify(h.textContent, i);
-    h.style.scrollMarginTop = '6rem';
+    // scroll-margin-top 改為動態計算（見下方 updateScrollMargins），因為行動版章節
+    // 分頁列出現時，標題還需多讓出分頁列的高度，否則會被「navbar + 分頁列」蓋住。
   });
 
   const toc = headings.map(h => ({
@@ -467,11 +468,14 @@ function initTOC(contentContainer) {
 
   function computeCurrentId() {
     let currentId = toc[0].id;
+    // 判定門檻須與 scroll-margin 落點一致（見 stickyOffset）：行動版章節分頁列常駐時
+    // 要一併扣掉分頁列高度，否則點擊跳轉落地瞬間高亮會慢半拍、停在前一章節。
+    const spyOffset = stickyOffset();
     for (const item of toc) {
       // 容許 2px 誤差：錨點跳轉後瀏覽器套用 scroll-margin-top 定位常有次像素捨入
       // （例如落在 96.6px 而非精確 96px），嚴格的 <= 0 會讓剛跳轉抵達的目標標題
       // 判定為「還沒到」，導致抽屜重新開啟時反白停留在前一個標題。
-      if (item.el.getBoundingClientRect().top - NAV_OFFSET <= 2) {
+      if (item.el.getBoundingClientRect().top - spyOffset <= 2) {
         currentId = item.id;
       } else {
         break;
@@ -507,6 +511,31 @@ function initTOC(contentContainer) {
 
   buildDesktopSidebar(toc);
   buildMobileOutlineAndSheet(toc, contentContainer);
+  const chapterBar = buildChapterBar(toc);
+
+  // 章節分頁列常駐時，navbar + 分頁列一起佔住視窗頂端。scroll-margin（錨點跳轉落點）
+  // 與 scroll-spy 的「目前章節」判定門檻都改用這個實際偏移量，兩者一致 → 點擊跳轉落地即
+  // 正確高亮。桌機（>=1280px，分頁列隱藏）維持只需閃避 navbar 的 NAV_OFFSET（96）。
+  function stickyOffset() {
+    const isDesktop = window.matchMedia('(min-width: 1280px)').matches;
+    if (isDesktop || !chapterBar) return NAV_OFFSET;
+    const navEl = document.getElementById('mainNav');
+    const navHeight = navEl ? navEl.offsetHeight : 64;
+    const barHeight = chapterBar.offsetHeight || 0;
+    return navHeight + barHeight + 12;
+  }
+
+  // 依 stickyOffset() 動態設定所有標題的 scroll-margin-top，避免行動版標題被
+  // 「navbar + 分頁列」一起遮住。
+  function updateScrollMargins() {
+    const marginPx = stickyOffset();
+    toc.forEach(item => { item.el.style.scrollMarginTop = `${marginPx}px`; });
+  }
+  updateScrollMargins();
+  window.addEventListener('load', updateScrollMargins);
+  window.addEventListener('resize', updateScrollMargins);
+  // navbar 是 fetch 注入的非同步元件，initTOC 執行當下高度可能還是 0，補一次延遲重算
+  setTimeout(updateScrollMargins, 300);
 
   // IntersectionObserver 只當觸發器，真正的「目前章節」由幾何位置重算決定，
   // 避免短小節或多標題同時可見時，用單純 isIntersecting 誤判。
@@ -758,6 +787,102 @@ function initTOC(contentContainer) {
       if (dy > 80) closeSheet();
       startY = null;
     });
+  }
+
+  // --- 行動版/平板（<1280px）：常駐章節分頁列（navbar 正下方橫向捲動膠囊列） ---
+  // 與桌機側欄互斥（>=1280px 用 xl:hidden 隱藏），與手機頂部靜態速覽／FAB／Bottom Sheet
+  // 並存不衝突：分頁列固定在頂部、FAB 固定在右下，z-index（40）低於 Bottom Sheet 的
+  // scrim/sheet（50），抽屜開啟時仍蓋在分頁列之上。
+  function buildChapterBar(toc) {
+    const chapterItems = toc.filter(item => item.level === 2);
+    if (chapterItems.length < 2) return null; // 少於 2 個 H2 時分頁列沒有意義，不建立
+
+    // 由 H2 全文衍生短標籤：去掉全形/半形括號附註，並只取空白或｜/| 分隔前的第一段，
+    // 通用規則、不寫死任何本篇文字（例如「出發前準備（主辦人專區）」→「出發前準備」）。
+    function shortLabel(text) {
+      const stripped = text
+        .replace(/[（(][^）)]*[）)]/g, '')
+        .split(/[\s｜|]/)[0]
+        .trim();
+      return stripped || text;
+    }
+
+    const bar = document.createElement('nav');
+    bar.className = 'chapter-bar bg-surface/90 backdrop-blur-sm border-b border-sand xl:hidden';
+    bar.setAttribute('aria-label', '本文章節分頁');
+
+    const scroller = document.createElement('div');
+    scroller.className = 'chapter-bar-scroller flex items-center gap-2 overflow-x-auto mx-auto max-w-3xl px-5 py-2.5';
+    bar.appendChild(scroller);
+
+    chapterItems.forEach(item => {
+      const a = document.createElement('a');
+      a.className = 'chapter-pill';
+      a.href = `#${item.id}`;
+      a.textContent = shortLabel(item.text);
+      a.addEventListener('click', smoothJump);
+      scroller.appendChild(a);
+    });
+
+    document.body.appendChild(bar);
+
+    // 定位：fixed 貼在 navbar 下緣。navbar 是 DOMContentLoaded 後才 fetch 注入的元件，
+    // initTOC 執行當下 offsetHeight 可能還是 0，故用 measure() 搭配 load/resize/延遲重算。
+    function measure() {
+      const navEl = document.getElementById('mainNav');
+      const navHeight = navEl ? navEl.offsetHeight : 64; // 找不到 navbar 時的合理預設值
+      bar.style.top = `${navHeight}px`;
+    }
+    measure();
+    window.addEventListener('load', measure);
+    window.addEventListener('resize', measure);
+    setTimeout(measure, 300);
+
+    // 捲過 Banner（.masthead）下緣後才淡入，避免一開始就疊在 Hero 標題上；
+    // 找不到 masthead（理論上文章頁一定有）則退回一個固定門檻。
+    const masthead = document.querySelector('.masthead');
+    const APPEAR_FALLBACK = 200;
+    function updateVisibility() {
+      const threshold = masthead
+        ? masthead.getBoundingClientRect().bottom + window.scrollY
+        : APPEAR_FALLBACK;
+      bar.classList.toggle('is-visible', window.scrollY > threshold);
+    }
+    updateVisibility();
+    window.addEventListener('scroll', updateVisibility, { passive: true });
+    window.addEventListener('resize', updateVisibility);
+
+    // 目前章節高亮：computeCurrentId() 可能回傳 h3 的 id，分頁列只有 H2，
+    // 故往回找 toc 陣列中最近的前一個 level===2 項目對應的膠囊。
+    const pills = Array.from(scroller.querySelectorAll('.chapter-pill'));
+    activeUpdaters.push(currentId => {
+      const currentIndex = toc.findIndex(item => item.id === currentId);
+      let parentH2Id = chapterItems[0].id;
+      for (let i = currentIndex; i >= 0; i--) {
+        if (toc[i].level === 2) {
+          parentH2Id = toc[i].id;
+          break;
+        }
+      }
+      pills.forEach(a => {
+        const isActive = a.getAttribute('href') === `#${parentH2Id}`;
+        a.classList.toggle('is-active', isActive);
+        if (isActive) {
+          // 比照桌機側欄的作法，讓 active 膠囊自動水平捲入可見範圍
+          const containerLeft = scroller.scrollLeft;
+          const containerRight = containerLeft + scroller.clientWidth;
+          const elemLeft = a.offsetLeft;
+          const elemRight = elemLeft + a.offsetWidth;
+          if (elemLeft < containerLeft) {
+            scroller.scrollLeft = elemLeft;
+          } else if (elemRight > containerRight) {
+            scroller.scrollLeft = elemRight - scroller.clientWidth;
+          }
+        }
+      });
+    });
+
+    return bar;
   }
 }
 window.initTOC = initTOC;
