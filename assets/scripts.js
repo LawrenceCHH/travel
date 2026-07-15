@@ -747,6 +747,19 @@ function initTOC(contentContainer) {
     function openSheet() {
       scrim.classList.add('is-open');
       document.body.style.overflow = 'hidden';
+      // 開啟時把目前章節（.is-active）捲到清單中央，免得使用者剛從分頁列跳轉過來、
+      // 開抽屜卻停在頂端還要手動找。先 updateActive() 確保 is-active 反映當前捲動位置，
+      // 再用 rect 相對差值置中（對 sheet 的 translateY 平移免疫）。
+      updateActive();
+      requestAnimationFrame(() => {
+        const active = sheetList.querySelector('.toc-link.is-active');
+        if (!active) return;
+        const linkRect = active.getBoundingClientRect();
+        const listRect = sheetList.getBoundingClientRect();
+        const delta = (linkRect.top - listRect.top)
+          - (sheetList.clientHeight - active.offsetHeight) / 2;
+        sheetList.scrollTop += delta;
+      });
     }
     function closeSheet() {
       scrim.classList.remove('is-open');
@@ -799,6 +812,12 @@ function initTOC(contentContainer) {
   function buildChapterBar(toc) {
     const chapterItems = toc.filter(item => item.level === 2);
     if (chapterItems.length < 2) return null; // 少於 2 個 H2 時分頁列沒有意義，不建立
+
+    // H2 原文任一超過 6 字，代表這篇的章節標題是長句/編號式（如「1. 緒論」「🛑 第一部分：…」），
+    // 不適合塞進橫向膠囊分頁列（會被 shortLabel 砍成「1.」「🛑」這類無意義標籤），整條不建立，
+    // 手機版仍有頂部靜態速覽＋FAB 抽屜可用。量測 H2 原文而非 shortLabel 輸出（見 current.md 說明）。
+    const TAB_MAX_CHARS = 6;
+    if (chapterItems.some(item => [...item.text.trim()].length > TAB_MAX_CHARS)) return null;
 
     // 由 H2 全文衍生短標籤：去掉全形/半形括號附註，並只取空白或｜/| 分隔前的第一段，
     // 通用規則、不寫死任何本篇文字（例如「出發前準備（主辦人專區）」→「出發前準備」）。

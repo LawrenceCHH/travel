@@ -28,6 +28,7 @@
 - [x] 首爾文章「出發前準備」附錄再整理：標題移除「（主辦人專區）」與開頭「同行家人可略過」提示橫幅；區塊內小節重排為「機場通關步驟／機場接駁比較／免稅與退稅指南」固定置頂三項，其後依重要度排序（旅遊相關保險／網路與漫遊方案評估／支付工具與匯率評估／最新違禁品與行李規定），並將原「現場實用資訊」下的「推薦 App」「在地習俗與避雷」併入此區塊收尾；`## 現場實用資訊` 這個 H2 因此消失，行動版章節分頁列（`buildChapterBar`）為動態衍生標籤、無需改動即自動少一顆膠囊
 - [x] 首爾文章「簡潔高雅」風格重整（美食／景點雜誌感卡片、出發前準備欄位化、緊急應變分類色碼）：`.food-item`／`.spot-card` 改雜誌感大襯線標題＋招牌菜暖褐 highlight（純 CSS flex order／`:nth-of-type` 重排，30 筆 HTML 不動）；出發前準備 4 個巢狀清單（網路漫遊／支付匯率／免稅退稅／在地習俗）改為滿版 `.compare-card` 欄位卡消除縮排右壓；緊急應變新增置頂 `.triage-list` 情境速查與 5 色分類色碼（醫療紅／警察藍／資訊琥珀／代表處綠／醫院靛），聯絡卡拆分並上色左色條
 - [x] 新增 `assets/markdown-cards.js` 卡片 DSL 擴充，將首爾文章 8 個卡片家族（food/spot/compare/gallery/prep/apps/triage/emergency）約 81 個實例由手寫 HTML 改為 ```dsl 資料區塊；渲染輸出逐字不變，附 node diff 驗證（`scripts/verify-card-dsl.mjs`，`node scripts/verify-card-dsl.mjs` 回報「正規化後 0 diff」）。`assets/scripts.js` 最上方接線在 `window.marked` 上註冊擴充；`.stepper`/`.step-item`、`.alert-box`、`<details class="fold">`、`.emergency-group` 的 `<p>`、`.emergency-cta` 的 `<a>` 因內容 freeform 或屬單一實例，維持手寫 HTML 不轉。文章由 1080 行降為 868 行，`npm run build` 通過。`public/sw.js` 的 `CACHE_NAME` 隨 `scripts.js` 內容變動升級至 `v26`。
+- [x] 手動修正行動版章節分頁列（H2 原文任一 > 6 字不建立）與開啟 Bottom Sheet 抽屜時自動置中滾動至目前章節，並更新 `public/sw.js` 的 `CACHE_NAME` 至 `v27`
 - [ ] **後續**：CLAUDE.md「Build reminders」一節仍寫著 `npm run build:css`，與實際建置流程不符，建議找機會直接修正 CLAUDE.md 原文（本次任務範圍未涵蓋修改 CLAUDE.md 本身，僅在此記錄 drift）
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
@@ -61,6 +62,16 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-15 — 行動版 TOC 兩項修正（分頁列 6 字門檻與抽屜開啟置中捲動）
+
+*   **問題**：
+    1.  **修正 1**：行動版 navbar 下方的橫向膠囊分頁列常駐時，部分文章有編號式或長句式的 H2 標題，被 `shortLabel()` 砍成「1.」「2.」「🛑」這類垃圾無意義膠囊。
+    2.  **修正 2**：在行動版點擊分頁膠囊跳轉後點擊右下角 FAB 開啟 Bottom Sheet 抽屜時，抽屜清單仍停留在頂端，沒有聚焦在當前章節，導致使用者需要重新手動尋找。
+*   **做法**：
+    1.  在 `buildChapterBar` 內新增長度閘門：當任一個 H2 的原文（`.text` trim 後的碼點長度）`> 6` 字時，整條分頁列不建立（`return null`），讓長標題文章不顯示分頁列、僅保留頂部速覽與 FAB 抽屜。
+    2.  修改 `openSheet` 函數：開啟時主動呼叫 `updateActive()`，並利用 `requestAnimationFrame` 與 `getBoundingClientRect()` 計算 active 項目與 list 容器的相對 top 差值，進而置中滾動 `sheetList.scrollTop`，使目前章節置中呈現。
+*   **影響與文件**：已更新 `doc/project.md` 的大綱元件說明段落，並將 `public/sw.js` 的 `CACHE_NAME` 升級為 `clean-blog-v27`。
 
 ### 2026-07-15 — 新增卡片 DSL：`assets/markdown-cards.js` 把首爾文章卡片手寫 HTML 改為 ```dsl 資料區塊
 
