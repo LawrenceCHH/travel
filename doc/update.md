@@ -29,6 +29,7 @@
 - [x] 首爾文章「簡潔高雅」風格重整（美食／景點雜誌感卡片、出發前準備欄位化、緊急應變分類色碼）：`.food-item`／`.spot-card` 改雜誌感大襯線標題＋招牌菜暖褐 highlight（純 CSS flex order／`:nth-of-type` 重排，30 筆 HTML 不動）；出發前準備 4 個巢狀清單（網路漫遊／支付匯率／免稅退稅／在地習俗）改為滿版 `.compare-card` 欄位卡消除縮排右壓；緊急應變新增置頂 `.triage-list` 情境速查與 5 色分類色碼（醫療紅／警察藍／資訊琥珀／代表處綠／醫院靛），聯絡卡拆分並上色左色條
 - [x] 新增 `assets/markdown-cards.js` 卡片 DSL 擴充，將首爾文章 8 個卡片家族（food/spot/compare/gallery/prep/apps/triage/emergency）約 81 個實例由手寫 HTML 改為 ```dsl 資料區塊；渲染輸出逐字不變，附 node diff 驗證（`scripts/verify-card-dsl.mjs`，`node scripts/verify-card-dsl.mjs` 回報「正規化後 0 diff」）。`assets/scripts.js` 最上方接線在 `window.marked` 上註冊擴充；`.stepper`/`.step-item`、`.alert-box`、`<details class="fold">`、`.emergency-group` 的 `<p>`、`.emergency-cta` 的 `<a>` 因內容 freeform 或屬單一實例，維持手寫 HTML 不轉。文章由 1080 行降為 868 行，`npm run build` 通過。`public/sw.js` 的 `CACHE_NAME` 隨 `scripts.js` 內容變動升級至 `v26`。
 - [x] 手動修正行動版章節分頁列（H2 原文任一 > 6 字不建立）與開啟 Bottom Sheet 抽屜時自動置中滾動至目前章節，並更新 `public/sw.js` 的 `CACHE_NAME` 至 `v27`
+- [x] 將首爾旅遊指南文章進行感性/理性拆分：產出獨立的《首爾行前準備與安全應變手冊》並精簡原《首爾秋日漫遊手帳》，建立雙向引流連結與更新 PWA 快取
 - [ ] **後續**：CLAUDE.md「Build reminders」一節仍寫著 `npm run build:css`，與實際建置流程不符，建議找機會直接修正 CLAUDE.md 原文（本次任務範圍未涵蓋修改 CLAUDE.md 本身，僅在此記錄 drift）
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
@@ -62,6 +63,15 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-15 — 首爾旅遊文章感性與理性拆分（漫遊手帳與行前安全手冊）
+
+*   **動機**：首爾文章（原長度 869 行）包含啟發性的行程介紹（景點、美食）與功能性的實用操作（通關步驟、接駁比較、打包限制、就醫資訊），兩者讀者閱讀意圖與時機完全不同，合在一篇會造成單一頁面過長、TOC 大綱項目繁雜干擾，且增加行動端瀏覽器的解析負擔。
+*   **做法**：
+    1.  建立新文章 `src/posts/2026-07-13-韓國首爾旅行準備.md`，將「30秒行前速覽」、「出發前準備（通關步驟、交通比較、退稅、保險、網路、支付、違禁品、App、習俗）」與「緊急應變（求助電話、代表部、三大醫院、就醫防雷）」移至該手冊。
+    2.  精簡原文章 `src/posts/2026-07-13-韓國首爾旅行.md`，移除被搬移的段落。
+    3.  建立交叉引流：在兩篇文章頂部各自加入引流區塊（`[!IMPORTANT]` 與 `[!NOTE]`），並更新原文章中的緊急求助 CTA 連結指向新文章的錨點 `#緊急應變`。
+*   **結果與驗證**：`npm run build` 通過，自動更新 `posts.json` 索引並納入新文章（共 17 篇），PWA 預快取與 Service Worker 快取正常更新。
 
 ### 2026-07-15 — 行動版 TOC 兩項修正（分頁列 6 字門檻與抽屜開啟置中捲動）
 
