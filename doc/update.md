@@ -30,6 +30,7 @@
 - [x] 新增 `assets/markdown-cards.js` 卡片 DSL 擴充，將首爾文章 8 個卡片家族（food/spot/compare/gallery/prep/apps/triage/emergency）約 81 個實例由手寫 HTML 改為 ```dsl 資料區塊；渲染輸出逐字不變，附 node diff 驗證（`scripts/verify-card-dsl.mjs`，`node scripts/verify-card-dsl.mjs` 回報「正規化後 0 diff」）。`assets/scripts.js` 最上方接線在 `window.marked` 上註冊擴充；`.stepper`/`.step-item`、`.alert-box`、`<details class="fold">`、`.emergency-group` 的 `<p>`、`.emergency-cta` 的 `<a>` 因內容 freeform 或屬單一實例，維持手寫 HTML 不轉。文章由 1080 行降為 868 行，`npm run build` 通過。`public/sw.js` 的 `CACHE_NAME` 隨 `scripts.js` 內容變動升級至 `v26`。
 - [x] 手動修正行動版章節分頁列（H2 原文任一 > 6 字不建立）與開啟 Bottom Sheet 抽屜時自動置中滾動至目前章節，並更新 `public/sw.js` 的 `CACHE_NAME` 至 `v27`
 - [x] 將首爾旅遊指南文章進行感性/理性拆分：產出獨立的《首爾行前準備與安全應變手冊》並精簡原《首爾秋日漫遊手帳》，建立雙向引流連結與更新 PWA 快取
+- [x] 全站停用頂部常駐章節分頁列（`buildChapterBar`）：文章拆短後右下角 FAB 抽屜已足夠，改以 `ENABLE_CHAPTER_BAR` 旗標控制，程式碼完整保留、日後一行改回 `true` 即可恢復；`public/sw.js` 的 `CACHE_NAME` 隨 `scripts.js` 變動升至 `v28`
 - [ ] **後續**：CLAUDE.md「Build reminders」一節仍寫著 `npm run build:css`，與實際建置流程不符，建議找機會直接修正 CLAUDE.md 原文（本次任務範圍未涵蓋修改 CLAUDE.md 本身，僅在此記錄 drift）
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
@@ -63,6 +64,15 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-15 — 全站停用頂部常駐章節分頁列（chapter bar），保留程式碼供日後恢復
+
+*   **動機**：使用者決定文章已拆短（見上一則「感性與理性拆分」），行動版/平板（`<1280px`）只靠右下角 FAB＋Bottom Sheet 抽屜就足夠瀏覽章節，navbar 正下方常駐的橫向膠囊分頁列（`buildChapterBar`）已無必要，全站不再顯示。
+*   **做法（feature flag，不刪程式碼）**：在 `assets/scripts.js` 的 `initTOC()` 頂部（`NAV_OFFSET` 常數旁）新增 `const ENABLE_CHAPTER_BAR = false;`，並在 `buildChapterBar(toc)` 函式最開頭加一行早退 `if (!ENABLE_CHAPTER_BAR) return null;`（在 `chapterItems` 變數宣告之前）。函式其餘邏輯（`shortLabel`、6 字門檻、定位、高亮同步）完全未動。`stickyOffset()` 原本就有的 `if (isDesktop || !chapterBar) return NAV_OFFSET;` 分支會自動接手處理 `chapterBar` 為 `null` 的情況，不需改動任何呼叫端。CSS（`.chapter-bar`／`.chapter-pill` 等）維持不動、不刪除。
+*   **驗證**：`npm run build` 成功無錯誤。以 `playwright-core` 驅動 headless Chromium 對 `npm run preview` 產物實測——390px 寬度開啟 `2026-07-13-韓國首爾旅行` 文章，捲動至原本分頁列會淡入的位置後，`document.querySelectorAll('.chapter-bar').length === 0`（不再建立/掛載），FAB（`#toc-fab`）與頂部靜態速覽（`.toc-outline`）皆正常存在（各 1 個），console 無錯誤；1440px 寬度桌機版 `.toc-sidebar` 正常渲染、`.chapter-bar` 同樣為 0，未受影響。
+*   **恢復方式**：日後要重新啟用，只需把 `ENABLE_CHAPTER_BAR` 改回 `true` 即可，無需其他改動。
+*   **PWA 快取**：因 `assets/scripts.js` 內容變動，將 `public/sw.js` 的 `CACHE_NAME` 由 `v27` 升至 `v28`，確保訪客瀏覽器抓到新版腳本。
+*   **範圍排除**：`current.md` 先前規劃的「修正 1（依標題長短條件隱藏分頁列）」已被本次全站停用取代，不需再執行；「修正 2（抽屜開啟自動置中捲動）」與本次無關，維持原狀未動。
 
 ### 2026-07-15 — 首爾旅遊文章感性與理性拆分（漫遊手帳與行前安全手冊）
 

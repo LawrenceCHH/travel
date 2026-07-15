@@ -424,6 +424,10 @@ function initTOC(contentContainer) {
   // 需與 CSS 裡 heading 的 scroll-margin-top 一致，用來扣除 sticky navbar 高度
   const NAV_OFFSET = 96;
 
+  // 頂部常駐章節分頁列（chapter bar）暫時停用：文章已拆短，右下角 FAB 抽屜已足夠。
+  // 程式碼保留，日後要恢復把此旗標改回 true 即可（buildChapterBar 內部邏輯完整未動）。
+  const ENABLE_CHAPTER_BAR = false;
+
   // 僅收「文章區塊層級」的章節標題：Markdown 產生的 h2/h3 是 contentContainer 的直接子節點，
   // 而卡片元件（.emergency-card / .alert-box 等）內部自帶的 <h3> 標題是巢狀子孫，不應混入大綱，
   // 否則像「緊急應變」這種一節內含多張卡片時，TOC 會被救護車/警局/各醫院等卡片標題灌爆。
@@ -810,6 +814,7 @@ function initTOC(contentContainer) {
   // 並存不衝突：分頁列固定在頂部、FAB 固定在右下，z-index（40）低於 Bottom Sheet 的
   // scrim/sheet（50），抽屜開啟時仍蓋在分頁列之上。
   function buildChapterBar(toc) {
+    if (!ENABLE_CHAPTER_BAR) return null;
     const chapterItems = toc.filter(item => item.level === 2);
     if (chapterItems.length < 2) return null; // 少於 2 個 H2 時分頁列沒有意義，不建立
 
