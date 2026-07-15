@@ -1,5 +1,5 @@
 const BASE = '/travel/';
-const CACHE_NAME = 'clean-blog-v25';
+const CACHE_NAME = 'clean-blog-v26';
 
 // 預快取路徑，Vite build 時會被 swPrecachePlugin 自動取代為含有雜湊碼的檔案名
 const PRECACHE_URLS = [

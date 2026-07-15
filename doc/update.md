@@ -27,6 +27,7 @@
 - [x] 修正行動版分頁列高亮半拍延遲：抽出共用的 `stickyOffset()`，讓 `computeCurrentId()`（scroll-spy 目前章節判定門檻）與 `updateScrollMargins()`（錨點跳轉落點）共用同一偏移量——行動版含分頁列高度、桌機維持 `NAV_OFFSET`(96)不變——點擊跳轉落地即正確高亮
 - [x] 首爾文章「出發前準備」附錄再整理：標題移除「（主辦人專區）」與開頭「同行家人可略過」提示橫幅；區塊內小節重排為「機場通關步驟／機場接駁比較／免稅與退稅指南」固定置頂三項，其後依重要度排序（旅遊相關保險／網路與漫遊方案評估／支付工具與匯率評估／最新違禁品與行李規定），並將原「現場實用資訊」下的「推薦 App」「在地習俗與避雷」併入此區塊收尾；`## 現場實用資訊` 這個 H2 因此消失，行動版章節分頁列（`buildChapterBar`）為動態衍生標籤、無需改動即自動少一顆膠囊
 - [x] 首爾文章「簡潔高雅」風格重整（美食／景點雜誌感卡片、出發前準備欄位化、緊急應變分類色碼）：`.food-item`／`.spot-card` 改雜誌感大襯線標題＋招牌菜暖褐 highlight（純 CSS flex order／`:nth-of-type` 重排，30 筆 HTML 不動）；出發前準備 4 個巢狀清單（網路漫遊／支付匯率／免稅退稅／在地習俗）改為滿版 `.compare-card` 欄位卡消除縮排右壓；緊急應變新增置頂 `.triage-list` 情境速查與 5 色分類色碼（醫療紅／警察藍／資訊琥珀／代表處綠／醫院靛），聯絡卡拆分並上色左色條
+- [x] 新增 `assets/markdown-cards.js` 卡片 DSL 擴充，將首爾文章 8 個卡片家族（food/spot/compare/gallery/prep/apps/triage/emergency）約 81 個實例由手寫 HTML 改為 ```dsl 資料區塊；渲染輸出逐字不變，附 node diff 驗證（`scripts/verify-card-dsl.mjs`，`node scripts/verify-card-dsl.mjs` 回報「正規化後 0 diff」）。`assets/scripts.js` 最上方接線在 `window.marked` 上註冊擴充；`.stepper`/`.step-item`、`.alert-box`、`<details class="fold">`、`.emergency-group` 的 `<p>`、`.emergency-cta` 的 `<a>` 因內容 freeform 或屬單一實例，維持手寫 HTML 不轉。文章由 1080 行降為 868 行，`npm run build` 通過。`public/sw.js` 的 `CACHE_NAME` 隨 `scripts.js` 內容變動升級至 `v26`。
 - [ ] **後續**：CLAUDE.md「Build reminders」一節仍寫著 `npm run build:css`，與實際建置流程不符，建議找機會直接修正 CLAUDE.md 原文（本次任務範圍未涵蓋修改 CLAUDE.md 本身，僅在此記錄 drift）
 - [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
 - [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
@@ -60,6 +61,15 @@
 ---
 
 ## 更新歷史
+
+### 2026-07-15 — 新增卡片 DSL：`assets/markdown-cards.js` 把首爾文章卡片手寫 HTML 改為 ```dsl 資料區塊
+
+*   **動機**：首爾文章前一輪「簡潔高雅」視覺重整後，8 個卡片家族（food/spot/compare/gallery/prep/apps/triage/emergency）共約 81 個實例仍是逐一手寫 `<div>` HTML，欄位重複度高、單一欄位改動需同步改多處標籤，容易漏改或打字失誤破壞既有 class 契約。
+*   **做法**：新增 `assets/markdown-cards.js`，匯出 `registerCardExtensions(marked)`——註冊一個 marked block 級擴充（`name: 'cardBlock'`），tokenizer 用正規式擷取 ` ```food `〜` ```emergency ` 8 種語言的 fenced code block，renderer 依語言分派到純字串模板函式，把精簡的 `key: value` 或 positional（半形空白-豎線-半形空白分隔）資料逐字組回原本的卡片 HTML。純字串邏輯，不碰 `document`/`window`，可在 Node 與瀏覽器共用。接線點：`assets/scripts.js` 檔案最上方 `import { registerCardExtensions } from './markdown-cards.js'; if (typeof window !== 'undefined' && window.marked) registerCardExtensions(window.marked);`，在 `posts/detail.html` 唯一的 `marked.parse()` 呼叫前於全域 `window.marked` 完成註冊。
+*   **驗證**：新增 dev-only `scripts/verify-card-dsl.mjs`（`node scripts/verify-card-dsl.mjs`）——分別用「純 marked」渲染改寫前備份、「marked + registerCardExtensions」渲染改寫後文章，正規化空白（去標籤間空白、連續空白壓一個、trim）後比對，回報「正規化後 0 diff ✅」。8 個家族逐一轉換、每轉完一族即重跑驗證，全數通過後才進行下一族。`npm run build` 通過，`assets/markdown-cards.js` 隨 `scripts.js` 一起被 Vite 打包進單一輸出 chunk。
+*   **保留手寫 HTML、刻意不轉的部分**：`.stepper`/`.step-item`（機場通關步驟，內容為 freeform Markdown 清單與連結，無固定欄位結構）、`.alert-box`（`[!NOTE]`/`[!WARNING]`/`[!IMPORTANT]` 提示框，本來就是 blockquote 語法的展現）、`<details class="fold">`（摺疊區塊，內容為長篇 Markdown 清單）、`.emergency-group` 的 `<p>` 與 `.emergency-cta` 的 `<a>`（各自只有 1-3 個單一實例，非重複樣板）。這些家族內容 freeform 或僅單一實例，硬凹成 DSL 欄位不會降低維護成本，故維持原樣。
+*   **一個資料層級的例外（`food` 的 `map_kakao`）**：比對時發現原始資料裡有 5 筆店名的 Naver／Kakao 搜尋字串並非完全相同（Kakao 端多了一個全形空白，屬原始內容既有的不一致，非本次引入），因此 `food` 模板新增可省的 `map_kakao` 欄位，僅該 5 筆需要填寫，其餘 25 筆共用單一 `map` 欄位；URL 一律不做 percent-encode，沿用原始 raw 韓文查詢字串。
+*   **結果**：`src/posts/2026-07-13-韓國首爾旅行.md` 由 1080 行降為 868 行；`public/sw.js` 的 `CACHE_NAME` 因 `scripts.js` 內容變動由 `v25` 升級至 `v26`。
 
 ### 2026-07-15 — 首爾文章「簡潔高雅」視覺重整：美食／景點雜誌感、出發前準備欄位化、緊急應變分類色碼
 

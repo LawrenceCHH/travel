@@ -1,3 +1,6 @@
+import { registerCardExtensions } from './markdown-cards.js';
+if (typeof window !== 'undefined' && window.marked) registerCardExtensions(window.marked);
+
 function toggleNav() {
   var nav = document.getElementById('navbarResponsive');
   var button = document.querySelector('[aria-controls="navbarResponsive"]');
