@@ -663,4 +663,211 @@
   }
   .fold > *:not(summary) { @apply text-[14.5px] leading-relaxed; }
   .fold > *:last-child { @apply mb-4; }
+
+  /* ==========================================================================
+     NEW STYLES FOR SEPARATE LAYOUT EXPERIMENTS (A, B, C)
+     ========================================================================== */
+
+  /* --- Option A: Modern Editorial Print Style --- */
+  .style-a-post h3 {
+    @apply font-serif text-[26px] font-bold text-ink border-b-[3px] border-sand pb-2 mt-12 mb-6;
+  }
+  .style-a-post .spot-section {
+    @apply mb-10 pb-8 border-b border-sand/20 last:border-b-0;
+  }
+  .style-a-post .spot-title {
+    @apply font-serif text-[22px] font-bold text-primary mt-4 mb-2 flex items-center gap-2;
+  }
+  .style-a-post .spot-title::before {
+    content: '◇';
+    @apply text-primary font-normal text-lg;
+  }
+  .style-a-post .spot-desc {
+    @apply text-[16px] text-ink leading-relaxed mb-4 pl-6;
+  }
+  .style-a-post .sub-option-list {
+    @apply space-y-3 pl-6 mb-6;
+  }
+  .style-a-post .sub-option-item {
+    @apply text-[15px] text-muted-text leading-relaxed border-l border-sand/40 pl-3;
+  }
+  .style-a-post .sub-option-item strong {
+    @apply text-ink font-semibold block mb-1;
+  }
+  .style-a-post .food-list-title {
+    @apply font-serif text-[20px] font-bold text-ink border-b-2 border-sand/60 pb-1.5 mt-12 mb-6 pl-0;
+  }
+  .style-a-post .food-item {
+    @apply pl-6 mb-6 border-b border-sand/10 pb-6 last:border-b-0 last:pb-0;
+  }
+  .style-a-post .food-header {
+    @apply flex flex-wrap items-center justify-between gap-2 mb-2;
+  }
+  .style-a-post .food-name {
+    @apply font-serif text-[18px] font-bold text-ink;
+  }
+  .style-a-post .food-meta {
+    @apply flex flex-wrap items-center gap-1.5;
+  }
+  .style-a-post .food-tag {
+    @apply inline-flex items-center rounded bg-sand/10 text-primary-dark px-1.5 py-0.5 text-[11px] font-semibold;
+  }
+  .style-a-post .food-tag.diet {
+    @apply bg-paper border border-sand/40 text-muted-text;
+  }
+  .style-a-post .food-price {
+    @apply text-xs text-muted-text font-semibold ml-2;
+  }
+  .style-a-post .food-body {
+    @apply text-[14.5px] leading-relaxed text-ink mt-2;
+  }
+  .style-a-post .food-why {
+    @apply text-muted-text italic mt-2 pl-3 border-l border-sand/30;
+  }
+  .style-a-post .food-actions {
+    @apply flex flex-wrap gap-3 mt-3;
+  }
+  .style-a-post .food-action-link {
+    @apply text-xs text-primary font-bold hover:underline;
+  }
+
+  /* --- Option B: Bauhaus Minimalist Axis Style --- */
+  .style-b-post h3 {
+    @apply font-sans text-[22px] font-bold text-ink uppercase tracking-wide border-b-2 border-ink pb-1 mt-10 mb-6;
+  }
+  .style-b-post .axis-timeline {
+    @apply relative border-l border-sand/60 pl-6 ml-3 space-y-8 my-6;
+  }
+  .style-b-post .axis-spot {
+    @apply relative;
+  }
+  .style-b-post .axis-node {
+    @apply absolute -left-[31px] top-[6px] h-2.5 w-2.5 border border-primary bg-paper rotate-45;
+  }
+  .style-b-post .axis-spot:hover .axis-node {
+    @apply bg-primary scale-110 transition-transform duration-150;
+  }
+  .style-b-post .axis-title {
+    @apply font-sans text-[18px] font-extrabold text-ink mb-2;
+  }
+  .style-b-post .axis-badge {
+    @apply inline-block border border-primary text-primary text-[10px] font-bold tracking-widest px-2 py-0.5 mb-3;
+  }
+  .style-b-post .axis-desc {
+    @apply text-[15px] leading-relaxed text-muted-text mb-4;
+  }
+  .style-b-post .axis-sub-list {
+    @apply space-y-3 my-3;
+  }
+  .style-b-post .axis-sub-item {
+    @apply text-[14px] text-ink leading-relaxed border-l-2 border-sand/40 pl-3;
+  }
+  .style-b-post .axis-sub-item strong {
+    @apply text-primary-dark;
+  }
+  .style-b-post .axis-food-header {
+    @apply font-sans text-[13px] uppercase tracking-wider text-muted-text font-bold mt-8 mb-4 border-b border-sand/20 pb-1;
+  }
+  .style-b-post .axis-food-item {
+    @apply mb-4 pb-4 border-b border-dashed border-sand/20 last:border-b-0;
+  }
+  .style-b-post .axis-food-name-row {
+    @apply flex items-center gap-2 mb-2;
+  }
+  .style-b-post .axis-food-name {
+    @apply font-sans text-[16px] font-bold text-ink;
+  }
+  .style-b-post .axis-food-tag {
+    @apply border border-sand/40 text-muted-text text-[10px] px-1.5 py-0.5;
+  }
+  .style-b-post .axis-food-tag.diet {
+    @apply border-primary/40 text-primary;
+  }
+  .style-b-post .axis-food-row {
+    @apply text-[14px] leading-relaxed text-ink mt-1;
+  }
+  .style-b-post .axis-food-row strong {
+    @apply text-primary;
+  }
+  .style-b-post .axis-food-actions {
+    @apply flex gap-4 mt-2 text-[12px] text-muted-text;
+  }
+  .style-b-post .axis-food-action-link {
+    @apply text-primary hover:underline;
+  }
+
+  /* --- Option C: Warm Paper Folio Style --- */
+  .style-c-post h3 {
+    @apply font-serif text-[24px] font-bold text-ink mt-10 mb-6 flex items-center gap-2;
+  }
+  .style-c-post h3::after {
+    content: '';
+    @apply flex-grow h-[1px] border-t border-dashed border-sand/60 ml-3;
+  }
+  .style-c-post .folio-ticket {
+    @apply my-6 rounded border border-dashed border-sand bg-sand/5 p-5;
+  }
+  .style-c-post .folio-ticket-header {
+    @apply flex flex-wrap items-center justify-between gap-2 border-b border-dashed border-sand/50 pb-2 mb-3;
+  }
+  .style-c-post .folio-ticket-day {
+    @apply font-serif text-xs font-bold tracking-widest text-primary uppercase;
+  }
+  .style-c-post .folio-ticket-title {
+    @apply font-serif text-[18px] font-bold text-ink;
+  }
+  .style-c-post .folio-ticket-badge {
+    @apply border border-dashed border-primary/60 text-primary text-[11px] px-2 py-0.5;
+  }
+  .style-c-post .folio-ticket-desc {
+    @apply text-[15px] leading-relaxed text-ink mb-4;
+  }
+  .style-c-post .folio-sub-list {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4 mt-4;
+  }
+  .style-c-post .folio-sub-card {
+    @apply bg-paper border border-sand/40 p-3 rounded-sm shadow-sm;
+  }
+  .style-c-post .folio-sub-card-title {
+    @apply font-serif text-[13px] font-bold text-primary border-b border-sand/20 pb-1 mb-1.5;
+  }
+  .style-c-post .folio-sub-card-text {
+    @apply text-[13.5px] leading-relaxed text-muted-text;
+  }
+  .style-c-post .folio-food-section {
+    @apply mt-6 border border-sand/40 p-4 bg-paper rounded-sm;
+  }
+  .style-c-post .folio-food-section-title {
+    @apply text-xs uppercase tracking-wider text-primary font-bold border-b border-sand/30 pb-1 mb-3;
+  }
+  .style-c-post .folio-food-item {
+    @apply mb-4 pb-4 border-b border-dashed border-sand/30 last:border-b-0 last:pb-0 last:mb-0;
+  }
+  .style-c-post .folio-food-header {
+    @apply flex flex-wrap items-center gap-2 mb-1.5;
+  }
+  .style-c-post .folio-food-star {
+    @apply text-primary text-xs;
+  }
+  .style-c-post .folio-food-name {
+    @apply font-serif text-[16px] font-bold text-ink;
+  }
+  .style-c-post .folio-food-tag {
+    @apply text-[11px] font-semibold text-muted-text bg-sand/10 px-2 py-0.5 rounded-full;
+  }
+  .style-c-post .folio-food-tag.diet {
+    @apply bg-paper border border-sand/50;
+  }
+  .style-c-post .folio-food-detail {
+    @apply pl-4 text-[14px] leading-relaxed text-ink space-y-1;
+  }
+  .style-c-post .folio-food-detail strong {
+    @apply text-primary-dark;
+  }
+  .style-c-post .folio-food-links {
+    @apply pl-4 flex gap-4 mt-2 text-[12.5px];
+  }
+  .style-c-post .folio-food-link {
+    @apply text-primary hover:underline font-medium;
+  }
 }
