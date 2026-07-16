@@ -113,8 +113,14 @@ function renderSpot(body) {
     }
   }
 
-  const [level, badgeRest] = splitFirst(f.badge, FIELD_SEP);
-  const [stars, text] = splitFirst(badgeRest, FIELD_SEP);
+  const dayHtml = f.day ? `<span class="day-label">${f.day}</span>\n  ` : '';
+
+  let badgeHtml = '';
+  if (f.badge) {
+    const [level, badgeRest] = splitFirst(f.badge, FIELD_SEP);
+    const [stars, text] = splitFirst(badgeRest, FIELD_SEP);
+    badgeHtml = `<div class="friendly-badge ${level}"><span class="stars">${stars}</span>&nbsp;${text}</div>\n  `;
+  }
 
   const subsHtml = f.subs
     .map(
@@ -133,10 +139,8 @@ function renderSpot(body) {
   }
 
   return `<div class="spot-card">
-  <span class="day-label">${f.day}</span>
-  <h4 id="${f.id}" class="spot-title">${f.title}</h4>
-  <div class="friendly-badge ${level}"><span class="stars">${stars}</span>&nbsp;${text}</div>
-  <p class="area-desc">${f.desc}</p>${subsHtml}${walkHtml}
+  ${dayHtml}<h4 id="${f.id}" class="spot-title">${f.title}</h4>
+  ${badgeHtml}<p class="area-desc">${f.desc}</p>${subsHtml}${walkHtml}
 </div>`;
 }
 
@@ -218,10 +222,10 @@ function renderGallery(body) {
     
     // Extract Spot number from href (e.g., "#spot-1" -> "Spot 1")
     const spotNumMatch = href.match(/spot-(\d+)/i);
-    const spotNum = spotNumMatch ? `Spot ${spotNumMatch[1]}` : '';
+    const spotNum = spotNumMatch ? `${spotNumMatch[1]}` : '';
     
-    // Clean up theme (remove the Day part)
-    const cleanTheme = theme.replace(/\s*\(Day\s*\d+・?/i, '(').replace(/\(\s*・/g, '(');
+    // Clean up theme (remove the Day part entirely)
+    const cleanTheme = theme.replace(/\s*\(Day\s*\d+[^)]*\)/i, '').trim();
     
     return { href, name, theme: cleanTheme, dayStr, spotNum };
   });
@@ -250,7 +254,6 @@ function renderGallery(body) {
         <div class="gallery-timeline-node"></div>
         <a class="gallery-timeline-content" href="${item.href}">
           <div class="gallery-spot-header">
-            <span class="gallery-spot-num">${item.spotNum}</span>
             <span class="gallery-spot-name">${item.name}</span>
           </div>
           <div class="gallery-spot-desc">${item.theme}</div>
