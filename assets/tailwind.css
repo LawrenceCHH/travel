@@ -557,13 +557,13 @@
   .triage-body { @apply text-[13.5px] leading-snug text-muted-text; }
   .triage-body strong { @apply mb-0.5 block text-[15px] font-bold text-ink; }
 
-  /* 聯絡資訊卡（承接情境速查的色碼，左色條由 .cat-* 覆寫預設暖褐） */
+  /* 聯絡資訊扁平條列版（承接情境速查的色碼，左色條由 .cat-* 覆寫預設暖褐；移除卡片外框與背景，呈現類似 app-card 簡約流線排版） */
   .emergency-card {
-    @apply my-4 rounded-lg border border-sand/60 border-l-4 bg-surface p-5;
+    @apply my-3.5 border-l-4 pl-4 py-3;
     border-left-color: #b56a43;
   }
-  .emergency-card h3 { @apply mb-2.5 flex flex-wrap items-center gap-2 text-[17px] font-extrabold text-ink; }
-  .emergency-card p { @apply mb-3 text-[15px]; }
+  .emergency-card h3 { @apply mb-1.5 flex flex-wrap items-center gap-2 text-[16.5px] font-extrabold text-ink; }
+  .emergency-card p { @apply mb-2 text-[14.5px] leading-normal text-muted-text; }
   .emergency-card p:last-child { @apply mb-0; }
   .em-tag {
     @apply inline-flex flex-none items-center rounded-full px-2 py-0.5 text-[11px] font-bold;
@@ -611,11 +611,16 @@
   /* --- 摺疊細節（保險條款／違禁品清單） --- */
   .fold { @apply my-6 rounded-md border border-sand/60 bg-surface px-4; }
   .fold > summary {
-    @apply cursor-pointer list-none py-3 font-serif text-[15px] font-bold text-ink;
+    @apply cursor-pointer list-none py-3 pr-8 font-serif text-[15px] font-bold text-ink relative outline-none select-none;
   }
   .fold > summary::-webkit-details-marker { display: none; }
-  .fold > summary::before { content: '▸ '; color: var(--color-primary); }
-  .fold[open] > summary::before { content: '▾ '; }
+  .fold > summary::after {
+    content: '+';
+    @apply absolute right-0 top-1/2 -translate-y-1/2 text-[18px] font-light text-primary transition-transform duration-150;
+  }
+  .fold[open] > summary::after {
+    content: '−';
+  }
   .fold > *:not(summary) { @apply text-[14.5px] leading-relaxed; }
   .fold > *:last-child { @apply mb-4; }
 }

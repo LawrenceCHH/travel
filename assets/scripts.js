@@ -990,4 +990,34 @@ document.addEventListener("DOMContentLoaded", function() {
       });
     }
   }
+
+  // 4. 自動展開被點擊錨點的 <details> 區塊，並支援直接連結跳轉
+  document.addEventListener('click', function(e) {
+    const a = e.target.closest('a');
+    if (a && a.getAttribute('href')?.startsWith('#')) {
+      const id = a.getAttribute('href').slice(1);
+      const target = document.getElementById(id);
+      if (target) {
+        const details = target.tagName === 'DETAILS' ? target : target.closest('details');
+        if (details) {
+          details.open = true;
+        }
+      }
+    }
+  });
+
+  const initialHash = window.location.hash;
+  if (initialHash) {
+    const targetId = initialHash.slice(1);
+    const targetEl = document.getElementById(targetId);
+    if (targetEl) {
+      const details = targetEl.tagName === 'DETAILS' ? targetEl : targetEl.closest('details');
+      if (details) {
+        details.open = true;
+        setTimeout(() => {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+      }
+    }
+  }
 });

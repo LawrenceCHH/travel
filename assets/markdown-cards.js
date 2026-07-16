@@ -11,7 +11,7 @@
  *   registerCardExtensions(marked); // marked 可以是全域單例，也可以是 new Marked() 實例
  */
 
-const CARD_LANGS = 'food|spot|compare|gallery|prep|apps|triage|emergency|info|stepper';
+const CARD_LANGS = 'food|spot|compare|gallery|prep|apps|triage|emergency|info|stepper|accordion';
 const CARD_BLOCK_RE = new RegExp(
   `^ {0,3}\`\`\`(${CARD_LANGS})[ \\t]*\\n([\\s\\S]*?)\\n {0,3}\`\`\`[ \\t]*(?:\\n|$)`
 );
@@ -269,8 +269,9 @@ function renderEmergency(body) {
   }
 
   const psHtml = f.ps.map((p) => `\n  <p>${p}</p>`).join('');
+  const idAttr = f.id ? ` id="${f.id}"` : '';
 
-  return `<div class="emergency-card cat-${f.cat}">
+  return `<div class="emergency-card cat-${f.cat}"${idAttr}>
   <h3><span class="em-tag badge-${f.cat}">${f.tag}</span>${f.title}</h3>${psHtml}
 </div>`;
 }
@@ -317,6 +318,41 @@ ${items}
 </div>`;
 }
 
+/**
+ * 手風琴摺疊區塊擴充。
+ * 格式：
+ * id: em-119
+ * cat: medical
+ * tag: 醫療・消防
+ * summary: 119 救護車/消防車 — 有人受傷、生病送醫、火災
+ * 
+ * * 內容（Markdown 格式）
+ */
+function renderAccordion(body, marked) {
+  const idx = body.indexOf('\n\n');
+  let metaPart = '';
+  let bodyPart = '';
+  if (idx === -1) {
+    metaPart = body;
+  } else {
+    metaPart = body.slice(0, idx);
+    bodyPart = body.slice(idx + 2);
+  }
+
+  const f = {};
+  for (const line of metaPart.split('\n').map(l => l.trim()).filter(Boolean)) {
+    const [key, val] = kv(line);
+    f[key] = val;
+  }
+
+  const contentHtml = bodyPart ? marked.parse(bodyPart.trim()) : '';
+
+  return `<details class="fold border-l-4 cat-${f.cat}" id="${f.id}">
+<summary><span class="em-tag badge-${f.cat}">${f.tag}</span> ${f.summary}</summary>
+${contentHtml}
+</details>`;
+}
+
 const RENDERERS = {
   food: renderFood,
   spot: renderSpot,
@@ -352,8 +388,9 @@ export function registerCardExtensions(marked) {
           };
         },
         renderer(token) {
-          // stepper 需要 marked 實例遞迴解析步驟 body，故特判、不走 RENDERERS 單參數路徑。
+          // stepper 與 accordion 需要 marked 實例遞迴解析 body，故特判、不走 RENDERERS 單參數路徑。
           if (token.lang === 'stepper') return renderStepper(token.body, marked);
+          if (token.lang === 'accordion') return renderAccordion(token.body, marked);
           const render = RENDERERS[token.lang];
           return render ? render(token.body) : '';
         },
