@@ -2,7 +2,7 @@
 
 此專案已於 2026-07-11 從 Jekyll 遷移至基於 **Vite** 與 **Tailwind CSS v4** 的純前端 MPA（多頁面應用）靜態架構。所有頁面的共用 Layout 載入、文章目錄搜尋與篩選、以及 Markdown 文章解析渲染，皆直接於瀏覽器端完成，徹底擺脫了對 Ruby、Jekyll 與 Gem 的依賴。
 
-本檔案分兩部分：**第一部分**是給 Agent／開發者的架構與參考資訊（技術棧、指令、目錄結構、功能對應程式碼、關鍵設計決策），**第二部分**是更新歷史與待辦事項。安裝/建置/部署指令另見 [`../README.md`](../README.md)；全站視覺與互動風格的系統化分析（抽象設計準則＋具體元件規格）見 [`./style.md`](./style.md)。
+本檔案分兩部分：**第一部分**是給 Agent／開發者的架構與參考資訊（技術棧、指令、目錄結構、功能對應程式碼、關鍵設計決策），**第二部分**是更新歷史與待辦事項。安裝/建置/部署指令另見 [`../README.md`](../README.md)；全站視覺與互動風格的系統化分析（抽象設計準則＋具體元件規格）見 [`./style.md`](./style.md)；Markdown 裝飾元件的語意化命名與重複使用指引見 [`./markdown_decorations_design.md`](./markdown_decorations_design.md)。
 
 ---
 
@@ -235,6 +235,8 @@ posts/
     *   **DSL 語法**：每個步驟以 `@ 標題` 行起始，之後到下一個 `@ `（或區塊結尾）之間所有行為該步驟 body（保留空行與縮排）。標題**不含**「Step N:」——編號由 `renderStepper` 自動補上，統一輸出全形冒號「`Step ${n}：${title}`」（冒號後不加空白）。
     *   **body 兩種處理（確保逐字 0-diff）**：`renderStepper` 刻意**不用** `bodyLines()`（會濾空行、破壞清單）；自行按 `@ ` 切分並保留原始空行。令 `b = stepBody.trim()`：`b` 不含換行（單行步驟）→ 原樣 inline 輸出（不跑 marked、不包 `<p>`，逐字保留 `<strong>`/`&le;` 等）；`b` 含換行（多行清單步驟）→ `marked.parse(b)` 遞迴解析成 `<ol>`/`<ul>`。
     *   **re-entrancy**：`renderStepper` 收 renderer 閉包裡的 `marked` 實例，在渲染整份文件的過程中再呼叫 `marked.parse(b)`。因 step body 不含任何卡片 fence（`cardBlock` tokenizer 的 `start` 找不到 ```' 直接回傳 undefined），不會遞迴進 `cardBlock`，故不會無限遞迴；marked 的 lex/parse 使用區域實例、無 Marked 級可變狀態被覆寫，實測 re-entrant 呼叫安全、輸出正確。
+16. **Markdown 裝飾元件（Decorations）語意命名與重複使用指引**：
+    本專案的 Markdown 裝飾元件（如 `prep`、`stepper`、`compare`、`info`、`apps`、`accordion` 等）已進行 UI/UX 元件化分析，並重新命名為更易於重複使用、語意清晰且對 Agent 友善的名稱（如 `quick-summary`、`milestone-stepper`、`feature-comparison-card`、`metadata-info-card`、`recommended-apps-list`、`interactive-faq-accordion`）。後續不論是新增文章、修改 UI，或是 AI Agent 自動寫文，皆應遵循此命名規範與設計定位。詳細分析與規範文件見 [`./markdown_decorations_design.md`](./markdown_decorations_design.md)。
 
 ## GitHub Pages 部署設定指引
 
@@ -272,16 +274,17 @@ posts/
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-16 — 新增 Markdown 裝飾元件設計分析與語意命名指引
+
+為了讓專案後續設計與寫文能維持一致的 UI/UX 風格，並讓 Agent 能夠基於明確的語意重複使用這些排版元件，在 `doc/` 底下新增了 [`markdown_decorations_design.md`](./markdown_decorations_design.md) 文件，針對專案中既有的 custom code blocks (如 `prep`、`stepper`、`compare`、`info`、`apps`、`accordion` 等) 進行詳細分析與重命名定義（如 `quick-summary`、`milestone-stepper` 等），並更新 `doc/project.md` 將其正式納入開發參考。
+
 ### 2026-07-16 — 修正 `.app-card` 尾端多餘分隔線（bug fix）
 
 `assets/tailwind.css` 原本用 `.app-card:last-of-type { border-b-0 }` 想去掉最後一張 App 卡下方的分隔線，但 `renderApps`（`assets/markdown-cards.js`）直接輸出 5 個相鄰 `<div class="app-card">`、無共用 wrapper，其「同層兄弟」其實是整篇文章 flow 裡的所有 `<div>`（含後面章節的 `.info-card`／`.alert-box`／`.emergency-card` 等）；CSS `:last-of-type` 只比對「標籤名」不比對 class，故永遠選不中真正最後一張 app-card，分隔線一直都在。改用相鄰選擇器 `.app-card + .app-card { border-t }` 只在 app-card 之間畫線，天然不受文件其餘 div 影響，也不再需要 last-of-type 特例。`public/sw.js` 的 `CACHE_NAME` 隨 CSS 變動升至 `v34`。
 
-### 2026-07-16 — `stepper` 納入卡片 DSL（視覺重整第 5 輪，`assets/markdown-cards.js`）
-
-文章 2 個手寫 `<div class="stepper">…</div>`（機場通關 5 步、WOWPASS 4 步，約 77 行鷹架）改用 ```stepper fence，.md 由 426 行降至 366 行。新增 `renderStepper(body, marked)`：以 `@ 標題` 行切分步驟、自動編號（全形冒號「Step N：」）；單行步驟原樣 inline（逐字保留 `<strong>`/`&le;`），多行清單步驟遞迴 `marked.parse` 成 `<ol>`/`<ul>`。renderer 分派時特判 stepper 以取得 marked 閉包實例；step body 不含卡片 fence 故 re-entrant 安全、無無限遞迴。前後正規化比對確認唯一差異為機場 Step 2–5 標題冒號由半形統一為全形（自動編號格式），步驟內文全 0-diff。`CARD_LANGS` 現含 stepper；`public/sw.js` 的 `CACHE_NAME` 升至 `v33`。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-16：stepper 納入卡片 DSL，以 ```stepper fence 取代手寫 HTML 鷹架，並實作 re-entrant 安全遞迴解析 (v33)
 - 2026-07-15：WOWPASS 升級為獨立 `### WOWPASS 開卡與儲值` 小節，內容結構對齊機場通關步驟規格（v32）
 - 2026-07-15：提示框收斂為 warning/note 兩級，移除語意模糊的 `.alert-important`（v31）
 - 2026-07-15：統一「依序流程」皆用 `.stepper` 呈現，WOWPASS 步驟由巢狀清單改為時間軸（v30）
