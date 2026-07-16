@@ -420,16 +420,56 @@
     @apply border-sand/70 bg-paper text-muted-text;
   }
 
-  /* --- 總覽：主題景點導覽卡片 (2 欄格狀) --- */
-  .gallery-grid {
-    @apply my-6 grid grid-cols-1 gap-3 sm:grid-cols-2;
+  /* --- 總覽：主題景點快速跳轉流線時間軸面板 --- */
+  .gallery-timeline {
+    @apply my-8 flex flex-col gap-6 relative;
   }
-  .gallery-card {
-    @apply flex flex-col gap-1.5 rounded-md border border-sand/60 border-t-4 border-t-primary bg-surface p-4 no-underline transition-colors;
+  .gallery-day-group {
+    @apply flex flex-col md:flex-row md:gap-8 items-start;
   }
-  .gallery-card:hover { @apply border-t-primary-dark; }
-  .gallery-card-name { @apply text-[15px] font-bold text-ink; }
-  .gallery-card-theme { @apply text-[13px] leading-normal text-muted-text; }
+  .gallery-day-header {
+    @apply w-full md:w-32 shrink-0 flex flex-row md:flex-col gap-2 md:gap-0.5 pb-2 md:pb-0 border-b border-sand/20 md:border-b-0 select-none;
+  }
+  .gallery-day-label {
+    @apply text-xs font-black tracking-widest text-primary font-sans;
+  }
+  .gallery-day-date {
+    @apply text-xs font-bold text-muted-text font-sans;
+  }
+  .gallery-day-items {
+    @apply flex-1 w-full pl-2 md:pl-0 mt-3 md:mt-0 relative;
+  }
+  .gallery-day-items::before {
+    content: '';
+    @apply absolute left-[7px] top-2 bottom-2 w-[1px] bg-sand/35;
+  }
+  .gallery-timeline-item {
+    @apply pl-6 pb-5 relative flex items-start last:pb-2;
+  }
+  .gallery-timeline-node {
+    @apply absolute left-[4px] top-[7.5px] w-[7px] h-[7px] rounded-full border border-sand bg-paper transition-all duration-150;
+  }
+  .gallery-timeline-item:hover .gallery-timeline-node {
+    @apply bg-primary border-primary scale-110;
+  }
+  .gallery-timeline-content {
+    @apply flex-1 block no-underline text-ink hover:text-primary transition-colors duration-150;
+  }
+  .gallery-spot-header {
+    @apply flex items-baseline gap-2 mb-1;
+  }
+  .gallery-spot-num {
+    @apply text-[10px] font-extrabold tracking-wider text-primary uppercase font-sans;
+  }
+  .gallery-spot-name {
+    @apply text-[15px] font-bold text-ink transition-colors duration-150;
+  }
+  .gallery-timeline-item:hover .gallery-spot-name {
+    @apply text-primary;
+  }
+  .gallery-spot-desc {
+    @apply text-[13px] leading-relaxed text-muted-text block;
+  }
 
   /* --- 行前提醒膠囊 + 一鍵緊急 CTA --- */
   .prep-pill-row { @apply my-6 flex flex-col gap-2.5; }

@@ -419,6 +419,37 @@ function initPagination({ containerId, paginationId, tagContainerId, searchConta
 }
 window.initPagination = initPagination;
 
+/**
+ * 將每個 Day 的 H3 章節標題及該天底下的所有景點區塊（.spot-card）
+ * 動態打包進一個統一的 .day-section 圓角大卡片容器中，以提升區塊分隔感。
+ */
+function groupDaySections(container) {
+  const children = Array.from(container.children);
+  let currentGroup = null;
+
+  for (const child of children) {
+    // 檢查是否為 H3 且文字為 Day 開頭，如 "Day 1"
+    if (child.tagName === 'H3' && /^Day\s*/i.test(child.textContent.trim())) {
+      currentGroup = document.createElement('div');
+      currentGroup.className = 'day-section';
+      container.insertBefore(currentGroup, child);
+      currentGroup.appendChild(child);
+    } else if (currentGroup) {
+      if (child.tagName === 'HR') {
+        // 移除 Day 與 Day 之間的 <hr> 分割線，改用大卡片邊界作為分割
+        child.remove();
+        currentGroup = null;
+      } else if (child.tagName === 'H2') {
+        // 遇上主標題 H2（如 美食推薦）時中止群組
+        currentGroup = null;
+      } else {
+        // 將其他景點等內容塞進目前天數的大卡片中
+        currentGroup.appendChild(child);
+      }
+    }
+  }
+}
+
 // 文章大綱 (TOC)：桌機固定側欄 + Scroll Spy／手機頂部速覽 + 浮動按鈕 + 底部抽屜
 function initTOC(contentContainer) {
   // 需與 CSS 裡 heading 的 scroll-margin-top 一致，用來扣除 sticky navbar 高度
@@ -911,6 +942,9 @@ function initTOC(contentContainer) {
 
     return bar;
   }
+
+  // 3. 動態群組天數與景點為日式大卡片區塊
+  groupDaySections(contentContainer);
 }
 window.initTOC = initTOC;
 

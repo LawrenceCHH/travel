@@ -199,18 +199,81 @@ function renderInfo(body) {
 }
 
 function renderGallery(body) {
-  const cards = bodyLines(body)
-    .map((line) => {
-      const parts = line.split(FIELD_SEP);
-      const href = (parts[0] || '').trim();
-      const name = (parts[1] || '').trim();
-      const theme = parts.slice(2).join(FIELD_SEP).trim();
-      return `<a class="gallery-card" href="${href}"><span class="gallery-card-name">${name}</span><span class="gallery-card-theme">${theme}</span></a>`;
-    })
-    .join('\n  ');
+  const DAY_DATES = {
+    'Day 1': '10/15 (四)',
+    'Day 2': '10/16 (五)',
+    'Day 3': '10/17 (六)',
+    'Day 4': '10/18 (日)',
+  };
 
-  return `<div class="gallery-grid not-prose">
-  ${cards}
+  const items = bodyLines(body).map((line) => {
+    const parts = line.split(FIELD_SEP);
+    const href = (parts[0] || '').trim();
+    const name = (parts[1] || '').trim();
+    const theme = parts.slice(2).join(FIELD_SEP).trim();
+    
+    // Extract Day number (e.g., "Day 1")
+    const dayMatch = theme.match(/\((Day\s*\d+)/i);
+    const dayStr = dayMatch ? dayMatch[1] : '';
+    
+    // Extract Spot number from href (e.g., "#spot-1" -> "Spot 1")
+    const spotNumMatch = href.match(/spot-(\d+)/i);
+    const spotNum = spotNumMatch ? `Spot ${spotNumMatch[1]}` : '';
+    
+    // Clean up theme (remove the Day part)
+    const cleanTheme = theme.replace(/\s*\(Day\s*\d+・?/i, '(').replace(/\(\s*・/g, '(');
+    
+    return { href, name, theme: cleanTheme, dayStr, spotNum };
+  });
+
+  // Group items by Day
+  const groups = [];
+  let currentGroup = null;
+  
+  for (const item of items) {
+    const dStr = item.dayStr || 'Other';
+    if (!currentGroup || currentGroup.dayStr !== dStr) {
+      currentGroup = {
+        dayStr: dStr,
+        dateStr: DAY_DATES[dStr] || '',
+        items: []
+      };
+      groups.push(currentGroup);
+    }
+    currentGroup.items.push(item);
+  }
+
+  const groupsHtml = groups.map((g) => {
+    const itemsHtml = g.items.map((item) => {
+      return `
+      <div class="gallery-timeline-item">
+        <div class="gallery-timeline-node"></div>
+        <a class="gallery-timeline-content" href="${item.href}">
+          <div class="gallery-spot-header">
+            <span class="gallery-spot-num">${item.spotNum}</span>
+            <span class="gallery-spot-name">${item.name}</span>
+          </div>
+          <div class="gallery-spot-desc">${item.theme}</div>
+        </a>
+      </div>`;
+    }).join('');
+
+    const dateHeader = g.dateStr ? `<span class="gallery-day-date">${g.dateStr}</span>` : '';
+
+    return `
+    <div class="gallery-day-group">
+      <div class="gallery-day-header">
+        <span class="gallery-day-label">${g.dayStr.toUpperCase()}</span>
+        ${dateHeader}
+      </div>
+      <div class="gallery-day-items">
+        ${itemsHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="gallery-timeline not-prose">
+  ${groupsHtml}
 </div>`;
 }
 

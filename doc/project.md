@@ -274,15 +274,19 @@ posts/
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-16 — 重構景點快速跳轉為極簡行事曆流線時間軸面板 (方案一)
+
+為了提供更直覺、具備時間軸指示的景點快速跳轉，將原本 2 欄的快速跳轉卡片（Gallery）重構為極簡行事曆流線時間軸：
+* **按天動態分組**：在 JS 端解析景點括號內的 `(Day N)` 標記，自動將景點按天分組（如 DAY 1、DAY 2），並動態映射具體日期（如 10/15 (四)）。
+* **極簡流線時間軸**：Day 標題置於左側（桌機端）或上方（行動端），右側景點列表旁繪製一條細沙色的垂直貫穿時間軸線，搭配精緻的空心圓點（Node）。滑鼠懸停（hover）時圓點縮放並轉為實心 primary 色，文字標題隨之高亮，提供流暢優雅的視覺回饋。`public/sw.js` 的 `CACHE_NAME` 隨之升至 `v46`。
+
 ### 2026-07-16 — 新增 Markdown 裝飾元件設計分析與語意命名指引
 
-為了讓專案後續設計與寫文能維持一致的 UI/UX 風格，並讓 Agent 能夠基於明確的語意重複使用這些排版元件，在 `doc/` 底下新增了 [`markdown_decorations_design.md`](./markdown_decorations_design.md) 文件，針對專案中既有的 custom code blocks (如 `prep`、`stepper`、`compare`、`info`、`apps`、`accordion` 等) 進行詳細分析與重命名定義（如 `quick-summary`、`milestone-stepper` 等），並更新 `doc/project.md` 將其正式納入開發參考。
-
-### 2026-07-16 — 修正 `.app-card` 尾端多餘分隔線（bug fix）
-
-`assets/tailwind.css` 原本用 `.app-card:last-of-type { border-b-0 }` 想去掉最後一張 App 卡下方的分隔線，但 `renderApps`（`assets/markdown-cards.js`）直接輸出 5 個相鄰 `<div class="app-card">`、無共用 wrapper，其「同層兄弟」其實是整篇文章 flow 裡的所有 `<div>`（含後面章節的 `.info-card`／`.alert-box`／`.emergency-card` 等）；CSS `:last-of-type` 只比對「標籤名」不比對 class，故永遠選不中真正最後一張 app-card，分隔線一直都在。改用相鄰選擇器 `.app-card + .app-card { border-t }` 只在 app-card 之間畫線，天然不受文件其餘 div 影響，也不再需要 last-of-type 特例。`public/sw.js` 的 `CACHE_NAME` 隨 CSS 變動升至 `v34`。
+為了讓專案後續設計與寫文能維持一致的 UI/UX 風格，並讓 Agent 能夠基於明確的語意重複使用這些排版元件，在 `doc/` 底下新增了 [`markdown_decorations_design.md`](./markdown_decorations_design.md) 文件，針對專案中既有的 custom code blocks (如 `prep`、`stepper`、`compare`、`info` , `apps`、`accordion` 等) 進行詳細分析與重命名定義（如 `quick-summary`、`milestone-stepper` 等），並更新 `doc/project.md` 將其正式納入開發參考。
 
 ### 更早的更新（壓縮摘要，新到舊）
+
+- 2026-07-16：修正 .app-card 尾端多餘分隔線，改用相鄰選擇器 (CACHE_NAME 升至 v34)
 
 - 2026-07-16：stepper 納入卡片 DSL，以 ```stepper fence 取代手寫 HTML 鷹架，並實作 re-entrant 安全遞迴解析 (v33)
 - 2026-07-15：WOWPASS 升級為獨立 `### WOWPASS 開卡與儲值` 小節，內容結構對齊機場通關步驟規格（v32）
