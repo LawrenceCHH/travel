@@ -186,6 +186,7 @@ posts/
     *   **`not-prose` 使用限制**：這是 Typography 外掛提供的選擇器類（`.prose :where(...):not(:where([class~="not-prose"] *))`），只能直接寫在 HTML 的 class 屬性上，不能透過 `@apply not-prose` 在自訂 CSS 類別內使用。
     *   **flex 容器須避免「行內元素＋純文字節點」混排**：flex 容器的每個直接子節點（包含匿名文字節點）都會被視為獨立 flex item 橫向排列；若某類別內容是「`<strong>` 加後續純文字」這種預期同段落換行的內容，該容器不可設為 `display: flex`（例如 `.prep-pill` 因此改回區塊排版）。
     *   **`**粗體**` 語法陷阱**：marked/CommonMark 的定界符規則會拒絕在「結尾為標點符號且緊接非空白字元」的情況下收尾（如 `**嚴禁託運！**必須`），導致literal `**` 殘留不轉換；這類情況一律改用 `<strong>` 原生標籤，不依賴 `**` 語法。
+    *   **`:last-of-type` 對「無共用 wrapper 的相鄰卡片」失效（bug，2026-07-16 修正）**：`apps` 家族的 `.app-card` 由 `renderApps` 直接輸出多個相鄰 `<div>`、無外層 wrapper（見下方第 12 點「兩個資料層級」），故其實際同層兄弟是整篇文章 flow 裡**所有**卡片家族的 `<div>`，而 CSS `:last-of-type` 只比對標籤名、不比對 class，永遠選不中真正最後一張 `.app-card`。凡是「多個實例相鄰輸出、無共用 wrapper」的卡片家族，去尾/去頭樣式一律改用相鄰選擇器（如 `.app-card + .app-card { border-top }`），不要用 `:first-of-type`/`:last-of-type`。
 10. **文章內文組件系統擴充（手機閱讀體驗優化，`feature/travel-guide-style-match` 分支）**：
     在既有旅遊手帳卡片系統之上，為首爾文章新增 3 組手機優先的組件類別（同樣沿用既有色彩 Token，未引入新色票）：
     *   `.compare-card`/`.compare-card-head`/`.compare-card-name`/`.compare-tagline`/`.compare-row`：垂直堆疊比較卡，取代原本手機必然橫向捲動的多欄 Markdown 表格（機場接駁比較即為此用法：Klook 商務車／機場巴士 6701／AREX／現場計程車 4 張卡取代 5 欄表格）。

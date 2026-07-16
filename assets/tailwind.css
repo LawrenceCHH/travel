@@ -518,9 +518,13 @@
   .step-title { @apply mb-2 text-[17px] font-bold text-ink; }
   .step-content { @apply text-[15px] text-ink; }
 
-  /* --- 實用資訊：推薦 App 條列 --- */
-  .app-card { @apply flex gap-3.5 border-b border-sand/40 py-4; }
-  .app-card:last-of-type { @apply border-b-0; }
+  /* --- 實用資訊：推薦 App 條列 ---
+     .app-card 彼此相鄰、無共用 wrapper（renderApps 直接輸出多個相鄰 div），
+     故不能用 :last-of-type 去尾：它以「標籤名」比對同層所有 div（含文件中其他
+     卡片家族的 div），永遠選不中真正最後一張 app-card。改用相鄰選擇器只在
+     app-card 之間畫分隔線，天然不會出現在第一張之上或最後一張之下。 */
+  .app-card { @apply flex gap-3.5 py-4; }
+  .app-card + .app-card { @apply border-t border-sand/40; }
   .app-icon-wrapper {
     @apply flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md bg-sand/20 text-lg font-bold text-primary-dark;
   }
