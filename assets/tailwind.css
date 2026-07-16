@@ -698,7 +698,10 @@
     @apply font-serif text-[20px] font-bold text-ink border-b-2 border-sand/60 pb-1.5 mt-12 mb-6 pl-0;
   }
   .style-a-post .food-item {
-    @apply pl-6 mb-6 border-b border-sand/10 pb-6 last:border-b-0 last:pb-0;
+    @apply pl-0 mb-8 border-0 border-b-2 border-sand/30 pb-8 bg-transparent rounded-none shadow-none last:border-b-0 last:pb-0 last:mb-0 transition-colors duration-150;
+  }
+  .style-a-post .food-item:hover {
+    @apply border-b-2 border-sand/60;
   }
   .style-a-post .food-header {
     @apply flex flex-wrap items-center justify-between gap-2 mb-2;
