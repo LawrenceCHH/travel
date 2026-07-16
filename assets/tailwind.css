@@ -402,7 +402,7 @@
      （不移植原檔案的分頁 JS 與底部快捷列，因本站已有 Navbar／TOC 側欄）。
      =================================================================== */
 
-  /* --- 提示框（取代純文字 blockquote 版的 [!NOTE]/[!WARNING]/[!IMPORTANT]） --- */
+  /* --- 提示框（取代純文字 blockquote 版的 [!NOTE]/[!WARNING]）：warning / note 兩級 --- */
   .alert-box {
     @apply my-6 rounded-md border p-4 text-[15px] leading-relaxed;
   }
@@ -415,9 +415,7 @@
   .alert-warning {
     @apply border-[#d4a373] bg-[#fdfae6] text-[#8c5e3c];
   }
-  .alert-important {
-    @apply border-sand bg-sand/15 text-ink;
-  }
+  /* 中間層 .alert-important 已於 2026-07-15 收斂移除，提示框僅留「warning / note」兩級 */
   .alert-note {
     @apply border-sand/70 bg-paper text-muted-text;
   }
@@ -590,6 +588,14 @@
   .compare-tagline { @apply mb-3 text-[14px] leading-relaxed text-muted-text; }
   .compare-row { @apply mt-1.5 text-[14.5px] leading-relaxed text-ink; }
   .compare-row strong { @apply text-primary-dark; }
+
+  /* --- 資訊面板（純參考資訊，與「擇一比較」的 compare-card 明確區隔：無左主色條） --- */
+  .info-card { @apply my-4 rounded-md border border-sand/60 bg-surface p-4; }
+  .info-card-head { @apply mb-2 border-b border-sand/40 pb-1.5; }
+  .info-card-name { @apply text-[15px] font-bold text-ink; }
+  .info-tagline { @apply mb-3 text-[14px] leading-relaxed text-muted-text; }
+  .info-row { @apply mt-1.5 text-[14.5px] leading-relaxed text-ink; }
+  .info-row strong { @apply text-primary-dark; }
 
   /* --- 美食：長輩友善屬性晶片（比餐別晶片更輕，讀者一眼可篩選） --- */
   .food-diet-row { @apply mb-2.5 flex flex-wrap gap-1.5; }

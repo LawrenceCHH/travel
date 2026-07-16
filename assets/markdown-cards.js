@@ -1,7 +1,7 @@
 /**
  * Card DSL 擴充：把文章 markdown 裡精簡的 ```food / ```spot / ```compare / ```gallery /
- * ```prep / ```apps / ```triage / ```emergency 資料區塊，在 marked 渲染時逐字還原成
- * 與手寫版本相同的卡片 HTML。
+ * ```prep / ```apps / ```triage / ```emergency / ```info / ```stepper 資料區塊，在 marked
+ * 渲染時逐字還原成與手寫版本相同的卡片 HTML。
  *
  * 純字串邏輯，不引用 document / window 等瀏覽器專有物件，可在 Node 環境（驗證腳本、
  * 未來若要在建置時預渲染）與瀏覽器（scripts.js 於 window.marked 上註冊）共用。
@@ -11,7 +11,7 @@
  *   registerCardExtensions(marked); // marked 可以是全域單例，也可以是 new Marked() 實例
  */
 
-const CARD_LANGS = 'food|spot|compare|gallery|prep|apps|triage|emergency';
+const CARD_LANGS = 'food|spot|compare|gallery|prep|apps|triage|emergency|info|stepper';
 const CARD_BLOCK_RE = new RegExp(
   `^ {0,3}\`\`\`(${CARD_LANGS})[ \\t]*\\n([\\s\\S]*?)\\n {0,3}\`\`\`[ \\t]*(?:\\n|$)`
 );
@@ -171,6 +171,33 @@ function renderCompare(body) {
 </div>`;
 }
 
+function renderInfo(body) {
+  let name = '';
+  let tagline = '';
+  const rows = [];
+
+  for (const line of bodyLines(body)) {
+    const [key, val] = kv(line);
+    if (key === 'name') {
+      name = val;
+    } else if (key === 'tagline') {
+      tagline = val;
+    } else if (key === 'row') {
+      const [label, value] = splitFirst(val, FIELD_SEP);
+      rows.push(`<div class="info-row"><strong>${label}：</strong>${value}</div>`);
+    } else if (key === 'text') {
+      rows.push(`<div class="info-row">${val}</div>`);
+    }
+  }
+
+  const taglineHtml = tagline ? `\n  <p class="info-tagline">${tagline}</p>` : '';
+
+  return `<div class="info-card">
+  <div class="info-card-head"><span class="info-card-name">${name}</span></div>${taglineHtml}
+  ${rows.join('\n  ')}
+</div>`;
+}
+
 function renderGallery(body) {
   const cards = bodyLines(body)
     .map((line) => {
@@ -248,6 +275,48 @@ function renderEmergency(body) {
 </div>`;
 }
 
+/**
+ * 時間軸步驟卡。與其他家族不同，需要外部傳入的 marked 實例來把「多行清單型」步驟
+ * body 遞迴解析成 <ol>/<ul>（單行步驟則原樣 inline，逐字保留 <strong>/&le; 等）。
+ *
+ * DSL 語法：每個步驟以 `@ 標題` 行起始，之後到下一個 `@ `（或區塊結尾）之間的所有行
+ * 都是該步驟 body（保留空行與縮排）。標題不含「Step N:」——編號由本函式自動補上，
+ * 統一輸出全形冒號「Step ${n}：${title}」（冒號後不加空白），比照原手寫版寫法。
+ */
+function renderStepper(body, marked) {
+  // 刻意不用 bodyLines()：它會濾掉空行，會破壞多行步驟裡「清單前後需空行」的結構。
+  const steps = [];
+  let current = null;
+  for (const line of body.split('\n')) {
+    const m = /^@ (.*)$/.exec(line);
+    if (m) {
+      current = { title: m[1].trim(), lines: [] };
+      steps.push(current);
+    } else if (current) {
+      current.lines.push(line);
+    }
+    // 第一個 `@ ` 之前的行（正常情況不存在）忽略
+  }
+
+  const items = steps
+    .map((step, i) => {
+      const n = i + 1;
+      const b = step.lines.join('\n').trim();
+      // 多行 → 遞迴 marked（清單）；單行 → 原樣 inline（不包 <p>，逐字保留 HTML 實體/標籤）。
+      const content = b.includes('\n') ? marked.parse(b) : b;
+      return `  <div class="step-item">
+    <div class="step-node"></div>
+    <div class="step-title">Step ${n}：${step.title}</div>
+    <div class="step-content">${content}</div>
+  </div>`;
+    })
+    .join('\n');
+
+  return `<div class="stepper">
+${items}
+</div>`;
+}
+
 const RENDERERS = {
   food: renderFood,
   spot: renderSpot,
@@ -257,6 +326,7 @@ const RENDERERS = {
   apps: renderApps,
   triage: renderTriage,
   emergency: renderEmergency,
+  info: renderInfo,
 };
 
 // ---- marked 擴充註冊 ----------------------------------------------------
@@ -282,6 +352,8 @@ export function registerCardExtensions(marked) {
           };
         },
         renderer(token) {
+          // stepper 需要 marked 實例遞迴解析步驟 body，故特判、不走 RENDERERS 單參數路徑。
+          if (token.lang === 'stepper') return renderStepper(token.body, marked);
           const render = RENDERERS[token.lang];
           return render ? render(token.body) : '';
         },
