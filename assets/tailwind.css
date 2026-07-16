@@ -703,6 +703,9 @@
   .style-a-post .food-item:hover {
     @apply border-b-2 border-sand/60;
   }
+  .style-a-post .food-item:has(+ .food-list-title) {
+    @apply border-b-0 pb-0 mb-0;
+  }
   .style-a-post .food-header {
     @apply flex flex-wrap items-center justify-between gap-2 mb-2;
   }
