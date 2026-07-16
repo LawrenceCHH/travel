@@ -269,23 +269,34 @@ posts/
 - [ ] **中文襯線字體跨裝置一致性**：目前中文標題襯線僅在有系統內建中文襯線字型（macOS Songti、Windows 新細明體）的裝置上生效，多數 Android 裝置無內建中文襯線會退回無襯線字體。若未來要追求完全一致的跨裝置「編輯雜誌感」，需自行 subset 打包 Noto Serif TC 字型檔（僅收錄實際會用到的標題字元），並更新 `sw.js` 的 precache 清單
 - [ ] **「關於」頁面目前沒有任何入口**：`about.html` 存在且已套用新樣式，但 Navbar 與 Footer 都沒有連結指向它。若要恢復這個入口，建議與「Navbar 手機版漢堡選單」一併評估
 - [ ] **Navbar 手機版漢堡選單死程式碼**：`assets/scripts.js` 裡仍保留舊 Jekyll 主題遺留的 `toggleNav()` 漢堡選單邏輯（對應 `#navbarResponsive` 元素），但目前 `navbar.html` 只有 2 個導覽項目、單排橫向排列在小螢幕也不會擠壓，因此沒有實際啟用。若未來導覽項目增加需重新評估是否啟用，或直接移除死程式碼
+- [ ] **style-a 版型行動版開頭出現兩個重複的摘要／導覽區塊**：修正 `initTOC()` 抓不到 style-a/b/c 版型標題的 bug 後（見更新歷史），`buildMobileOutlineAndSheet()` 產生的自動大綱框「本文章節」（列出 總覽／景點漫遊／美食推薦）現在會插在 `#post-content` 最前面，緊接著又是 `.style-a-post` 內「總覽」小節裡手寫的「7 大主題景點快速導覽」格狀清單——兩者功能高度重疊，行動版一開頭連續出現兩個摘要區塊。需要決定去重方式：例如拿掉手寫的 quick-jump 區塊、或讓自動大綱偵測到頁面已有等價的手寫導覽時跳過渲染，或乾脆把兩者合併成一個元件。style-b／style-c 版型是否有同樣狀況也要一併確認。
 
 ## 更新歷史
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
-### 2026-07-16 — 重構景點快速跳轉為極簡行事曆流線時間軸面板 (方案一)
+### 2026-07-17 — 修正兩個既有 bug：style-a/b/c 版型 TOC 圓球消失、含空格網址撐破手機版面
 
-為了提供更直覺、具備時間軸指示的景點快速跳轉，將原本 2 欄的快速跳轉卡片（Gallery）重構為極簡行事曆流線時間軸：
-* **按天動態分組**：在 JS 端解析景點括號內的 `(Day N)` 標記，自動將景點按天分組（如 DAY 1、DAY 2），並動態映射具體日期（如 10/15 (四)）。
-* **極簡流線時間軸**：Day 標題置於左側（桌機端）或上方（行動端），右側景點列表旁繪製一條細沙色的垂直貫穿時間軸線，搭配精緻的空心圓點（Node）。滑鼠懸停（hover）時圓點縮放並轉為實心 primary 色，文字標題隨之高亮，提供流暢優雅的視覺回饋。`public/sw.js` 的 `CACHE_NAME` 隨之升至 `v46`。
+使用者調整完美食分隔線後，回報「右下角章節目錄圓球（`.toc-fab`）不見了」。追查發現是兩個彼此獨立、與分隔線改動無關的既有 bug：
+* **Bug A：style-a/b/c 版型的 `.toc-fab` 從未渲染過**。`assets/scripts.js` 的 `initTOC()` 用 `:scope > h2, :scope > h3` 只抓 `#post-content` 的直接子節點標題，刻意排除卡片元件（`.emergency-card` 等）內部巢狀標題以免 TOC 被灌爆。但 style-a/b/c 版型把整篇內容包在 `<div class="style-x-post">` 裡，所有 `h2`/`h3`因此變成孫節點，選擇器抓到 0 個標題，`if (headings.length < 2) return;` 直接讓整組 TOC／大綱／浮動按鈕都不渲染。修正為 `contentContainer.querySelectorAll('h2, h3')` 後以 `parent === contentContainer || parent.parentElement === contentContainer` 過濾，同時放行「直接子節點」與「版型外包 div 下的孫節點」兩種深度，卡片元件內部巢狀更深的標題仍會被排除。
+* **Bug B：`_txt` 與《首爾行前準備與安全應變手冊》兩篇文章的 Naver/Kakao 連結網址含未編碼空格**（如 `.../search/만족오향족발 시청점)`），不符合 Markdown 連結語法，導致 `marked.js` 解析失敗、退化成把「到空格為止的網址」當純文字塞進頁面，形成一長串無法換行的字串，在手機寬度下把整頁橫向撐寬（實測撐寬 ~27px），連帶把 `position: fixed; right` 定位的 `.toc-fab` 推到視覺可視範圍之外——這才是使用者截圖看到「圓球跑到螢幕外」的直接原因。修正方式：以正規表示式將兩篇文章共 231 處 Markdown 連結目的地（`(https://...)`）裡的空格取代為 `%20`。已重新 `grep` 全部 `src/posts/*.md` 確認無殘留。
+* 已用 Playwright（`playwright-core`，`NODE_PATH` 指向專案 `node_modules`）在 390×844 手機視窗對 `posts/detail.html?id=2026-07-16-韓國首爾旅行_style_a` 與 `?id=2026-07-16-韓國首爾旅行_txt` 分別驗證：`document.documentElement.scrollWidth` 與 `clientWidth` 相等（無橫向溢出）、`.toc-fab` 存在且座標落在視窗內。`public/sw.js` 的 `CACHE_NAME` 隨之升至 `v48`（`scripts.js` 內容變動）。
 
-### 2026-07-16 — 新增 Markdown 裝飾元件設計分析與語意命名指引
+### 2026-07-17 — style-a 美食項目分隔線改為置中「點線點」裝飾符
 
-為了讓專案後續設計與寫文能維持一致的 UI/UX 風格，並讓 Agent 能夠基於明確的語意重複使用這些排版元件，在 `doc/` 底下新增了 [`markdown_decorations_design.md`](./markdown_decorations_design.md) 文件，針對專案中既有的 custom code blocks (如 `prep`、`stepper`、`compare`、`info` , `apps`、`accordion` 等) 進行詳細分析與重命名定義（如 `quick-summary`、`milestone-stepper` 等），並更新 `doc/project.md` 將其正式納入開發參考。
+`.style-a-post .food-item` 原本用滿版 `border-b-2 border-sand/30` 當店家之間的分隔線，視覺上跟區塊標題 `.food-list-title` 的滿版底線太像、容易混淆層級。改為 `::before`（左右各一小段漸層細線）＋ `::after`（置中 6px 實心圓點，hover 轉 `primary-dark`）的置中裝飾符：
+* 選擇器沿用既有的 `:not(:last-child)` / `:has(+ .food-list-title)` 判斷式，確保清單最後一項、以及每個分區最後一項（緊接下一個 `.food-list-title`）都不顯示分隔符。
+* 事前用 Artifact 產出粗短線／點線點／雙細線三個方案（套用真實店家資料比較），使用者選定「點線點」後才落地實作。
+* **修正殘留卡片框**：`.style-a-post .food-item` 一開始只覆寫了 `bg-transparent`／`rounded-none`／`shadow-none`，沒有覆寫 `border`，導致通用版型 `.food-item`（`assets/tailwind.css` L514，`border border-sand/50` 卡片樣式）的邊框透過較低優先權的規則繼續生效，店家四周仍殘留一圈方框。改為 `p-0 border-0` 並新增 `.style-a-post .food-item:hover { border-0 }`，明確清空通用規則留下的邊框與 padding。
+* **修正分隔符偏向上方店家**：一開始用 `pb-8`（店內間距）+`mb-8`（店外間距）兩段式留白，裝飾符 `bottom` 只在 `pb-8` 範圍內定位，導致視覺上緊貼在上方店家下緣，離下方店家還有一大段空白。改為單一 `mb-16`（64px）留白，裝飾符用負值 `bottom: -32px` / `-bottom-8` 直接定位在該留白正中央，使分隔符落在兩間店的正中間。
+* **錐形漸層線 → 純色細線**：先改為單一置中拉長的錐形漸層線（拿掉圓點），使用者後續又要求拿掉漸層，改為由左至右延伸、寬度 70%、高度 1px 的純色細線（`rgb(148 137 121 / .55)`，即 sand，hover 加深至 `.85`），不置中、不做透明度漸層，`::after` 圓點與所有漸層規則全數移除。
+* **最終定案（資深 UI/UX 設計評審）**：使用者對「靠左 70%」的效果沒把握，請一位 opus 資深 UI/UX 設計師 subagent 讀完 `.spot-section` / `.food-list-title` 既有分隔線語彙與本輪疊代歷史後給評審意見。結論：靠左 70% 缺乏視覺支點、容易被誤讀為未渲染完的邊框，且與同頁滿版分隔線語彙（`food-list-title` 的 `border-b-2 sand/60`、`spot-section` 的 `border-b sand/20`）不一致。改回**滿版、極輕髮絲線**並拿掉 hover：`width: 100%`／`height: 1px`／`background: rgb(148 137 121 / 0.25)`（sand，介於 60% 與 20% 之間，明確落在「最輕」一階），留白從 `mb-16` 收到 `mb-12`（分隔符仍用負值 `bottom: -24px` 置中）。設計原則：**分隔線視覺重量應與被分隔內容的「親密度」成反比**——同小節姊妹店家親密度高，用最低限度訊號即可，越是章節級斷裂才越能加重。
+* 已用 Playwright 對本機 dev server 的 `posts/detail.html?id=2026-07-16-韓國首爾旅行_style_a` 六次截圖驗證每一次疊代（分隔符樣式、邊框修正、置中修正、圓點→錐形線、錐形線→純色細線、最終滿版髮絲線）。`public/sw.js` 的 `CACHE_NAME` 隨之升至 `v47`。
 
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-16：重構景點快速跳轉為極簡行事曆流線時間軸面板，按 `(Day N)` 動態分組 (CACHE_NAME 升至 v46)
+- 2026-07-16：新增 Markdown 裝飾元件設計分析與語意命名指引（`doc/markdown_decorations_design.md`）
 - 2026-07-16：修正 .app-card 尾端多餘分隔線，改用相鄰選擇器 (CACHE_NAME 升至 v34)
 
 - 2026-07-16：stepper 納入卡片 DSL，以 ```stepper fence 取代手寫 HTML 鷹架，並實作 re-entrant 安全遞迴解析 (v33)
