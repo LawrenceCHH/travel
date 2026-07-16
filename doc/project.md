@@ -2,7 +2,11 @@
 
 此專案已於 2026-07-11 從 Jekyll 遷移至基於 **Vite** 與 **Tailwind CSS v4** 的純前端 MPA（多頁面應用）靜態架構。所有頁面的共用 Layout 載入、文章目錄搜尋與篩選、以及 Markdown 文章解析渲染，皆直接於瀏覽器端完成，徹底擺脫了對 Ruby、Jekyll 與 Gem 的依賴。
 
-安裝/建置/部署指令 → [`../README.md`](../README.md)。未完成任務、變更日誌、驗證指令 → [`./update.md`](./update.md)。全站視覺與互動風格的系統化分析（抽象設計準則＋具體元件規格）→ [`./style.md`](./style.md)。
+本檔案分兩部分：**第一部分**是給 Agent／開發者的架構與參考資訊（技術棧、指令、目錄結構、功能對應程式碼、關鍵設計決策），**第二部分**是更新歷史與待辦事項。安裝/建置/部署指令另見 [`../README.md`](../README.md)；全站視覺與互動風格的系統化分析（抽象設計準則＋具體元件規格）見 [`./style.md`](./style.md)。
+
+---
+
+# 第一部分：架構與開發參考
 
 ## 技術棧
 
@@ -11,8 +15,6 @@
 *   **Markdown 解析**：用戶端使用 `marked.js` CDN 解譯，後端 (Node) 建置時計算字數與閱讀時間
 *   **PWA 支援**：`public/manifest.json` 與 `public/sw.js`，包含打包時自動更新雜湊資源快取的機制
 *   **部署**：GitHub Actions → GitHub Pages (發布 `dist/` 目錄，監聽 `main` 分支)
-
----
 
 ## 如何在本地開發與建置
 
@@ -26,7 +28,6 @@
 > *   **測試 PWA 離線功能**：執行 `npm run preview` 可以預覽打包後的網站，並測試 Service Worker 快取。
 
 ### 1. 安裝依賴項目
-在專案根目錄下執行：
 ```bash
 npm install
 ```
@@ -47,16 +48,19 @@ npm run build:metadata
 *(註：執行 `npm run build` 與 `npm run dev` 時會自動先執行此步驟。)*
 
 ### 4. 生產環境打包與預覽
-打包編譯網站：
 ```bash
 npm run build
 ```
-打包後的靜態檔案將會輸出至 **`dist/`** 目列。打包完畢後可進行預覽（用以測試 PWA 與 Service Worker 快取）：
+打包後的靜態檔案將會輸出至 **`dist/`** 目錄。打包完畢後可進行預覽（用以測試 PWA 與 Service Worker 快取）：
 ```bash
 npm run preview
 ```
 
----
+> [!NOTE]
+> **樣式沒有獨立的 `build:css` 指令**：`assets/tailwind.css` 由 `@tailwindcss/vite` 外掛在
+> `npm run dev`／`npm run build` 時即時編譯，沒有 `npm run build:css` 這個 script（`package.json`
+> 僅有 `dev`/`build:metadata`/`build`/`preview`）。`assets/main.css` 是未被引用、已 gitignore
+> 的舊檔案，不應編輯。驗證樣式變更請直接跑 `npm run build`。
 
 ## 如何新增與編輯內容
 
@@ -101,7 +105,23 @@ npm run preview
    <div id="footer-placeholder"></div>
    ```
 
----
+## 功能 → 程式碼速查
+
+給 Agent 快速定位「要改這個功能該碰哪個檔案」：
+
+| 功能 | 主要檔案 / 進入點 |
+| --- | --- |
+| 首頁／目錄頁前端分頁與標籤篩選、搜尋 | `assets/scripts.js` → `initPagination()`；資料來源 `public/data/posts.json` |
+| 文章 metadata 產生（字數／閱讀時間） | `scripts/generate-posts-metadata.js` → 產出 `public/data/posts.json` |
+| 文章內頁渲染（Markdown/HTML 解析、上一篇/下一篇導航） | `posts/detail.html` + `assets/scripts.js` |
+| 文章大綱 TOC（桌機側欄／手機 Bottom Sheet／已停用的行動版章節分頁列） | `assets/scripts.js` → `initTOC()`；`ENABLE_CHAPTER_BAR` 旗標控制分頁列是否顯示 |
+| 卡片 DSL（```food/spot/compare/info/gallery/prep/apps/triage/emergency/stepper 資料區塊） | `assets/markdown-cards.js`（渲染邏輯）／`assets/scripts.js` 檔頭（`registerCardExtensions` 接線）／`scripts/verify-card-dsl.mjs`（Node 端 0-diff 驗證腳本） |
+| 卡片視覺樣式（`.food-item`／`.spot-card`／`.compare-card`／`.info-card`／`.stepper`／`.app-card`／`.emergency-card`／`.alert-box` 等） | `assets/tailwind.css` 的 `@layer components` |
+| 色彩／字型設計 Token | `assets/tailwind.css` 的 `@theme` |
+| 導覽列／頁尾動態載入 | `assets/scripts.js` 尾端 fetch 邏輯 + `public/components/navbar.html`／`footer.html` |
+| PWA 快取與雜湊防刷 | `public/sw.js`（`CACHE_NAME`，每次改動快取資產需 +1）＋ `vite.config.js` 的 `swPrecachePlugin` |
+| 開發模式文章監聽熱重載 | `vite.config.js` 的 `watchPostsMetadataPlugin` |
+| 建置/部署 CI | `.github/workflows/pages.yml` |
 
 ## 專案目錄結構對照表
 
@@ -111,8 +131,8 @@ assets/
   tailwind.css                 Tailwind v4 CSS 原始碼（定義主題 Tokens 與自訂組件）
   scripts.js                   通用 JS，含雙頁面分頁 (initPagination)、文章大綱 (initTOC)、元件動態載入與 PWA 註冊
   markdown-cards.js            Card DSL：marked block 擴充 registerCardExtensions()，把 ```food/spot/compare/
-                                gallery/prep/apps/triage/emergency 資料區塊逐字還原成卡片 HTML（純字串邏輯，可在
-                                Node 與瀏覽器共用），由 scripts.js 最上方在 window.marked 上註冊
+                                info/gallery/prep/apps/triage/emergency/stepper 資料區塊逐字還原成卡片 HTML
+                                （純字串邏輯，可在 Node 與瀏覽器共用），由 scripts.js 最上方在 window.marked 上註冊
   fonts/                       自我託管的 Lora + Open Sans 字型 (woff2)
 public/
   components/                  共用佈局元件
@@ -139,8 +159,6 @@ posts/
                                 過濾為 0 筆時顯示空狀態提示列）
   detail.html                  通用文章內頁（動態 Fetch 文章、剔除 Front matter、利用 marked 渲染、桌機/手機文章大綱 TOC）
 ```
-
----
 
 ## 關鍵架構與設計決策
 
@@ -211,18 +229,12 @@ posts/
     `.compare-card` 原本身兼兩種語意——「幾個選項擇一比較」（如機場接駁 4 選項、網路漫遊 4 方案）與「單純結構化參考資訊」（如退稅方式、換匯重點）共用同一組視覺（左 `border-l-4 border-l-primary` 主色條），破壞了「有色條＝可選項」的視覺文法。拆分做法：
     *   **CSS**（`assets/tailwind.css`，緊接 `.compare-card` 區塊之後）：新增 `.info-card`/`.info-card-head`/`.info-card-name`/`.info-tagline`/`.info-row`，結構與 `.compare-card` 平行但**無左主色條**，改用完整 `border border-sand/60` 平框＋卡名下 `border-b border-sand/40` hairline 分隔，一眼與「可選項」的 compare-card 區隔。
     *   **DSL**（`assets/markdown-cards.js`）：`CARD_LANGS` 新增 `info`；`renderInfo(body)` 結構比照 `renderCompare`，支援 `name`/`tagline`/`row`（`label | value`）/`text` 四鍵，但**不支援 `stars`**（因為沒有「幾星」這種評比語意）、不輸出色條 class，並註冊進 `RENDERERS`。
-    *   **語意分工定案**：`compare` = 「這是幾個選項裡的一個，你要擇一」（保留主色條）；`info` = 「這是要讀的參考資訊，不是選項」（無色條、平框＋分隔線）。首爾行前準備文章中「退稅方式」「換匯與支付重點」「氣候同行卡」「交通禮儀」「秋季穿搭」「無障礙避雷」共 6 個區塊原本誤用 `compare`，圍籬語言改為 `info`（欄位內容逐字不變）；機場接駁 4 選項與網路漫遊 4 方案共 8 個真正的「擇一比較」維持 `compare`。`public/sw.js` 的 `CACHE_NAME` 隨 CSS/JS 內容變動升至 `v29`。
-14. **提示框收斂為兩級（視覺重整第 3 輪，2026-07-15）**：`.alert-box` 原有 3 種 variant——`.alert-warning`（琥珀，禁止/限制/政策異動）、`.alert-important`（sand 中間層，語意最模糊、與一般卡幾乎無區別）、`.alert-note`（muted，補充說明）。中間層 `.alert-important` 語意含糊，故移除，收斂成「**warning（警告）/ note（補充）**」兩級。
-    *   **CSS**（`assets/tailwind.css`）：刪除 `.alert-important { … }` 規則，並更新該區塊註解為兩級。
-    *   **內容**：`2026-07-13-韓國首爾旅行準備.md` 是全 repo 唯一實際套用 `.alert-important` class 的檔案（僅剩機場通關步驟開頭「入境與出境系統區分說明」1 處），改為 `.alert-note`（說明性內容歸補充級恰當），文字與 `<h3 class="alert-box-title">` 不變。其他文章的 `> [!IMPORTANT]` 是 GitHub 式 blockquote 純文字語法、無任何轉換掛勾對應到 `.alert-important` CSS class，故不受影響、本輪未動。
-    *   `public/sw.js` 的 `CACHE_NAME` 隨 CSS 變動升至 `v31`。三輪 P0 視覺重整（info 卡拆分／stepper 統一／alert 收斂）至此完成。
+    *   **語意分工定案**：`compare` = 「這是幾個選項裡的一個，你要擇一」（保留主色條）；`info` = 「這是要讀的參考資訊，不是選項」（無色條、平框＋分隔線）。
+14. **提示框收斂為兩級（視覺重整第 3 輪，2026-07-15）**：`.alert-box` 原有 3 種 variant——`.alert-warning`（琥珀，禁止/限制/政策異動）、`.alert-important`（sand 中間層，語意最模糊、與一般卡幾乎無區別）、`.alert-note`（muted，補充說明）。中間層 `.alert-important` 語意含糊，故移除，收斂成「**warning（警告）/ note（補充）**」兩級。全 repo 確認 `.alert-important` CSS class 移除後無他處使用（其他文章的 `> [!IMPORTANT]` 為 GitHub blockquote 純文字語法、無轉換對應到該 class，不受影響）。
 15. **`stepper` 納入卡片 DSL（`assets/markdown-cards.js`，2026-07-16）**：文章 2 個手寫 `<div class="stepper">…</div>`（機場通關 5 步、WOWPASS 4 步，共約 77 行鷹架）改用 ```stepper fence。
     *   **DSL 語法**：每個步驟以 `@ 標題` 行起始，之後到下一個 `@ `（或區塊結尾）之間所有行為該步驟 body（保留空行與縮排）。標題**不含**「Step N:」——編號由 `renderStepper` 自動補上，統一輸出全形冒號「`Step ${n}：${title}`」（冒號後不加空白）。
     *   **body 兩種處理（確保逐字 0-diff）**：`renderStepper` 刻意**不用** `bodyLines()`（會濾空行、破壞清單）；自行按 `@ ` 切分並保留原始空行。令 `b = stepBody.trim()`：`b` 不含換行（單行步驟）→ 原樣 inline 輸出（不跑 marked、不包 `<p>`，逐字保留 `<strong>`/`&le;` 等）；`b` 含換行（多行清單步驟）→ `marked.parse(b)` 遞迴解析成 `<ol>`/`<ul>`。
     *   **re-entrancy**：`renderStepper` 收 renderer 閉包裡的 `marked` 實例，在渲染整份文件的過程中再呼叫 `marked.parse(b)`。因 step body 不含任何卡片 fence（`cardBlock` tokenizer 的 `start` 找不到 ```' 直接回傳 undefined），不會遞迴進 `cardBlock`，故不會無限遞迴；marked 的 lex/parse 使用區域實例、無 Marked 級可變狀態被覆寫，實測 re-entrant 呼叫安全、輸出正確。
-    *   **等價驗證**：以「改動前工作區版本（含 R1–R4、stepper 仍為手寫 HTML）」為 baseline 用舊版 `registerCardExtensions` 渲染，與 R5 後版本比對；正規化空白後**唯一差異**為機場通關 Step 2–5 標題冒號由半形「`: `」變全形「：」（自動編號統一格式所致，屬預期），步驟內文（清單結構、連結、`<strong>`、`&le;`）全 0-diff，WOWPASS 四步與機場 Step 1 標題亦 0-diff。
-
----
 
 ## GitHub Pages 部署設定指引
 
@@ -240,3 +252,58 @@ posts/
 3. 找到 **Deployment branches and tags** 區塊：
    * **選項 A（推薦）**：變更限制為 **All branches**，允許任何分支運行工作流進行部署。
    * **選項 B**：維持 **Selected branches**，但點選 **Add deployment branch rule**，手動輸入並新增 **`main`** 分支以授權其部署。
+
+---
+
+# 第二部分：更新歷史與待辦事項
+
+> **維護規範**：每次修改程式碼後，在下方「更新歷史」新增一筆帶日期的記錄（維持「最新兩筆完整記錄，其餘壓縮成一行」的格式——寫入新記錄時，把原本排第二新的那筆壓縮進下方清單，同時保留新記錄的完整說明）。若變更影響檔案結構或設計決策，也一併更新上方「第一部分」對應段落。完整規範見根目錄 `CLAUDE.md`。
+
+## 待辦事項
+
+- [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
+- [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
+- [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
+- [ ] **中文襯線字體跨裝置一致性**：目前中文標題襯線僅在有系統內建中文襯線字型（macOS Songti、Windows 新細明體）的裝置上生效，多數 Android 裝置無內建中文襯線會退回無襯線字體。若未來要追求完全一致的跨裝置「編輯雜誌感」，需自行 subset 打包 Noto Serif TC 字型檔（僅收錄實際會用到的標題字元），並更新 `sw.js` 的 precache 清單
+- [ ] **「關於」頁面目前沒有任何入口**：`about.html` 存在且已套用新樣式，但 Navbar 與 Footer 都沒有連結指向它。若要恢復這個入口，建議與「Navbar 手機版漢堡選單」一併評估
+- [ ] **Navbar 手機版漢堡選單死程式碼**：`assets/scripts.js` 裡仍保留舊 Jekyll 主題遺留的 `toggleNav()` 漢堡選單邏輯（對應 `#navbarResponsive` 元素），但目前 `navbar.html` 只有 2 個導覽項目、單排橫向排列在小螢幕也不會擠壓，因此沒有實際啟用。若未來導覽項目增加需重新評估是否啟用，或直接移除死程式碼
+
+## 更新歷史
+
+最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
+
+### 2026-07-16 — 修正 `.app-card` 尾端多餘分隔線（bug fix）
+
+`assets/tailwind.css` 原本用 `.app-card:last-of-type { border-b-0 }` 想去掉最後一張 App 卡下方的分隔線，但 `renderApps`（`assets/markdown-cards.js`）直接輸出 5 個相鄰 `<div class="app-card">`、無共用 wrapper，其「同層兄弟」其實是整篇文章 flow 裡的所有 `<div>`（含後面章節的 `.info-card`／`.alert-box`／`.emergency-card` 等）；CSS `:last-of-type` 只比對「標籤名」不比對 class，故永遠選不中真正最後一張 app-card，分隔線一直都在。改用相鄰選擇器 `.app-card + .app-card { border-t }` 只在 app-card 之間畫線，天然不受文件其餘 div 影響，也不再需要 last-of-type 特例。`public/sw.js` 的 `CACHE_NAME` 隨 CSS 變動升至 `v34`。
+
+### 2026-07-16 — `stepper` 納入卡片 DSL（視覺重整第 5 輪，`assets/markdown-cards.js`）
+
+文章 2 個手寫 `<div class="stepper">…</div>`（機場通關 5 步、WOWPASS 4 步，約 77 行鷹架）改用 ```stepper fence，.md 由 426 行降至 366 行。新增 `renderStepper(body, marked)`：以 `@ 標題` 行切分步驟、自動編號（全形冒號「Step N：」）；單行步驟原樣 inline（逐字保留 `<strong>`/`&le;`），多行清單步驟遞迴 `marked.parse` 成 `<ol>`/`<ul>`。renderer 分派時特判 stepper 以取得 marked 閉包實例；step body 不含卡片 fence 故 re-entrant 安全、無無限遞迴。前後正規化比對確認唯一差異為機場 Step 2–5 標題冒號由半形統一為全形（自動編號格式），步驟內文全 0-diff。`CARD_LANGS` 現含 stepper；`public/sw.js` 的 `CACHE_NAME` 升至 `v33`。
+
+### 更早的更新（壓縮摘要，新到舊）
+
+- 2026-07-15：WOWPASS 升級為獨立 `### WOWPASS 開卡與儲值` 小節，內容結構對齊機場通關步驟規格（v32）
+- 2026-07-15：提示框收斂為 warning/note 兩級，移除語意模糊的 `.alert-important`（v31）
+- 2026-07-15：統一「依序流程」皆用 `.stepper` 呈現，WOWPASS 步驟由巢狀清單改為時間軸（v30）
+- 2026-07-15：新增 `.info-card`／`info` DSL 家族，與 `.compare-card` 語意分工（擇一比較 vs 純參考資訊）（v29）
+- 2026-07-15：全站停用行動版頂部常駐章節分頁列（`buildChapterBar`），改用 `ENABLE_CHAPTER_BAR` 旗標，程式碼保留可隨時恢復（v28）
+- 2026-07-15：首爾旅遊文章拆分為《首爾秋日漫遊手帳》與《首爾行前準備與安全應變手冊》兩篇，建立雙向引流連結
+- 2026-07-15：行動版分頁列新增 H2 > 6 字門檻、Bottom Sheet 開啟自動置中捲動（v27）
+- 2026-07-15：新增 `assets/markdown-cards.js` 卡片 DSL，8 家族約 81 個實例由手寫 HTML 改為 fenced block（v26，含 `scripts/verify-card-dsl.mjs` 0-diff 驗證）
+- 2026-07-15：首爾文章「簡潔高雅」視覺重整——美食/景點雜誌感卡片、出發前準備欄位化、緊急應變 5 色分類色碼
+- 2026-07-15：首爾文章「出發前準備」附錄重排，併入推薦 App／在地習俗與避雷小節
+- 2026-07-14：首爾文章重構為「行程優先」結構，景點漫遊上移、作業性內容降級為附錄
+- 2026-07-14：修正 TOC 誤收卡片內部標題（heading 選擇器改為 `:scope > h2, h3`）
+- 2026-07-14：緊急應變改為情境速查導向，TOC 子索引由約 11 條收斂為 0
+- 2026-07-14：新增行動版章節分頁列（chapter tab bar），並修正高亮半拍延遲（抽出共用 `stickyOffset()`）
+- 2026-07-14：修正桌機版 TOC 側欄自動滾動聚焦與頁尾防破版遮擋機制
+- 2026-07-14：首爾文章手機閱讀體驗優化（機場接駁卡片化、美食長輩友善晶片、`<details class="fold">` 摺疊、術語統一）
+- 2026-07-14：首爾文章改版，移植 `travel_guide/index.html` 卡片式排版體驗（`feature/travel-guide-style-match` 分支起點）
+- 2026-07-13：修正桌機版 TOC 側欄初始蓋住 Banner 的問題，並隱藏側欄捲軸
+- 2026-07-12：新增開發模式文章自動監聽更新插件（`watchPostsMetadataPlugin`）
+- 2026-07-12：視覺與字型排版演進——白底配色定案、升級 Inter 字型、優化中英文 Meta 排版
+- 2026-07-12：文章大綱 (TOC) 元件初版開發（桌機側欄＋手機 Bottom Sheet，Scroll Spy 高亮）
+- 2026-07-12：目錄頁視覺與 RWD 重構、下拉選單破版修復
+- 2026-07-11：遷移至 Vite + Tailwind CSS v4 純前端 MPA 架構（自 Jekyll，方案 A）
+- 2026-07-11：介面中文化、中文字型比例最佳化、導覽列簡化、雙頁面 JS 前端分頁實作
+- 2026-07-10：記錄 GitHub Pages 工作流，建置並推送重構版本 (e5be734)

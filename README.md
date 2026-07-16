@@ -99,6 +99,5 @@ posts/
 
 ## 開發文件說明
 
-*   [`doc/project.md`](doc/project.md) — 專案完整架構、多頁面 (MPA) 進入點與關鍵設計決策。
-*   [`doc/update.md`](doc/update.md) — 已完成的重構歷史、待辦目標與驗證測試方法。
+*   [`doc/project.md`](doc/project.md) — 專案完整架構、多頁面 (MPA) 進入點、關鍵設計決策，以及更新歷史與待辦目標。
 *   [`doc/jekyll_migration_design.md`](doc/jekyll_migration_design.md) — 從 Jekyll 遷移至 Vite + Tailwind CSS v4 的原始設計理念說明。
