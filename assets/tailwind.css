@@ -1,5 +1,40 @@
 @import "tailwindcss";
+@source "./**/*.js";
+@source "../**/*.js";
+@source "../**/*.html";
+@source "../**/*.md";
 @plugin "@tailwindcss/typography";
+
+/* Markdown 文章與內文 (prose) 條列項縮排與圓點樣式 - 避開 not-prose 元件 */
+.prose ul:not(:where([class~="not-prose"] *)) {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+.prose ol:not(:where([class~="not-prose"] *)) {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+.prose li:not(:where([class~="not-prose"] *)) {
+  margin-top: 0.375em;
+  margin-bottom: 0.375em;
+}
+.prose li:not(:where([class~="not-prose"] *))::marker {
+  color: var(--color-sand);
+}
+.prose ul.contains-task-list:not(:where([class~="not-prose"] *)),
+.prose li.task-list-item:not(:where([class~="not-prose"] *)) {
+  list-style-type: none;
+}
+.toc-outline ul, .toc-sheet-list, .toc-sheet-list li {
+  list-style-type: none !important;
+  list-style: none !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
 
 @font-face {
   font-family: "Lora";
@@ -81,19 +116,9 @@
     color: var(--color-paper);
     background: var(--color-primary);
   }
-
-  /* 深色主題下表單控制項需明確指定底色/文字色，否則會落回瀏覽器預設的白底黑字 */
-  input, textarea, select {
-    background-color: var(--color-surface);
-    color: var(--color-ink);
-  }
-  input::placeholder, textarea::placeholder {
-    color: var(--color-muted-text);
-  }
 }
 
-@layer components {
-  /* Buttons */
+/* UI Components (Unlayered to prevent purging of JS-injected classes in Tailwind v4) */
   .btn-primary {
     @apply inline-block rounded-none px-6 py-4 font-sans text-sm font-extrabold uppercase tracking-wider text-paper;
     background-color: var(--color-primary);
@@ -205,9 +230,42 @@
     --tw-prose-td-borders: var(--color-sand);
     font-family: var(--font-sans);
   }
-  .prose :where(h1, h2, h3, h4):not(:where([class~="not-prose"] *)) {
-    font-family: var(--font-serif);
-    font-weight: 700;
+  .prose ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
+  .prose ol {
+    list-style-type: decimal;
+    padding-left: 1.5rem;
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
+  .prose li {
+    margin-top: 0.375em;
+    margin-bottom: 0.375em;
+  }
+  .prose li::marker {
+    color: var(--color-sand);
+  }
+  .prose ul.contains-task-list, .prose li.task-list-item {
+    list-style-type: none;
+  }
+
+  /* 純 Markdown 文章若貼了未包裝的裸網址等無空格長字串，預設 overflow-wrap: normal
+     不會在字中間斷行，會撐寬 .prose 一路撐寬到 <article>，讓整頁出現橫向捲動，連帶把
+     position: fixed 的 .toc-fab 圓點推到手機可視範圍外。這裡補上防護網，讓內文段落／
+     清單／表格儲存格遇到過長字串時能換行，不依賴作者每次手動用 [文字](url) 包裝網址。
+     td/th 用較保守的 break-word（只在必要時斷行、不影響欄位最小寬度計算），避免匯率、
+     日期等數字欄位被 anywhere 強制斷成兩行、破壞對齊。 */
+  .prose p,
+  .prose li {
+    overflow-wrap: anywhere;
+  }
+  .prose td,
+  .prose th {
+    overflow-wrap: break-word;
   }
 
   /* 文章大綱 (TOC) —— 桌機側欄：預設隨頁面捲動貼在 Banner 下緣（避免文字蓋住 Banner），
@@ -885,4 +943,3 @@
   .style-c-post .folio-food-link {
     @apply text-primary hover:underline font-medium;
   }
-}

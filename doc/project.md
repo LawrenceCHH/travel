@@ -196,7 +196,7 @@ posts/
         *   `--color-hero-text`：`#F4ECDD`（Hero 區文字專用色，在深色遮罩下提供高對比）。
     *   **Hero 遮罩與文字對比**：`.masthead .overlay` 遮罩固定使用 `bg-ink`，不透明度設為 `0.78`，文字強制使用 `text-hero-text`（`#F4ECDD`）。此組合可確保不論背景圖明暗，標題與 Meta 文字皆能通過 WCAG AA 對比度規範。
     *   **字體分工**：展示型標題（Hero、文章標題、Nav wordmark）與 Hero 副標題使用 `Lora` 襯線字型，建立編輯雜誌感；UI 與內文字體升級為 `Inter` 無襯線變數字型以確保清晰。中文字型維持系統優選。元資料（Meta）完全去除 CJK 漢字之斜體，收細至 `text-sm` 以拉開視覺層次。
-    *   **文章內文排版**：安裝 `@tailwindcss/typography` 處理 Markdown 元素樣式。詳細頁在渲染完成後以 JS 為 `<table>` 動態包覆 `overflow-x-auto` 容器，以防表格橫向溢出。
+    *   **文章內文排版**：安裝 `@tailwindcss/typography` 處理 Markdown 元素樣式。詳細頁在渲染完成後以 JS 為 `<table>` 動態包覆 `overflow-x-auto` 容器，以防表格橫向溢出。**此外** `.prose p`/`.prose li` 設 `overflow-wrap: anywhere`、`.prose td`/`.prose th` 設較保守的 `overflow-wrap: break-word`（2026-07-21）：純 Markdown 文章若把裸網址等無空格長字串直接當可見文字（未用 `[文字](url)` 包裝），預設不斷行會撐寬 `.prose` 一路撐寬到 `<article>`，使整頁在手機出現橫向捲動，連帶把 `position: fixed` 的 `.toc-fab` 圓點推出可視範圍外；td/th 刻意不用 `anywhere` 是因為它會縮小儲存格 min-content 寬度，容易讓匯率、日期等數字欄位被不必要地強制斷成兩行、破壞對齊。
     *   **Navbar**：Logo 改為純文字 wordmark「旅遊指南」之極簡二項目架構，Navbar 具毛玻璃特效（`bg-surface/90 backdrop-blur-sm`）。
 6.  **目錄頁篩選/搜尋互動細節**：
     *   **標籤篩選下拉選單定位**：選單錨點採 `left-0`，搭配 `w-64 max-w-[calc(100vw-2.5rem)]` 與 `max-h-48`，確保窄螢幕下選單完整落在可視範圍內，並提供捲動提示。
@@ -288,18 +288,38 @@ posts/
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-21 — 修正純 Markdown 文章裸網址撐破手機版面、TOC 圓點跑出畫面外的問題
+
+* **根因**：`2026-07-20-韓國自由行支付教學.md` 是三篇對照文章中唯一把原始長網址（如
+  `https://www.backpackers.com.tw/forum/showthread.php?t=10633428`）直接當作可見文字寫進
+  Markdown 表格欄位與清單項目，而非像另外兩篇一律用 `[短文字 ↗](url)` 包裝。裸網址沒有空格，
+  瀏覽器預設 `overflow-wrap: normal` 不會在字中間斷行，於是把 `<li>`／`<td>` 一路撐寬到
+  `<article>`，讓整頁在手機上出現橫向捲動；`.toc-fab`（右下角章節導覽圓點）是
+  `position: fixed`，其定位基準（layout viewport）被撐寬後，圓點的可視位置就落在使用者實際
+  螢幕（visual viewport）之外。以 Playwright 搭配 `devices['iPhone 13']` 模擬複驗證實：修正前
+  `window.innerWidth` 被撐寬至 438px（裝置實際可視寬度僅 390px），圓點右緣落在 418px 處，
+  超出可視範圍；修正後 `innerWidth` 恢復 390px 且無橫向捲動。
+* **內容修正**：把該文章表格「網址」欄與明洞換錢所清單中的裸網址全部改寫成連結，統一成另外
+  兩篇文章已在用的連結慣例；表格窄欄位改用單一箭頭符號當可見文字（`查看原文 ↗` 這類短句在窄
+  欄位會被逐字換行成直排、很醜），改寫成 `<a href="..." aria-label="○○原文">↗</a>` 的原生
+  HTML 連結（marked.js 會原樣通過表格儲存格內的 inline HTML），用 `aria-label` 補回螢幕
+  閱讀器需要的語意（單獨的「↗」若無 aria-label，多個連結在「連結清單」導覽模式下會全部唸成
+  同一個詞，無法辨別對應哪篇來源）。
+* **CSS 防護網**：於 `assets/tailwind.css` 的 `.prose` 區塊新增 `.prose p, .prose li { overflow-wrap: anywhere; }`
+  與 `.prose td, .prose th { overflow-wrap: break-word; }`（td/th 用較保守的 `break-word`，
+  避免匯率、日期等數字欄位被強制斷成兩行、破壞對齊），讓純 Markdown 文章即使日後不小心貼了
+  裸網址等無空格長字串，也不會再撐破手機版面——不必依賴作者每次都記得手動包連結語法。
+* **審核與驗證**：修復方向先經 Opus（資深 UI/UX 設計師視角）審核，確認診斷邏輯成立、
+  `overflow-wrap: anywhere` 不應無差別套用在 `td` 以免傷及數字欄位對齊；修正後以 Playwright
+  對三篇文章（含另外兩篇混合 HTML 文章）在 320/390px 寬度下重新驗證，均無橫向溢位、無回歸。
+
 ### 2026-07-20 — 於 doc/project.md 補充 `dist/` 打包清空警告與文章消失問題說明
 
 * **補充 `dist/` 清空警告**：於 [`doc/project.md`](./project.md) 的「新增部落格文章」區塊加入醒目的 `[!CAUTION]` 提示——說明 `dist/` 資料夾是 Vite 打包輸出區，每次執行 `npm run build` 都會徹底清空 `dist/` 目錄並從 `src/posts/` 重新備份，澄清誤將文章建立在 `dist/` 會導致檔案被清空的問題。
 
-### 2026-07-20 — 補充「新增文章未顯示」對應之索引與快取更新步驟 (clean-blog-v50)
-
-* **新增文章索引更新**：於 `doc/project.md` 補充說明——新增文章時若未生成 `posts.json` 索引檔或未升級 SW 快取，前端列表將無法讀取新文章。
-* **流程更新**：補充規範完整發布鏈條為：`src/posts/` 新增檔案 ➔ 執行 `npm run build:metadata`（或直接 `npm run build` 產出 `dist/data/posts.json` 與複製文章檔）➔ 升級 `public/sw.js` 的 `CACHE_NAME` (`v50`) 讓瀏覽器重新抓取 `posts.json`。
-* **建置與驗證**：已執行 `npm run build` 生成 `clean-blog-v50` 之 `dist/sw.js` 產物。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-20：補充「新增文章未顯示」對應之索引與快取更新步驟 (clean-blog-v50)
 - 2026-07-20：升級 PWA Service Worker 快取版本至 clean-blog-v49 並重新打包
 - 2026-07-20：於 doc/project.md 新增網站快取 (Service Worker & PWA) 更新操作指引
 - 2026-07-17：修正 style-a/b/c 版型 TOC 圓球未渲染問題與文章 Naver/Kakao 空格網址 (CACHE_NAME 升至 v48)
