@@ -62,9 +62,20 @@ npm run preview
 > 僅有 `dev`/`build:metadata`/`build`/`preview`）。`assets/main.css` 是未被引用、已 gitignore
 > 的舊檔案，不應編輯。驗證樣式變更請直接跑 `npm run build`。
 
+### 5. 更新網站快取 (Service Worker & PWA)
+當更新靜態資源、樣式、腳本或新增/編輯文章，欲強制訪客瀏覽器更新快取與畫面時：
+1. **生成文章索引元資料檔**：若包含文章增刪改動，先執行 `npm run build:metadata` 產生最新的 `public/data/posts.json`（若直接跑 `npm run build` 會自動觸發）。
+2. **升級 SW 快取名稱**：編輯 [`public/sw.js`](../public/sw.js)，將頂部的 `CACHE_NAME` 遞增版本（如 `'clean-blog-v49'` → `'clean-blog-v50'`），促使瀏覽器下載新 SW 並自動清理舊 Cache Storage。
+3. **建置正式資源與複製文章**：執行 `npm run build`。此步驟會自動執行 `build:metadata`、將文章原檔複製至 `dist/src/posts/`，並透過 `swPrecachePlugin` 將帶雜湊碼的最新 CSS/JS 與預快取清單寫入 `dist/sw.js`。
+4. **客戶端除錯刷新**：開發或測試時，可開啟瀏覽器 DevTools (F12) → Application → Service Workers 勾選 *Update on reload* / 點擊 *Unregister*，或以 `Ctrl+F5` / `Cmd+Shift+R` 強制刷新。
+
 ## 如何新增與編輯內容
 
 ### 1. 新增部落格文章
+> [!CAUTION]
+> **請務必將原始文章存放在 `src/posts/` 而非 `dist/`！**
+> `dist/` 資料夾是 Vite 打包產出的靜態成品區。每次執行 `npm run build` 時，Vite 預設會**徹底清空並刪除整個 `dist/` 資料夾**，再將 `src/posts/` 的內容重新複製過去。若誤將新文章建立在 `dist/` 或 `dist/src/posts/` 內，`npm run build` 時檔案將會被自動刪除！
+
 1. 在 `src/posts/` 目錄中建立一個檔名格式為 `YYYY-MM-DD-slug.md` (或 `.html`) 的檔案。
 2. 檔案最上方必須包含標準 Front Matter 區塊：
    ```yaml
@@ -80,7 +91,9 @@ npm run preview
    ---
    ```
 3. 正文內容置於結尾 `---` 下方，以 Markdown 或 HTML 撰寫。
-4. 存檔後，執行 `npm run build:metadata`（或直接重啟 `npm run dev`）來更新文章索引。
+4. **關鍵索引與快取更新步驟（若未執行新文章將不會顯示）**：
+   - **開發模式**：若 `npm run dev` 運作中會自動監聽更新；否則請執行 `npm run build:metadata` 重新生成 `public/data/posts.json` 索引。
+   - **生產環境與預覽**：新增文章後必須升級 `public/sw.js` 的 `CACHE_NAME`（如 `v50`），並執行 `npm run build` 以同步更新 `dist/data/posts.json` 與 `dist/src/posts/` 文章資源，否則瀏覽器會被 Service Worker 快取的舊索引擋住。
 
 ### 2. 新增獨立頁面
 如果要在網站中新增一個獨立的 HTML 頁面：
@@ -119,7 +132,7 @@ npm run preview
 | 卡片視覺樣式（`.food-item`／`.spot-card`／`.compare-card`／`.info-card`／`.stepper`／`.app-card`／`.emergency-card`／`.alert-box` 等） | `assets/tailwind.css` 的 `@layer components` |
 | 色彩／字型設計 Token | `assets/tailwind.css` 的 `@theme` |
 | 導覽列／頁尾動態載入 | `assets/scripts.js` 尾端 fetch 邏輯 + `public/components/navbar.html`／`footer.html` |
-| PWA 快取與雜湊防刷 | `public/sw.js`（`CACHE_NAME`，每次改動快取資產需 +1）＋ `vite.config.js` 的 `swPrecachePlugin` |
+| PWA 快取與雜湊防刷 | `public/sw.js`（`CACHE_NAME`，每次改動快取資產需 +1）＋ `vite.config.js` 的 `swPrecachePlugin`（快取更新說明見第一部分 `### 5`） |
 | 開發模式文章監聽熱重載 | `vite.config.js` 的 `watchPostsMetadataPlugin` |
 | 建置/部署 CI | `.github/workflows/pages.yml` |
 
@@ -275,25 +288,22 @@ posts/
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
-### 2026-07-17 — 修正兩個既有 bug：style-a/b/c 版型 TOC 圓球消失、含空格網址撐破手機版面
+### 2026-07-20 — 於 doc/project.md 補充 `dist/` 打包清空警告與文章消失問題說明
 
-使用者調整完美食分隔線後，回報「右下角章節目錄圓球（`.toc-fab`）不見了」。追查發現是兩個彼此獨立、與分隔線改動無關的既有 bug：
-* **Bug A：style-a/b/c 版型的 `.toc-fab` 從未渲染過**。`assets/scripts.js` 的 `initTOC()` 用 `:scope > h2, :scope > h3` 只抓 `#post-content` 的直接子節點標題，刻意排除卡片元件（`.emergency-card` 等）內部巢狀標題以免 TOC 被灌爆。但 style-a/b/c 版型把整篇內容包在 `<div class="style-x-post">` 裡，所有 `h2`/`h3`因此變成孫節點，選擇器抓到 0 個標題，`if (headings.length < 2) return;` 直接讓整組 TOC／大綱／浮動按鈕都不渲染。修正為 `contentContainer.querySelectorAll('h2, h3')` 後以 `parent === contentContainer || parent.parentElement === contentContainer` 過濾，同時放行「直接子節點」與「版型外包 div 下的孫節點」兩種深度，卡片元件內部巢狀更深的標題仍會被排除。
-* **Bug B：`_txt` 與《首爾行前準備與安全應變手冊》兩篇文章的 Naver/Kakao 連結網址含未編碼空格**（如 `.../search/만족오향족발 시청점)`），不符合 Markdown 連結語法，導致 `marked.js` 解析失敗、退化成把「到空格為止的網址」當純文字塞進頁面，形成一長串無法換行的字串，在手機寬度下把整頁橫向撐寬（實測撐寬 ~27px），連帶把 `position: fixed; right` 定位的 `.toc-fab` 推到視覺可視範圍之外——這才是使用者截圖看到「圓球跑到螢幕外」的直接原因。修正方式：以正規表示式將兩篇文章共 231 處 Markdown 連結目的地（`(https://...)`）裡的空格取代為 `%20`。已重新 `grep` 全部 `src/posts/*.md` 確認無殘留。
-* 已用 Playwright（`playwright-core`，`NODE_PATH` 指向專案 `node_modules`）在 390×844 手機視窗對 `posts/detail.html?id=2026-07-16-韓國首爾旅行_style_a` 與 `?id=2026-07-16-韓國首爾旅行_txt` 分別驗證：`document.documentElement.scrollWidth` 與 `clientWidth` 相等（無橫向溢出）、`.toc-fab` 存在且座標落在視窗內。`public/sw.js` 的 `CACHE_NAME` 隨之升至 `v48`（`scripts.js` 內容變動）。
+* **補充 `dist/` 清空警告**：於 [`doc/project.md`](./project.md) 的「新增部落格文章」區塊加入醒目的 `[!CAUTION]` 提示——說明 `dist/` 資料夾是 Vite 打包輸出區，每次執行 `npm run build` 都會徹底清空 `dist/` 目錄並從 `src/posts/` 重新備份，澄清誤將文章建立在 `dist/` 會導致檔案被清空的問題。
 
-### 2026-07-17 — style-a 美食項目分隔線改為置中「點線點」裝飾符
+### 2026-07-20 — 補充「新增文章未顯示」對應之索引與快取更新步驟 (clean-blog-v50)
 
-`.style-a-post .food-item` 原本用滿版 `border-b-2 border-sand/30` 當店家之間的分隔線，視覺上跟區塊標題 `.food-list-title` 的滿版底線太像、容易混淆層級。改為 `::before`（左右各一小段漸層細線）＋ `::after`（置中 6px 實心圓點，hover 轉 `primary-dark`）的置中裝飾符：
-* 選擇器沿用既有的 `:not(:last-child)` / `:has(+ .food-list-title)` 判斷式，確保清單最後一項、以及每個分區最後一項（緊接下一個 `.food-list-title`）都不顯示分隔符。
-* 事前用 Artifact 產出粗短線／點線點／雙細線三個方案（套用真實店家資料比較），使用者選定「點線點」後才落地實作。
-* **修正殘留卡片框**：`.style-a-post .food-item` 一開始只覆寫了 `bg-transparent`／`rounded-none`／`shadow-none`，沒有覆寫 `border`，導致通用版型 `.food-item`（`assets/tailwind.css` L514，`border border-sand/50` 卡片樣式）的邊框透過較低優先權的規則繼續生效，店家四周仍殘留一圈方框。改為 `p-0 border-0` 並新增 `.style-a-post .food-item:hover { border-0 }`，明確清空通用規則留下的邊框與 padding。
-* **修正分隔符偏向上方店家**：一開始用 `pb-8`（店內間距）+`mb-8`（店外間距）兩段式留白，裝飾符 `bottom` 只在 `pb-8` 範圍內定位，導致視覺上緊貼在上方店家下緣，離下方店家還有一大段空白。改為單一 `mb-16`（64px）留白，裝飾符用負值 `bottom: -32px` / `-bottom-8` 直接定位在該留白正中央，使分隔符落在兩間店的正中間。
-* **錐形漸層線 → 純色細線**：先改為單一置中拉長的錐形漸層線（拿掉圓點），使用者後續又要求拿掉漸層，改為由左至右延伸、寬度 70%、高度 1px 的純色細線（`rgb(148 137 121 / .55)`，即 sand，hover 加深至 `.85`），不置中、不做透明度漸層，`::after` 圓點與所有漸層規則全數移除。
-* **最終定案（資深 UI/UX 設計評審）**：使用者對「靠左 70%」的效果沒把握，請一位 opus 資深 UI/UX 設計師 subagent 讀完 `.spot-section` / `.food-list-title` 既有分隔線語彙與本輪疊代歷史後給評審意見。結論：靠左 70% 缺乏視覺支點、容易被誤讀為未渲染完的邊框，且與同頁滿版分隔線語彙（`food-list-title` 的 `border-b-2 sand/60`、`spot-section` 的 `border-b sand/20`）不一致。改回**滿版、極輕髮絲線**並拿掉 hover：`width: 100%`／`height: 1px`／`background: rgb(148 137 121 / 0.25)`（sand，介於 60% 與 20% 之間，明確落在「最輕」一階），留白從 `mb-16` 收到 `mb-12`（分隔符仍用負值 `bottom: -24px` 置中）。設計原則：**分隔線視覺重量應與被分隔內容的「親密度」成反比**——同小節姊妹店家親密度高，用最低限度訊號即可，越是章節級斷裂才越能加重。
-* 已用 Playwright 對本機 dev server 的 `posts/detail.html?id=2026-07-16-韓國首爾旅行_style_a` 六次截圖驗證每一次疊代（分隔符樣式、邊框修正、置中修正、圓點→錐形線、錐形線→純色細線、最終滿版髮絲線）。`public/sw.js` 的 `CACHE_NAME` 隨之升至 `v47`。
+* **新增文章索引更新**：於 `doc/project.md` 補充說明——新增文章時若未生成 `posts.json` 索引檔或未升級 SW 快取，前端列表將無法讀取新文章。
+* **流程更新**：補充規範完整發布鏈條為：`src/posts/` 新增檔案 ➔ 執行 `npm run build:metadata`（或直接 `npm run build` 產出 `dist/data/posts.json` 與複製文章檔）➔ 升級 `public/sw.js` 的 `CACHE_NAME` (`v50`) 讓瀏覽器重新抓取 `posts.json`。
+* **建置與驗證**：已執行 `npm run build` 生成 `clean-blog-v50` 之 `dist/sw.js` 產物。
 
 ### 更早的更新（壓縮摘要，新到舊）
+
+- 2026-07-20：升級 PWA Service Worker 快取版本至 clean-blog-v49 並重新打包
+- 2026-07-20：於 doc/project.md 新增網站快取 (Service Worker & PWA) 更新操作指引
+- 2026-07-17：修正 style-a/b/c 版型 TOC 圓球未渲染問題與文章 Naver/Kakao 空格網址 (CACHE_NAME 升至 v48)
+- 2026-07-17：style-a 美食項目分隔線經歷多輪評審最終定案為滿版極輕髮絲線 (CACHE_NAME 升至 v47)
 
 - 2026-07-16：重構景點快速跳轉為極簡行事曆流線時間軸面板，按 `(Day N)` 動態分組 (CACHE_NAME 升至 v46)
 - 2026-07-16：新增 Markdown 裝飾元件設計分析與語意命名指引（`doc/markdown_decorations_design.md`）
