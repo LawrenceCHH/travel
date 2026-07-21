@@ -250,6 +250,11 @@ posts/
     *   **re-entrancy**：`renderStepper` 收 renderer 閉包裡的 `marked` 實例，在渲染整份文件的過程中再呼叫 `marked.parse(b)`。因 step body 不含任何卡片 fence（`cardBlock` tokenizer 的 `start` 找不到 ```' 直接回傳 undefined），不會遞迴進 `cardBlock`，故不會無限遞迴；marked 的 lex/parse 使用區域實例、無 Marked 級可變狀態被覆寫，實測 re-entrant 呼叫安全、輸出正確。
 16. **Markdown 裝飾元件（Decorations）語意命名與重複使用指引**：
     本專案的 Markdown 裝飾元件（如 `prep`、`stepper`、`compare`、`info`、`apps`、`accordion` 等）已進行 UI/UX 元件化分析，並重新命名為更易於重複使用、語意清晰且對 Agent 友善的名稱（如 `quick-summary`、`milestone-stepper`、`feature-comparison-card`、`metadata-info-card`、`recommended-apps-list`、`interactive-faq-accordion`）。後續不論是新增文章、修改 UI，或是 AI Agent 自動寫文，皆應遵循此命名規範與設計定位。詳細分析與規範文件見 [`./markdown_decorations_design.md`](./markdown_decorations_design.md)。
+17. **`.prose` 基礎排版內化 07-16 雜誌感（2026-07-21）**：把首爾旅遊文章手工打磨出的雜誌感標題階層、pull-quote、密集表格樣式收斂進 `.prose` 區塊的預設值（`assets/tailwind.css` L269 之後、`.toc-sidebar` 之前），讓 07-13/07-20 這類「純 Markdown、無自訂 class」的文章不用改一個字就自動套用，不必逐篇手動加 class。
+    *   **新增規則**：`.prose h1`~`.prose h4` 襯線標題階層（h1 30/34px、h2 24~26/28px、h3 20/21px、h4 15px 無襯線）；`.prose blockquote` 改為 serif pull-quote（拿掉 italic，改左側 3px sand 色條），同步移除 `@layer base` 裡全站 `blockquote { font-style: italic }` 的殘留設定；`.prose thead th`/`.prose tbody tr`/`.prose td` 補上表頭底色、列分隔線與較小字級（14px，需 < body 18px 以免密集表格撐寬回歸手機橫向捲動）；`.prose input[type="checkbox"]` 套用 `--color-primary` 的 accent-color；`.prose hr` 加大留白。
+    *   **CSS Cascade 陷阱與因應**：新規則刻意插入在既有 `.prose td/th overflow-wrap` 規則之後、`.toc-sidebar` 之前，讓 `.prose h3`/`.prose h4`（specificity 0,1,1）在來源順序上先於後方的 `.emergency-card h3`／`.app-info h4`（同為 0,1,1，靠來源順序決勝）出現，避免蓋掉這兩個既有卡片標題。但驗證中另外發現兩個「同 specificity 排序救不回」的隱性衝突（純 class 選擇器 specificity 只有 0,1,0，天生低於 0,1,1，不論插入順序都會被蓋掉）：07-13 `<h3 class="alert-box-title">`（提示框標題）與 07-16「7 大主題景點快速導覽」的 `<h4 class="text-xs uppercase ...">`（純 utility class 堆疊，非既有 CSS class 契約）。修法是額外新增 `.prose h3.alert-box-title` 與 `.prose .editorial-quick-jump h4` 兩條 2-class 選擇器（specificity 0,2,x，穩贏，與插入順序無關）明確恢復原始迷你標題外觀。`.spot-title`（07-16 h4）與 `.food-item-name`（DSL span，07-16 實際手寫版用的是同語意的 `.food-name` span）皆非此問題：前者被 `.style-a-post .spot-title`（0,2,0）保護，後者本來就不是 h1-h4 元素，不受影響。
+    *   **唯一偏離規格書數值處**：07-16 的 `.style-a-post h3`（Day X 小節標題）固定 26px、不隨斷點縮放；規格書原定 `.prose h2` 手機版 24px，會讓母標題（總覽/景點漫遊/美食推薦）在 <768px 寬度視覺量體小於其下的子標題 Day X，故將 `.prose h2` 手機版基準值由 `1.5rem`（24px）微調為 `1.625rem`（26px，打平 Day X），`md:1.75rem`（28px）維持不變。其餘 h1/h3/h4/表格/blockquote 數值皆按規格書原值實作、未調整。
+    *   **驗證**：以 Playwright 對三篇文章在 320/390/768/1280px 寬度量測 `document.body.scrollWidth` vs `window.innerWidth`，全數無新增橫向捲動；並以 computed style 逐一確認 `.emergency-card h3`（該 class 目前實際上未被任何文章使用，07-13 緊急應變區已改用 `<details class="fold">` 手風琴呈現，故此規則現階段是面向未來、非當前線上內容驗證對象）、`.app-info h4`（16px/800，未變）、`.alert-box-title`（16px serif，未變）、`.spot-title`（22px serif primary，未變）、`.editorial-quick-jump h4`（12px 大寫 muted，未變）均維持原樣；`npm run build` 通過。
 
 ## GitHub Pages 部署設定指引
 
@@ -288,6 +293,44 @@ posts/
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-21 — 把 07-16 首爾文章的雜誌感標題/表格/blockquote 樣式內化為 `.prose` 基礎預設值
+
+* **目標**：讓 07-16《首爾秋日漫遊手帳》手工打磨出的雜誌感視覺語言（襯線標題階層、
+  pull-quote、密集表格）成為全站文章共用的 `.prose` 基礎排版預設值，使 07-13/07-20 這類
+  「純 Markdown、無自訂 class」的文章不用改一個字就自動變好看，不必逐篇手動加 class。
+* **改動範圍**：僅改 `assets/tailwind.css`（未動任何 `src/posts/*.md` 內容）。在既有
+  `.prose td, .prose th { overflow-wrap: break-word; }` 規則之後、`.toc-sidebar` 定義之前
+  新增：`.prose h1`~`.prose h4` 襯線標題階層（h1 30/34px、h2 24~26/28px、h3 20/21px、
+  h4 15px 無襯線）；`.prose blockquote` 改為 serif pull-quote（左側 3px sand 色條，拿掉
+  italic），同步移除 `@layer base` 裡全站 `blockquote { font-style: italic }` 的殘留設定；
+  `.prose thead th`/`.prose tbody tr`/`.prose td` 補表頭底色、列分隔線與 14px 字級（刻意
+  小於 body 18px，避免密集表格撐寬回歸手機橫向捲動的舊 bug）；`.prose input[type="checkbox"]`
+  套用 `--color-primary` accent-color；`.prose hr` 加大留白。
+* **Cascade 陷阱與因應**：新規則插入位置刻意選在既有卡片元件規則（`.emergency-card h3`／
+  `.app-info h4`，皆為 specificity 0,1,1）之前，讓兩者能靠「來源順序在後」繼續蓋過新的
+  `.prose h3`/`.prose h4`。但驗證過程另外發現兩個「同 specificity 排序救不回」的隱性衝突：
+  純 class 選擇器 specificity 只有 (0,1,0)，天生就低於 `.prose h3`/`.prose h4` 的
+  (0,1,1)，不論插入順序都會被蓋掉——07-13 `<h3 class="alert-box-title">`（提示框標題）與
+  07-16「7 大主題景點快速導覽」的 `<h4 class="text-xs uppercase ...">`（純 utility class
+  堆疊，非既有 CSS class 契約）皆屬此類。修法是另外新增 `.prose h3.alert-box-title` 與
+  `.prose .editorial-quick-jump h4` 兩條 2-class 選擇器（specificity 0,2,x，穩贏、與插入
+  順序無關），明確恢復原始迷你標題外觀。`.spot-title`（07-16 h4）本身已被
+  `.style-a-post .spot-title`（0,2,0）保護，`.food-item-name`（DSL span，07-16 實際手寫版
+  用同語意的 `.food-name` span）本來就不是 h1-h4 元素，兩者皆無需額外處理。
+* **唯一偏離規格書數值處**：07-16 `.style-a-post h3`（Day X 小節標題）固定 26px、不隨斷點
+  縮放；規格書原定 `.prose h2` 手機版 24px，會讓母標題（總覽/景點漫遊/美食推薦）在
+  <768px 寬度視覺量體小於其下的子標題 Day X。故將 `.prose h2` 手機版基準值由 `1.5rem`
+  （24px）微調為 `1.625rem`（26px，打平 Day X），`md:1.75rem`（28px）維持不變；其餘
+  h1/h3/h4/表格/blockquote 數值皆按規格書原值實作、未調整。
+* **驗證**：以 Playwright 對三篇文章在 320/390/768/1280px 寬度量測
+  `document.body.scrollWidth` vs `window.innerWidth`，全數無新增橫向捲動（07-20 密集比較
+  表為既有脆弱點，重新確認未回歸）；並以 computed style 逐一確認
+  `.app-info h4`（16px/font-weight 800，未變）、`.alert-box-title`（16px serif，未變）、
+  `.spot-title`（22px serif primary，未變）、`.editorial-quick-jump h4`（12px 大寫
+  muted，未變）均維持原樣；`.emergency-card h3` 因該 class 目前實際上未被任何文章使用
+  （07-13 緊急應變區已改用 `<details class="fold">` 手風琴呈現）故只能以來源順序/specificity
+  推導確認安全，非線上內容實測。`npm run build` 通過。
+
 ### 2026-07-21 — 修正純 Markdown 文章裸網址撐破手機版面、TOC 圓點跑出畫面外的問題
 
 * **根因**：`2026-07-20-韓國自由行支付教學.md` 是三篇對照文章中唯一把原始長網址（如
@@ -313,12 +356,9 @@ posts/
   `overflow-wrap: anywhere` 不應無差別套用在 `td` 以免傷及數字欄位對齊；修正後以 Playwright
   對三篇文章（含另外兩篇混合 HTML 文章）在 320/390px 寬度下重新驗證，均無橫向溢位、無回歸。
 
-### 2026-07-20 — 於 doc/project.md 補充 `dist/` 打包清空警告與文章消失問題說明
-
-* **補充 `dist/` 清空警告**：於 [`doc/project.md`](./project.md) 的「新增部落格文章」區塊加入醒目的 `[!CAUTION]` 提示——說明 `dist/` 資料夾是 Vite 打包輸出區，每次執行 `npm run build` 都會徹底清空 `dist/` 目錄並從 `src/posts/` 重新備份，澄清誤將文章建立在 `dist/` 會導致檔案被清空的問題。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-20：於 doc/project.md 補充 `dist/` 打包清空警告與文章消失問題說明
 - 2026-07-20：補充「新增文章未顯示」對應之索引與快取更新步驟 (clean-blog-v50)
 - 2026-07-20：升級 PWA Service Worker 快取版本至 clean-blog-v49 並重新打包
 - 2026-07-20：於 doc/project.md 新增網站快取 (Service Worker & PWA) 更新操作指引

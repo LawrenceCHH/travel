@@ -107,10 +107,8 @@
     color: var(--color-primary);
   }
 
-  blockquote {
-    font-style: italic;
-    color: var(--color-muted-text);
-  }
+  /* 2026-07-21：拿掉全站 blockquote 的斜體/muted 設定，改由 .prose blockquote 全權
+     接管雜誌感 pull-quote 樣式（見 .prose 區塊），避免非文章區域殘留斜體樣式。 */
 
   ::selection {
     color: var(--color-paper);
@@ -266,6 +264,139 @@
   .prose td,
   .prose th {
     overflow-wrap: break-word;
+  }
+
+  /* ===================================================================
+     文章雜誌感基礎排版（2026-07-21）：把 07-16 首爾文章手工打磨出的雜誌感
+     （襯線標題階層、pull-quote、密集表格、checklist）內化為 .prose 預設值，
+     讓 07-13/07-20 這類「純 Markdown、無自訂 class」的文章不用改一個字就
+     自動套用。刻意插入在既有 .prose td/th 規則之後、.toc-sidebar 之前（而
+     非檔案末尾）：新增的 .prose h3/.prose h4（specificity 0,1,1）與後面
+     卡片元件區塊的 .emergency-card h3／.app-info h4（同為 0,1,1）源碼順序
+     互相牽制——這些元件規則寫在更後面，才能在 tie-break 時繼續蓋過本區塊，
+     07-13 的緊急聯絡卡片/App 卡片標題才不會被本次改動影響。
+     =================================================================== */
+
+  /* --- 標題階層（h1-h4；h5/h6 全站未使用故不處理） --- */
+  .prose h1 {
+    font-family: var(--font-serif);
+    font-size: 1.875rem; /* 30px */
+    font-weight: 700;
+    margin-top: 3.5rem; /* mt-14 */
+    margin-bottom: 1.5rem; /* mb-6 */
+    border-bottom: 2px solid rgb(148 137 121 / 0.8); /* border-sand/80 */
+    padding-bottom: 0.75rem;
+    line-height: 1.3;
+  }
+  @media (min-width: 768px) {
+    .prose h1 { font-size: 2.125rem; } /* md:34px */
+  }
+  .prose h2 {
+    font-family: var(--font-serif);
+    /* 2026-07-21 驗證微調：規格原值 1.5rem(24px) 在行動版寬度下會小於 07-16
+       .style-a-post h3（Day X 小節標題，固定 26px，不隨斷點縮放），導致「母標題
+       視覺量體 < 子標題」，違反本次驗證項目 5。調整為 1.625rem(26px) 打平，
+       僅此一處數值偏離規格書，其餘 h1/h3/h4/表格/blockquote 數值皆未變動。 */
+    font-size: 1.625rem; /* 26px（規格原值 24px，見上方註解） */
+    font-weight: 700;
+    margin-top: 3rem; /* mt-12 */
+    margin-bottom: 1.25rem; /* mb-5 */
+    border-bottom: 2px solid var(--color-sand); /* 全色，需 ≥ style-a h3 視覺量體 */
+    padding-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+  @media (min-width: 768px) {
+    .prose h2 { font-size: 1.75rem; } /* md:28px，桌機拉大確保母標題壓過子層 */
+  }
+  .prose h3 {
+    font-family: var(--font-serif);
+    font-size: 1.25rem; /* 20px */
+    font-weight: 700;
+    margin-top: 2.25rem; /* mt-9 */
+    margin-bottom: 1rem; /* mb-4 */
+    line-height: 1.35;
+  }
+  @media (min-width: 768px) {
+    .prose h3 { font-size: 1.3125rem; } /* md:21px */
+  }
+  .prose h4 {
+    font-family: var(--font-sans);
+    font-size: 0.9375rem; /* 15px，不用 uppercase/tracking-widest（中文字距拉開很醜） */
+    font-weight: 700;
+    color: var(--color-ink);
+    margin-top: 1.5rem; /* mt-6 */
+    margin-bottom: 0.5rem; /* mb-2 */
+  }
+
+  /* 07-13《行前準備》裡 <h3 class="alert-box-title"> 是既有 .alert-box 提示框標題，
+     class 選擇器 specificity 只有 (0,1,0)，天生就低於上面 .prose h3 的 (0,1,1)——
+     這與 .emergency-card h3／.app-info h4（同為 0,1,1，靠來源順序牽制）不同，靠調整
+     插入位置救不回來，必須額外用 2-class 選擇器（specificity 0,2,0，穩贏）明確恢復
+     原始迷你標題外觀，避免被放大成一般章節標題。margin-top 已由既有更高 specificity
+     的 `.alert-box > :first-child { margin-top: 0 }` 保護，這裡不需重覆設定。 */
+  .prose h3.alert-box-title {
+    font-size: 1rem; /* 16px，對應原本 text-[16px] */
+    margin-bottom: 0.5rem; /* 對應原本 mb-2 */
+  }
+
+  /* 07-16「7 大主題景點快速導覽」小標籤同樣是單一 class 選擇器組成的 utility 堆疊
+     （非既有 CSS class 契約），全部低於 .prose h4 的 specificity，需同理保護。 */
+  .prose .editorial-quick-jump h4 {
+    font-family: var(--font-sans);
+    font-size: 0.75rem; /* text-xs */
+    text-transform: uppercase;
+    letter-spacing: 0.1em; /* tracking-widest */
+    color: var(--color-muted-text);
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 0.75rem; /* mb-3 */
+  }
+
+  /* --- Blockquote：拿掉 italic，改 serif pull-quote 質感（不用底色盒子，避免跟
+     .alert-note 提示框撞臉） --- */
+  .prose blockquote {
+    font-style: normal;
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    border-left: 3px solid var(--color-sand);
+    padding: 0.25rem 0 0.25rem 1rem;
+    color: var(--color-ink);
+  }
+
+  /* --- 表格：thead/tbody 分隔與字級（緊接在既有 overflow-wrap 規則之後，兩者共存，
+     一個管換行、一個管字級/底色/padding） --- */
+  .prose thead th {
+    background: rgb(148 137 121 / 0.12);
+    font-family: var(--font-sans);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-align: left;
+    border-bottom: 2px solid var(--color-sand);
+  }
+  .prose tbody tr {
+    border-bottom: 1px solid rgb(148 137 121 / 0.35);
+  }
+  .prose tbody tr:last-child {
+    border-bottom: none;
+  }
+  .prose thead th,
+  .prose td {
+    font-size: 0.875rem; /* 14px，須比 body 18px 小，避免密集表格撐寬回歸手機橫向捲動 */
+    padding: 0.5rem 0.7rem;
+  }
+  .prose td {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* --- Checklist checkbox 顏色 --- */
+  .prose input[type="checkbox"] {
+    accent-color: var(--color-primary);
+  }
+
+  /* --- Hr 加大留白 --- */
+  .prose hr {
+    margin: 3rem 0;
   }
 
   /* 文章大綱 (TOC) —— 桌機側欄：預設隨頁面捲動貼在 Banner 下緣（避免文字蓋住 Banner），
