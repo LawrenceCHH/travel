@@ -599,7 +599,7 @@ function initTOC(contentContainer) {
     sidebar.setAttribute('aria-label', '本文章節');
 
     const label = document.createElement('p');
-    label.className = 'mb-2 text-xs font-bold tracking-wide text-muted-text';
+    label.className = 'mb-3 text-xs font-bold tracking-wide text-muted-text';
     label.textContent = '本文章節';
     sidebar.appendChild(label);
 

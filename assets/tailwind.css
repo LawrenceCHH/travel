@@ -423,21 +423,30 @@
     top: 6rem;
   }
 
+  /* 側欄僅 11rem 寬，中文標題幾乎必然折行。行高刻意放到 1.55、並在側欄情境下補
+     margin-bottom，讓「項目之間的間距 > 項目內的行間距」，折行的條目才不會與相鄰條目
+     黏成一整塊文字牆（鄰近性原則）。字級維持 14px——中文筆畫密度高，再縮會讓折行更多
+     且筆畫在非高解析螢幕上糊掉，密度問題要用間距解、不是用縮字解。 */
   .toc-link {
     display: block;
-    padding: 0.25rem 0 0.25rem 0.5rem;
+    padding: 0.3rem 0 0.3rem 0.625rem;
     border-left: 2px solid transparent;
     font-size: 0.875rem;
-    line-height: 1.4;
+    line-height: 1.55;
     color: var(--color-muted-text);
     text-decoration: none;
     overflow-wrap: anywhere;
+  }
+  /* 只加在桌機側欄：手機抽屜 .toc-sheet-list 已用 flex gap 控制間距，加 margin 會疊加 */
+  .toc-sidebar .toc-link {
+    margin-bottom: 0.25rem;
   }
   .toc-link:hover {
     color: var(--color-primary);
   }
   .toc-link[data-level="3"] {
     padding-left: 1.25rem;
+    font-size: 0.8125rem; /* 子項目降一級，補上桌機側欄的層級對比（抽屜版另有覆寫） */
   }
   .toc-link.is-active {
     color: var(--color-primary);
@@ -471,6 +480,15 @@
   .toc-fab.is-visible {
     opacity: 1;
     pointer-events: auto;
+  }
+  /* 桌機（xl 以上）改用左側常駐側欄，不需要浮動按鈕。
+     這裡必須用 CSS 關掉，不能只靠 JS 掛的 xl:hidden——本檔元件區刻意未分層（見檔首
+     說明），未分層樣式的優先序高於 @layer utilities，上面的 display: flex 會直接壓過
+     .xl\:hidden 的 display: none，導致桌機右下角仍冒出圓鈕。 */
+  @media (min-width: 80rem) {
+    .toc-fab {
+      display: none;
+    }
   }
 
   /* 文章大綱 (TOC) —— 手機底部抽屜 (Bottom Sheet) */
@@ -584,6 +602,95 @@
   /* 文章目錄 (Catalog) —— 高雅低調的膠囊標籤 */
   .tag-pill {
     @apply inline-flex items-center rounded-full border border-sand bg-sand/20 px-2.5 py-0.5 text-[11px] leading-4 text-muted-text;
+  }
+
+  /* ===================================================================
+     上/下一篇導覽（2026-07-21）：原本是兩顆 .btn-primary，只把標題塞在 title 屬性的
+     tooltip 裡。改成顯示標題的無框連結對，兩個理由：
+     (1) .btn-primary 是全站唯一的主 CTA 重量級（實心底＋extrabold＋uppercase），文章
+         結尾放兩顆等於給讀者兩個最高優先級行動點，但「上/下一篇」是低意圖瀏覽動作，
+         視覺重量與行為重要性倒掛；
+     (2) 實心色塊裝不下不定長度的中文標題——8 字與 25 字的標題會讓兩顆按鈕一大一小，
+         原本靠 justify-between 建立的左右對稱直接崩掉。
+     字級刻意壓在 15px（內文為 16-17px）：連結標題只要 >= 內文就會跟剛讀完的文章搶
+     注意力；再小到 14px 又會跟 12px 的眉標混成同一層、階層塌掉。
+     =================================================================== */
+  /* 行動版也維持左右兩欄（不堆疊成上下兩列）：上/下一篇是一組對照關係，堆疊後方向語意
+     會退化成單純的先後順序，讀者得靠讀眉標才知道哪個是哪個。窄欄造成的折行由標題自己
+     吸收（行動版放寬到 3 行）。 */
+  .post-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+  /* 左右鏡像對齊：兩欄並排時，這是「往回／往前」方向感最強的訊號 */
+  .post-nav-cell--next {
+    text-align: right;
+  }
+  @media (min-width: 768px) {
+    .post-nav {
+      gap: 2rem;
+    }
+  }
+  .post-nav-link {
+    display: block;
+    text-decoration: none;
+  }
+  /* 眉標是「標籤」不是內容：無襯線、12px、退到 muted 去，只負責說明方向 */
+  .post-nav-label {
+    display: block;
+    margin-bottom: 0.375rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: var(--color-muted-text);
+  }
+  /* 標題必須用襯線：.prose h1-h4 全是 var(--font-serif)，讀者剛讀完一整篇襯線標題的
+     文章，結尾再出現襯線標題才會被讀成「另一篇文章」而不是「一個介面控制項」。
+     line-clamp 2 是為了把折行造成的參差邊緣控制在兩行內。 */
+  .post-nav-title {
+    display: -webkit-box;
+    /* 行動版單欄僅約 10 個中文字寬，放寬到 3 行才容得下常見標題；md 以上收回 2 行 */
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere; /* 長網址式標題或無空白的長字串仍要能斷行，不撐破欄寬 */
+    font-family: var(--font-serif);
+    font-size: 0.875rem; /* 14px：行動版窄欄先降一階，避免每則都吃滿 3 行 */
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--color-ink);
+    transition: color 0.15s ease;
+  }
+  @media (min-width: 768px) {
+    .post-nav-title {
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      font-size: 0.9375rem; /* 15px */
+    }
+  }
+  .post-nav-link:hover .post-nav-title {
+    color: var(--color-primary);
+  }
+  .post-nav-arrow {
+    display: inline-block;
+    transition: transform 0.15s ease;
+  }
+  .post-nav-link:hover .post-nav-arrow--prev {
+    transform: translateX(-2px);
+  }
+  .post-nav-link:hover .post-nav-arrow--next {
+    transform: translateX(2px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .post-nav-arrow {
+      transition: none;
+    }
+    .post-nav-link:hover .post-nav-arrow {
+      transform: none;
+    }
   }
 
   /* ===================================================================

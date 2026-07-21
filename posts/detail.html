@@ -41,10 +41,10 @@
     <hr class="my-8 border-sand">
 
     <!-- Navigation -->
-    <div class="flex justify-between items-center my-8">
+    <nav class="post-nav my-8" aria-label="文章導覽">
       <div id="prev-post-container"></div>
-      <div id="next-post-container"></div>
-    </div>
+      <div id="next-post-container" class="post-nav-cell--next"></div>
+    </nav>
   </article>
 
   <div id="footer-placeholder"></div>
@@ -148,22 +148,43 @@
         const prevPost = posts[index + 1]; // 較舊的
         const nextPost = posts[index - 1]; // 較新的
 
+        // 用 DOM API 而非 innerHTML 組裝：標題以 textContent 寫入，含引號或角括號的
+        // 標題不會破壞標記（舊版把標題插進 title="${...}" 屬性，遇到 " 就壞掉）。
+        function buildPostNavLink(post, dir) {
+          const a = document.createElement('a');
+          a.className = 'post-nav-link';
+          a.href = `${base}posts/detail.html?id=${post.id}`;
+          a.rel = dir === 'prev' ? 'prev' : 'next';
+
+          const label = document.createElement('span');
+          label.className = 'post-nav-label';
+          const arrow = document.createElement('span');
+          arrow.className = `post-nav-arrow post-nav-arrow--${dir}`;
+          arrow.setAttribute('aria-hidden', 'true');
+          if (dir === 'prev') {
+            arrow.textContent = '←';
+            label.append(arrow, ' 上一篇');
+          } else {
+            arrow.textContent = '→';
+            label.append('下一篇 ', arrow);
+          }
+
+          const title = document.createElement('span');
+          title.className = 'post-nav-title';
+          title.textContent = post.title;
+
+          a.append(label, title);
+          return a;
+        }
+
         const prevContainer = document.getElementById('prev-post-container');
         if (prevPost) {
-          prevContainer.innerHTML = `
-            <a class="btn-primary" href="${base}posts/detail.html?id=${prevPost.id}" title="${prevPost.title}">
-              &larr; 上一篇<span class="hidden md:inline">文章</span>
-            </a>
-          `;
+          prevContainer.appendChild(buildPostNavLink(prevPost, 'prev'));
         }
 
         const nextContainer = document.getElementById('next-post-container');
         if (nextPost) {
-          nextContainer.innerHTML = `
-            <a class="btn-primary" href="${base}posts/detail.html?id=${nextPost.id}" title="${nextPost.title}">
-              下一篇<span class="hidden md:inline">文章</span> &rarr;
-            </a>
-          `;
+          nextContainer.appendChild(buildPostNavLink(nextPost, 'next'));
         }
 
       } catch (err) {

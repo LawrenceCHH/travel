@@ -303,6 +303,29 @@ posts/
     未動。**驗證**：`npm run build` 通過，並自 `dist/assets/*.css` 複驗 `.style-a-post h3` 已
     不存在、`.food-list-title` 為 20px（`md` 21px）、`.spot-title` 為 18px。
 
+21. **未分層的元件 CSS 會壓過 Tailwind utility（2026-07-21，`.toc-fab` 桌機外洩的根因）**：
+    `assets/tailwind.css` 的元件區**刻意不放進 `@layer`**（見該檔 L118 註解：避免 JS 注入的
+    class 在 Tailwind v4 被 purge）。CSS cascade layers 的規則是「**未分層的樣式優先序高於
+    所有分層樣式**」，而 Tailwind utility 都在 `@layer utilities` 裡——於是未分層的
+    `.toc-fab { display: flex }` 直接壓過 `.xl\:hidden { display: none }`，`scripts.js` 給 FAB
+    掛的 `xl:hidden` 完全失效，桌機右下角一直冒出手機版的浮動圓鈕。**解法**：在 CSS 裡自己寫
+    `@media (min-width: 80rem) { .toc-fab { display: none } }`，不依賴 utility。**通則**：只要
+    未分層元件規則裡寫了 `display`／`position`／`color` 這類 utility 也會設的屬性，對應的
+    utility 就會失效，新增 JS 注入的元件時必須留意。同期檢查過 `.chapter-bar` 與
+    `.toc-sidebar`——它們自身沒宣告 `display`，故 `xl:hidden`／`hidden xl:block` 正常生效。
+
+22. **上/下一篇導覽不用按鈕，改為顯示標題的連結對（2026-07-21）**：原本是兩顆 `.btn-primary`，
+    標題只藏在 `title` 屬性的 tooltip 裡。兩個問題：(1) `.btn-primary` 是全站唯一的主 CTA 重量級
+    （實心底＋`extrabold`＋`uppercase`），文章結尾放兩顆等於同時給讀者兩個最高優先級行動點，
+    但「上/下一篇」是低意圖的瀏覽動作，視覺重量與行為重要性倒掛；(2) 實心色塊裝不下不定長度
+    的中文標題，8 字與 25 字會讓兩顆按鈕一大一小，原本靠 `justify-between` 建立的左右對稱直接
+    崩掉。**解法**：`.post-nav-*` 無框連結對，眉標（`上一篇`／`下一篇`＋箭頭）用 sans 12px muted，
+    標題用 **serif 15px/weight 500**——`.prose h1`-`h4` 全是 `var(--font-serif)`，讀者剛讀完一整篇
+    襯線標題的文章，結尾再出現襯線標題才會被讀成「另一篇文章」而非「一個介面控制項」；字級刻意
+    壓在內文（16-17px）之下一階，但不低到與 12px 眉標混層。**行動版也維持左右兩欄**（使用者要求）：
+    堆疊成上下兩列會讓方向語意退化成單純先後順序，故窄欄由標題自行吸收折行（14px、`line-clamp: 3`；
+    md 以上 15px、`line-clamp: 2`）。箭頭放在眉標行而非標題行，避免被 `line-clamp` 截掉。
+
 ## GitHub Pages 部署設定指引
 
 由於本專案採用自訂的 GitHub Actions 工作流（監聽 `main` 工作分支）來建置並部署至 GitHub Pages，若遇到 `Branch "main" is not allowed to deploy to github-pages due to environment protection rules` 錯誤，請前往 GitHub 儲存庫網頁端進行以下兩項設定：
@@ -337,11 +360,49 @@ posts/
 - [ ] **07-20 `## 1.2 WOWPASS 完整介紹` 底下仍有 6 個 `###`**：是全文最密的一節（已依 `doc_style.md` 第 3 節收掉一個標籤型 `### 是什麼`）。若閱讀時仍覺得標題雜，可再依同一判準（讀者會不會拿這個標題來定位）收一輪；注意解法是減少標題，不是給 `###` 加視覺記號（見第一部分第 19 點與 `style.md` A14）
 - [ ] **style-a 版型行動版開頭出現兩個重複的摘要／導覽區塊**：修正 `initTOC()` 抓不到 style-a/b/c 版型標題的 bug 後（見更新歷史），`buildMobileOutlineAndSheet()` 產生的自動大綱框「本文章節」（列出 總覽／景點漫遊／美食推薦）現在會插在 `#post-content` 最前面，緊接著又是 `.style-a-post` 內「總覽」小節裡手寫的「7 大主題景點快速導覽」格狀清單——兩者功能高度重疊，行動版一開頭連續出現兩個摘要區塊。需要決定去重方式：例如拿掉手寫的 quick-jump 區塊、或讓自動大綱偵測到頁面已有等價的手寫導覽時跳過渲染，或乾脆把兩者合併成一個元件。style-b／style-c 版型是否有同樣狀況也要一併確認。
 
+- [ ] **本次 UI 調整待目視確認（2026-07-21）**：三項改動都只做到 `npm run build` 與 CSS 輸出複驗，未實際在瀏覽器目視。待確認 (a) TOC 側欄新密度是否仍嫌擠——若是，下一步是把 `.toc-sidebar` 寬度改成 `clamp(11rem, calc(50vw - 26rem), 14rem)` 讓大螢幕自動加寬（**不是再縮字**），代價是動到側欄與文章的 2rem 間隙；(b) `.post-nav-title` 在行動版 375px 下是否普遍撞到 `line-clamp: 3` 上限——若是，解法是收窄 `.post-nav` 的 `gap` 換欄寬
 - [ ] **07-16 `.food-list-title` 是 `<div>` 不進 TOC**：2026-07-21 已把它的字級與「`### Day X`」對齊（同屬 `h2` 之下第一層），但 Day X 是 `<h3>`、它是 `<div>`，同一邏輯層級只有一半進得了側欄 TOC。若要一致，改成 `<h3 class="food-list-title">` 即可（`initTOC()` 收 h2/h3），代價是側欄多 6 條；先擱置待使用者決定
 
 ## 更新歷史
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
+
+### 2026-07-21 — 文章頁三處 UI/UX 調整：TOC 側欄密度、桌機誤現的 FAB、上/下一篇導覽
+
+* **提問**：使用者以資深 UI/UX 設計師視角連問三題——(1) 桌機左側快速索引導覽列「版面有點太擠」，
+  是否該縮小字體？(2) 「web 版不該出現右下角小圓點」；(3) 上/下一篇按鈕應該顯示標題讓使用者
+  決定，字體要怎麼均衡融入、或乾脆不要用按鈕？
+* **(1) TOC 側欄——結論是不縮字，問題不在字級在密度節奏**：側欄寬 `11rem`（扣 padding 約容 11
+  個中文字），中文標題幾乎必然折行；而 `line-height: 1.4` 的行內間距只有 5.6px、項目上下 padding
+  合計 8px，兩者幾乎相等 → 折行的條目與相鄰條目黏成一整塊文字牆（鄰近性原則被破壞）。**縮字
+  只會讓折行更多、更糟**，且 14px 已是中文導覽的可讀地板。改法：`line-height` 1.4→1.55、padding
+  `0.25rem 0 0.25rem 0.5rem`→`0.3rem 0 0.3rem 0.625rem`、`.toc-sidebar .toc-link` 補
+  `margin-bottom: 0.25rem`（**刻意只掛在側欄**——手機抽屜 `.toc-sheet-list` 已用 flex `gap` 控制
+  間距，掛在共用的 `.toc-link` 上會兩者疊加）、`[data-level="3"]` 加 `font-size: 0.8125rem` 建立
+  層級對比（抽屜版原有的 `.toc-sheet .toc-link[data-level="3"]` 覆寫仍在，觸控尺寸不受影響）。
+  另把 `scripts.js` 的「本文章節」標題 `mb-2`→`mb-3`。**未採用**：先前提議的 `clamp()` 加寬側欄
+  （會改動側欄與文章的 2rem 間隙），待使用者看過密度後再定。
+* **(2) 桌機 FAB 外洩——是 cascade layers 的優先序問題，不是 breakpoint 寫錯**：詳見第一部分
+  第 21 點。`.toc-fab` 早就掛了 `xl:hidden`，但未分層的元件 CSS 優先序高於 `@layer utilities`，
+  `display: flex` 直接壓過 `display: none`。解法是在 CSS 自己補
+  `@media (min-width: 80rem) { .toc-fab { display: none } }`；`scripts.js` 的 `xl:hidden` 保留
+  當意圖標註（無副作用）。
+* **(3) 上/下一篇改為 `.post-nav-*` 連結對**：設計理由與字級決策見第一部分第 22 點。`detail.html`
+  容器由 `flex justify-between` 改為 `<nav class="post-nav" aria-label="文章導覽">`（只有下一篇
+  存在時，空的 prev `div` 仍佔住第一欄，右格自動留在原位）；兩段 `innerHTML` 字串改用
+  `buildPostNavLink()` 以 DOM API 組裝、標題走 `textContent`，**順手修掉 `title="${post.title}"`
+  未跳脫的既有 bug**（標題含 `"` 會破壞標記），並補上 `rel="prev"`／`rel="next"`。使用者追加
+  要求「行動版標題太長時不要變成上下兩列」，故 `grid-template-columns: 1fr 1fr` 與
+  `.post-nav-cell--next { text-align: right }` 改為所有寬度共用，行動版 `gap: 1rem`、md 以上
+  `2rem`，並加 `align-items: start`（一邊 1 行、另一邊 3 行時兩欄仍從頂端對齊）、
+  `overflow-wrap: anywhere`（無空白長字串不撐破窄欄）。
+* **驗證**：`npm run build` 通過，並自 `dist/assets/*.css` 複驗
+  `@media (min-width:80rem){.toc-fab{display:none}}`、`.post-nav{grid-template-columns:1fr 1fr}`、
+  `.post-nav-title` 的 `line-clamp` 3→2 與 14→15px 皆已輸出。CSS 有變（打包雜湊碼隨之改變），
+  依 `CLAUDE.md` 規範把 `public/sw.js` 的 `CACHE_NAME` 由 v52 升到 v53。
+  **未做視覺確認**（專案無截圖工具鏈）——15px/`line-clamp` 的實際折行表現、以及行動版 375px 下
+  兩欄是否夠寬，需使用者在 `npm run dev` 目視；若普遍撞到 3 行上限，下一步是收窄 `gap` 換欄寬，
+  不是再縮字。
 
 ### 2026-07-21 — `contact.html` 套用其他版面既有設計，修正三處風格漂移
 
@@ -366,35 +427,9 @@ posts/
 * **驗證**：`npm run build` 通過；用到的 class（`rounded`/`bg-surface`/`text-sm`/`shadow-sm`/
   `text-primary`/`text-red-500`）皆為既有頁面已使用過的既有樣式，無新增 CSS。
 
-### 2026-07-21 — 修正 07-16 標題階層忽大忽小：`.style-a-post` 併回全站音階
-
-* **提問**：使用者以資深 UI/UX 設計師角度指出 `2026-07-16-韓國首爾旅行.md`「有些標題階層忽大
-  忽小，`Day 1` 的字體比 `景點漫遊` 還大」。實測確認不是錯覺：行動版兩者同為 26px，但 Day X
-  的底線是 3px、`h2` 只有 2px，同尺寸下更粗的線＝更重的量體；桌機版 28 vs 26 只差 7%，遠低於
-  可辨識階層所需的約 1.2 倍。
-* **診斷出三個缺陷**（詳見第一部分第 20 點）：母子打平且底線反噬、同一邏輯層級兩種量體
-  （Day X 26px vs 美食分區 20px）、階層倒置（`.spot-title` 22px > `.food-list-title` 20px）。
-  **根因**是兩套音階疊在一起——`.style-a-post` 自成一組（26/22/20/18），07-21 把 `.prose` 標題
-  階層內化進來後上面多長出一個 `h2`，最頂那階直接撞上去。
-* **方案選擇**：先量了外溢範圍（`grep -l` 確認 `style-a-post` 等 class 只命中 07-16 這一個檔），
-  給出兩案供使用者決定——A：`h2` 不動，只改 07-16 專屬的 class；B：另把 `.prose h2` 行動版
-  26→24px 還原成規格值、清掉那個歷史 hack，但會外溢到三篇。**使用者選 A**（改動面最小；子層
-  降下來之後 `h2` 已無非動不可的理由）。
-* **實作**：`.style-a-post h3` 覆寫整條刪除（Day X 回落到 `.prose h3` 20/21px，與 07-13/07-20
-  的 `###` 同款）；`.food-list-title` 對齊同一組數值並移除 2px 底線；`.spot-title` 22→18px、
-  其 `::before` 的 ◇ 由 `text-lg` 降為 `text-base`。另用 `sed` 刪掉 Markdown 裡 6 個
-  `.food-list-title` 文字開頭的字面 `◇ `（第 19 點「◇ 專屬 h4」原則的漏網之魚）。
-  `.prose` 完全未動，07-13／07-20 零影響。
-* **驗證**：`npm run build` 通過；自 `dist/assets/*.css` 複驗 `.style-a-post h3` 已不存在、
-  `.food-list-title` 為 20px（`md` 21px）、`.spot-title` 為 18px。`public/data/posts.json` 只存
-  metadata 不含內文，未受本次內容改動影響。CSS 與文章內容都變了（打包雜湊碼隨之改變），
-  依 `CLAUDE.md` 規範把 `public/sw.js` 的 `CACHE_NAME` 由 `clean-blog-v51` 升到 `v52`。
-  **未做視覺截圖確認**（專案無截圖工具鏈）。
-* **文件同步**：`project.md` 第一部分新增第 20 點；`doc/style.md` 新增 **A15**（同一邏輯層級
-  必須共用同一組音階）。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-21：修正 07-16 標題階層忽大忽小（`Day 1` 比母標題 `景點漫遊` 還大），`.style-a-post` 那組自成一格的音階（26/22/20/18）整組併回 `.prose`，`.style-a-post h3` 覆寫整條刪除、`.spot-title` 22→18px，底線依 A13 只留給 `h2`；外溢範圍僅 07-16 一篇，`.prose` 未動（設計決策見第一部分第 20 點）
 - 2026-07-21：否決 `h3` 視覺記號（字符與左側色條皆試過後推翻），改以「收掉緊接 h2 後、內文
   三四行的標籤型 `###`」處理標題過密，`doc_style.md` 新增第 3 節、`style.md` 新增 A14
 - 2026-07-21：推翻標題底線 `:has()` 規則（07-20 的 6 個 `##` 有 4 個底線忽有忽無、讀者猜不到規律），改為「只有 `h2` 固定有底線、無條件套用」，`h1` 底線一併移除；抽象準則寫入 `doc/style.md` A13
