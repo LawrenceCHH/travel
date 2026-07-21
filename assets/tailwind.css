@@ -861,19 +861,25 @@
      NEW STYLES FOR SEPARATE LAYOUT EXPERIMENTS (A, B, C)
      ========================================================================== */
 
-  /* --- Option A: Modern Editorial Print Style --- */
-  .style-a-post h3 {
-    @apply font-serif text-[26px] font-bold text-ink border-b-[3px] border-sand pb-2 mt-12 mb-6;
-  }
+  /* --- Option A: Modern Editorial Print Style ---
+     2026-07-21 標題階層整併：這組樣式原本是為「文章內最大的標題就是 h3」設計的獨立音階
+     （h3 26 / spot-title 22 / food-list-title 20 / food-name 18），但 07-16 這篇同時用了
+     裸 <h2>，等於在上面又疊一階，於是 h3 26px 撞上 .prose h2 行動版 26px（且 h3 底線 3px
+     比 h2 的 2px 更粗），母標題反而比子標題輕；同層的「Day X」(26) 與「◇ ○○區美食」(20)
+     又差了 6px，而孫層 .spot-title (22) 還大過叔層 food-list-title (20)。
+     改為與全站 .prose 共用同一組音階：
+       h2 26/28（不動）→ Day X 與 food-list-title 20/21 → spot-title 與 food-name 18。
+     .style-a-post h3 的整條覆寫直接刪掉，讓 Day X 回落到 .prose h3（同 07-13/07-20 的
+     ### 外觀）；底線依 A13 只留給 h2，故 h3 與 food-list-title 的 border-bottom 一併移除。 */
   .style-a-post .spot-section {
     @apply mb-10 pb-8 border-b border-sand/20 last:border-b-0;
   }
   .style-a-post .spot-title {
-    @apply font-serif text-[22px] font-bold text-primary mt-4 mb-2 flex items-center gap-2;
+    @apply font-serif text-[18px] font-bold text-primary mt-4 mb-2 flex items-center gap-2;
   }
   .style-a-post .spot-title::before {
     content: '◇';
-    @apply text-primary font-normal text-lg;
+    @apply text-primary font-normal text-base;
   }
   .style-a-post .spot-desc {
     @apply text-[16px] text-ink leading-relaxed mb-4 pl-6;
@@ -887,8 +893,10 @@
   .style-a-post .sub-option-item strong {
     @apply text-ink font-semibold block mb-1;
   }
+  /* 與「Day X」同一階（h2 之下的第一層分節），故刻意與 .prose h3 完全同款：同字級、同留白、
+     同樣不加底線。差別只在它是 <div> 不進 TOC——見 doc/project.md 待辦。 */
   .style-a-post .food-list-title {
-    @apply font-serif text-[20px] font-bold text-ink border-b-2 border-sand/60 pb-1.5 mt-12 mb-6 pl-0;
+    @apply font-serif text-[20px] md:text-[21px] font-bold text-ink mt-9 mb-4 pl-0;
   }
   .style-a-post .food-item {
     @apply relative p-0 mb-12 border-0 bg-transparent rounded-none shadow-none last:mb-0;
