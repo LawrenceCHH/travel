@@ -58,7 +58,7 @@
             : `${dateObj.getFullYear()}年${String(dateObj.getMonth() + 1).padStart(2, '0')}月${String(dateObj.getDate()).padStart(2, '0')}日`;
 
           article.innerHTML = `
-            <a href="${base}posts/detail.html?id=${post.id}">
+            <a href="${base}posts/detail.html?id=${post.id}${post.background ? `&bg=${encodeURIComponent(post.background)}` : ''}">
               <h2 class="post-title text-2xl font-bold text-ink hover:text-primary transition-colors duration-150">${post.title}</h2>
               <h3 class="post-subtitle text-lg font-normal text-muted-text mt-1">${post.subtitle || ''}</h3>
             </a>

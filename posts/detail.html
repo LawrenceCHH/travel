@@ -32,6 +32,18 @@
     </div>
   </header>
 
+  <script>
+    // 若連結帶有 bg 參數（由列表頁提供），立即套用正確 banner，
+    // 避免等待 posts.json fetch 完成前先閃一下預設的 bg-post.jpg。
+    (function () {
+      var bg = new URLSearchParams(window.location.search).get('bg');
+      if (bg) {
+        document.getElementById('post-header').style.backgroundImage =
+          `url('/travel/${bg.replace(/^\//, '')}')`;
+      }
+    })();
+  </script>
+
   <!-- Post Content -->
   <article class="mx-auto max-w-3xl px-5 py-8 my-4 bg-surface">
     <div id="post-content" class="prose max-w-none">
@@ -153,7 +165,7 @@
         function buildPostNavLink(post, dir) {
           const a = document.createElement('a');
           a.className = 'post-nav-link';
-          a.href = `${base}posts/detail.html?id=${post.id}`;
+          a.href = `${base}posts/detail.html?id=${post.id}${post.background ? `&bg=${encodeURIComponent(post.background)}` : ''}`;
           a.rel = dir === 'prev' ? 'prev' : 'next';
 
           const label = document.createElement('span');

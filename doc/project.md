@@ -325,6 +325,18 @@ posts/
     壓在內文（16-17px）之下一階，但不低到與 12px 眉標混層。**行動版也維持左右兩欄**（使用者要求）：
     堆疊成上下兩列會讓方向語意退化成單純先後順序，故窄欄由標題自行吸收折行（14px、`line-clamp: 3`；
     md 以上 15px、`line-clamp: 2`）。箭頭放在眉標行而非標題行，避免被 `line-clamp` 截掉。
+23. **文章 banner 改用連結傳遞，避免切換文章時先閃一下錯誤圖片（2026-07-21）**：`posts/detail.html`
+    是所有文章共用的通用模板，`<header id="post-header">` 寫死預設圖 `bg-post.jpg`，正確的
+    `post.background` 要等 `DOMContentLoaded` 內 `fetch('data/posts.json')` 完成才會替換——切換
+    文章時使用者會先看到一瞬間的錯誤 banner 才跳成正確圖片，網路較慢時尤其明顯。**解法**：
+    `index.html`／`posts/index.html`／`detail.html` 自身的上/下一篇導覽，產生連結時把已經拿在手上
+    的 `post.background` 一併塞進 `&bg=` query string；`detail.html` 在 `<header>` 之後立刻插入一段
+    同步（非 `type="module"`、非 `DOMContentLoaded`）的 inline `<script>`，剖析 `bg` 參數並直接寫
+    `header.style.backgroundImage`，搶在 `posts.json` fetch 之前完成，也搶在瀏覽器對預設
+    `bg-post.jpg` 發出請求前把 style 換掉。`DOMContentLoaded` 內原本的覆寫邏輯保留不動，作為
+    `bg` 參數缺漏時（直接貼網址、書籤、爬蟲）的 fallback，行為與改動前一致。用 Playwright 對
+    `#post-header` 的 `backgroundImage` 每 30ms 取樣一次驗證，從第一筆（約 10ms）起就已經是正確
+    圖片，全程未出現 `bg-post.jpg`。
 
 ## GitHub Pages 部署設定指引
 
@@ -367,6 +379,25 @@ posts/
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-21 — 修正切換文章時 banner 先閃錯誤圖片再跳正確圖片的問題
+
+* **提問**：使用者回報「頁面跳轉的時候，會先跳原始類別的 banner 才會轉換當前文章的 banner，
+  那個 lag 非常明顯」。
+* **根因**：`posts/detail.html` 是所有文章共用的通用模板，`<header id="post-header">` 寫死預設圖
+  `bg-post.jpg`（也是文章列表頁 `posts/index.html` 用的同一張），正確的 `post.background` 要等
+  `DOMContentLoaded` 內 `fetch('data/posts.json')` 完成才會替換，兩者之間的網路延遲就是使用者
+  看到的「閃一下」。設計理由見第一部分第 23 點。
+* **處理**：`index.html`（首頁卡片連結）、`posts/index.html`（列表連結）、`posts/detail.html`
+  （上/下一篇導覽連結）三處產生連結時，把已經拿在手上的 `post.background` 一併塞進 `&bg=` query
+  string；`detail.html` 在 `<header>` 之後插入一段同步 inline `<script>`，剖析 `bg` 參數並立刻寫
+  `header.style.backgroundImage`，搶在 `posts.json` fetch 與瀏覽器對預設圖發出請求之前完成替換。
+  `DOMContentLoaded` 內原本讀 `posts.json` 後覆寫 banner 的邏輯保留不動，作為 `bg` 參數缺漏時
+  （直接貼網址、書籤、爬蟲）的 fallback。
+* **驗證**：`npm run dev` 起本地伺服器，以 Playwright 開首頁、點文章卡片連結，確認產生的網址帶有
+  `&bg=%2Fimg%2Fposts%2Fwowpass.jpg`；對 `#post-header` 的 `backgroundImage` 每 30ms 取樣直到
+  1.5 秒，從第一筆（約 10ms）起就已是正確圖片，全程未出現 `bg-post.jpg`，並用截圖確認頁面渲染
+  正常、`console --errors` 無錯誤。未改動任何 CSS，不需要 bump `sw.js` 的 `CACHE_NAME`。
+
 ### 2026-07-21 — 文章頁三處 UI/UX 調整：TOC 側欄密度、桌機誤現的 FAB、上/下一篇導覽
 
 * **提問**：使用者以資深 UI/UX 設計師視角連問三題——(1) 桌機左側快速索引導覽列「版面有點太擠」，
@@ -404,31 +435,9 @@ posts/
   兩欄是否夠寬，需使用者在 `npm run dev` 目視；若普遍撞到 3 行上限，下一步是收窄 `gap` 換欄寬，
   不是再縮字。
 
-### 2026-07-21 — `contact.html` 套用其他版面既有設計，修正三處風格漂移
-
-* **提問**：使用者要求把 `contact.html` 套用「目前其他版面的設計」，並在過程中補充「讓風格
-  維持一致」。
-* **盤點出三處漂移**：(1) 外層容器用 `max-w-xl`，而 `style.md` B3 明訂全站容器統一
-  `mx-auto max-w-3xl px-5`（navbar／Hero／首頁／`about.html`／`posts/*.html` 皆同），
-  `contact.html` 是全站唯一的例外；(2) 表單容器沒有 `about.html`／`posts/detail.html` 兩篇
-  文字頁共用的 `py-10 my-4 bg-surface` 抬升卡片包裝；(3) 輸入框只有裸 `border border-sand`，
-  缺少 `assets/scripts.js` 既有搜尋框（`posts/index.html` 篩選列）已經在用的
-  `rounded bg-surface text-sm text-ink shadow-sm` 組合；送出結果的成功/失敗訊息用了色票外的
-  `bg-green-50`/`bg-red-50` 色塊，而全站其餘頁面（`index.html`／`posts/index.html`／
-  `posts/detail.html`）的錯誤訊息一律是裸文字 `text-red-500`，沒有色塊背景。
-* **處理**：外層容器改回 `max-w-3xl px-5 py-10 my-4 bg-surface`（對齊 `about.html`），內層另包
-  一層 `max-w-xl` 讓表單欄位本身維持可讀寬度，兩者不衝突；三個 input/textarea 補齊
-  `rounded bg-surface text-sm text-ink shadow-sm`；成功訊息改用色票內的 `text-primary` 裸文字，
-  失敗訊息改用與其他頁面一致的 `text-red-500` 裸文字，兩者皆拿掉色塊背景與非色票的
-  green/red-50/800。
-* **未動**：`.btn-primary`、Google Apps Script 送出邏輯、`bg-contact.jpg` 皆已符合規範，未變更。
-  改動僅限 `contact.html` 的 class 與少量 innerHTML 字串，未動 `assets/tailwind.css`，故不需要
-  bump `sw.js` 的 `CACHE_NAME`。
-* **驗證**：`npm run build` 通過；用到的 class（`rounded`/`bg-surface`/`text-sm`/`shadow-sm`/
-  `text-primary`/`text-red-500`）皆為既有頁面已使用過的既有樣式，無新增 CSS。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-21：`contact.html` 套用其他版面既有的容器／卡片／輸入框樣式，修正三處與全站不一致的風格漂移（外層 `max-w-xl`→`max-w-3xl`、補齊卡片包裝、成功/失敗訊息改回裸文字），對齊 `style.md` B3
 - 2026-07-21：修正 07-16 標題階層忽大忽小（`Day 1` 比母標題 `景點漫遊` 還大），`.style-a-post` 那組自成一格的音階（26/22/20/18）整組併回 `.prose`，`.style-a-post h3` 覆寫整條刪除、`.spot-title` 22→18px，底線依 A13 只留給 `h2`；外溢範圍僅 07-16 一篇，`.prose` 未動（設計決策見第一部分第 20 點）
 - 2026-07-21：否決 `h3` 視覺記號（字符與左側色條皆試過後推翻），改以「收掉緊接 h2 後、內文
   三四行的標籤型 `###`」處理標題過密，`doc_style.md` 新增第 3 節、`style.md` 新增 A14

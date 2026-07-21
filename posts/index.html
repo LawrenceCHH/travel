@@ -82,7 +82,7 @@
           tr.innerHTML = `
             <td class="py-4 px-4">
               <div class="flex flex-col gap-1">
-                <a class="text-ink font-semibold text-base hover:text-primary no-underline" href="${base}posts/detail.html?id=${post.id}">${post.title}</a>
+                <a class="text-ink font-semibold text-base hover:text-primary no-underline" href="${base}posts/detail.html?id=${post.id}${post.background ? `&bg=${encodeURIComponent(post.background)}` : ''}">${post.title}</a>
                 <div class="flex items-center flex-wrap gap-2 mt-1">
                   <time class="text-xs text-muted-text tabular-nums">${formattedDate}</time>
                   ${tagsHtml}
