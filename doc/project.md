@@ -379,6 +379,27 @@ posts/
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-22 — 修正首頁/聯絡頁背景圖換版後瀏覽器仍顯示舊圖的問題
+
+* **提問**：使用者回報「commit and push 沒有更新網頁的圖片」——懷疑是快取問題，要求清快取
+  重新部署。
+* **根因**：`public/sw.js` 對 `/img/`（與 `/assets/`、`/fonts/`）路徑採 cache-first 策略
+  （`fetch` 事件監聽器中 `caches.match(request).then(cached => cached || fetch(...))`），只要
+  瀏覽器的 Cache Storage 裡已有舊版圖片，就會永遠優先回傳快取版本、不會去網路比對是否有新版。
+  上一筆 commit（`15f22c3`，2026-07-21「update banner, fix banner change lag」）換掉了
+  `public/img/bg-contact.jpg`、`public/img/bg-index.jpg` 的實際內容，但**沒有同步遞增
+  `sw.js` 的 `CACHE_NAME`**——依第一部分第 5 點與 `CLAUDE.md` 規範，任何快取資產內容變動都必須
+  bump 版本號，才能讓已造訪過的瀏覽器的 Service Worker 在下次 `activate` 時清掉舊 Cache
+  Storage、強制重新抓取新圖。因為漏了這步，舊訪客的瀏覽器會一直卡在快取的舊圖，即使
+  GitHub Pages 上的檔案內容早已是新版。
+* **處理**：將 `public/sw.js` 的 `CACHE_NAME` 由 `clean-blog-v53` 升到 `clean-blog-v54`，其餘
+  程式碼與圖片檔案本身不需改動（圖檔內容已在上一筆 commit 正確更新）。
+* **驗證**：`grep CACHE_NAME public/sw.js` 確認已改為 `v54`；此變更需 commit + push 後由使用者
+  或既有 CI（`.github/workflows/pages.yml`）部署到 GitHub Pages，瀏覽器下次載入頁面時新 SW
+  會觸發 `activate` 清除舊快取，之後的圖片請求才會落到新版。**未做視覺確認**（專案無截圖工具
+  鏈；且效果需清空瀏覽器既有 Cache Storage/或等新 SW 接管後才看得出來，無法在本次工具環境內
+  重現「使用者瀏覽器已有舊快取」的狀態)。
+
 ### 2026-07-21 — 修正切換文章時 banner 先閃錯誤圖片再跳正確圖片的問題
 
 * **提問**：使用者回報「頁面跳轉的時候，會先跳原始類別的 banner 才會轉換當前文章的 banner，
@@ -398,45 +419,9 @@ posts/
   1.5 秒，從第一筆（約 10ms）起就已是正確圖片，全程未出現 `bg-post.jpg`，並用截圖確認頁面渲染
   正常、`console --errors` 無錯誤。未改動任何 CSS，不需要 bump `sw.js` 的 `CACHE_NAME`。
 
-### 2026-07-21 — 文章頁三處 UI/UX 調整：TOC 側欄密度、桌機誤現的 FAB、上/下一篇導覽
-
-* **提問**：使用者以資深 UI/UX 設計師視角連問三題——(1) 桌機左側快速索引導覽列「版面有點太擠」，
-  是否該縮小字體？(2) 「web 版不該出現右下角小圓點」；(3) 上/下一篇按鈕應該顯示標題讓使用者
-  決定，字體要怎麼均衡融入、或乾脆不要用按鈕？
-* **(1) TOC 側欄——結論是不縮字，問題不在字級在密度節奏**：側欄寬 `11rem`（扣 padding 約容 11
-  個中文字），中文標題幾乎必然折行；而 `line-height: 1.4` 的行內間距只有 5.6px、項目上下 padding
-  合計 8px，兩者幾乎相等 → 折行的條目與相鄰條目黏成一整塊文字牆（鄰近性原則被破壞）。**縮字
-  只會讓折行更多、更糟**，且 14px 已是中文導覽的可讀地板。改法：`line-height` 1.4→1.55、padding
-  `0.25rem 0 0.25rem 0.5rem`→`0.3rem 0 0.3rem 0.625rem`、`.toc-sidebar .toc-link` 補
-  `margin-bottom: 0.25rem`（**刻意只掛在側欄**——手機抽屜 `.toc-sheet-list` 已用 flex `gap` 控制
-  間距，掛在共用的 `.toc-link` 上會兩者疊加）、`[data-level="3"]` 加 `font-size: 0.8125rem` 建立
-  層級對比（抽屜版原有的 `.toc-sheet .toc-link[data-level="3"]` 覆寫仍在，觸控尺寸不受影響）。
-  另把 `scripts.js` 的「本文章節」標題 `mb-2`→`mb-3`。**未採用**：先前提議的 `clamp()` 加寬側欄
-  （會改動側欄與文章的 2rem 間隙），待使用者看過密度後再定。
-* **(2) 桌機 FAB 外洩——是 cascade layers 的優先序問題，不是 breakpoint 寫錯**：詳見第一部分
-  第 21 點。`.toc-fab` 早就掛了 `xl:hidden`，但未分層的元件 CSS 優先序高於 `@layer utilities`，
-  `display: flex` 直接壓過 `display: none`。解法是在 CSS 自己補
-  `@media (min-width: 80rem) { .toc-fab { display: none } }`；`scripts.js` 的 `xl:hidden` 保留
-  當意圖標註（無副作用）。
-* **(3) 上/下一篇改為 `.post-nav-*` 連結對**：設計理由與字級決策見第一部分第 22 點。`detail.html`
-  容器由 `flex justify-between` 改為 `<nav class="post-nav" aria-label="文章導覽">`（只有下一篇
-  存在時，空的 prev `div` 仍佔住第一欄，右格自動留在原位）；兩段 `innerHTML` 字串改用
-  `buildPostNavLink()` 以 DOM API 組裝、標題走 `textContent`，**順手修掉 `title="${post.title}"`
-  未跳脫的既有 bug**（標題含 `"` 會破壞標記），並補上 `rel="prev"`／`rel="next"`。使用者追加
-  要求「行動版標題太長時不要變成上下兩列」，故 `grid-template-columns: 1fr 1fr` 與
-  `.post-nav-cell--next { text-align: right }` 改為所有寬度共用，行動版 `gap: 1rem`、md 以上
-  `2rem`，並加 `align-items: start`（一邊 1 行、另一邊 3 行時兩欄仍從頂端對齊）、
-  `overflow-wrap: anywhere`（無空白長字串不撐破窄欄）。
-* **驗證**：`npm run build` 通過，並自 `dist/assets/*.css` 複驗
-  `@media (min-width:80rem){.toc-fab{display:none}}`、`.post-nav{grid-template-columns:1fr 1fr}`、
-  `.post-nav-title` 的 `line-clamp` 3→2 與 14→15px 皆已輸出。CSS 有變（打包雜湊碼隨之改變），
-  依 `CLAUDE.md` 規範把 `public/sw.js` 的 `CACHE_NAME` 由 v52 升到 v53。
-  **未做視覺確認**（專案無截圖工具鏈）——15px/`line-clamp` 的實際折行表現、以及行動版 375px 下
-  兩欄是否夠寬，需使用者在 `npm run dev` 目視；若普遍撞到 3 行上限，下一步是收窄 `gap` 換欄寬，
-  不是再縮字。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-21：文章頁三處 UI/UX 調整——TOC 側欄改行距/padding 而非縮字、桌機 FAB 外洩改用 `@media` 直接關閉（cascade layers 優先序問題）、上/下一篇按鈕改為顯示標題的 `.post-nav-*` 連結對，順手修掉 `title` 屬性未跳脫的 bug (CACHE_NAME 升至 v53)
 - 2026-07-21：`contact.html` 套用其他版面既有的容器／卡片／輸入框樣式，修正三處與全站不一致的風格漂移（外層 `max-w-xl`→`max-w-3xl`、補齊卡片包裝、成功/失敗訊息改回裸文字），對齊 `style.md` B3
 - 2026-07-21：修正 07-16 標題階層忽大忽小（`Day 1` 比母標題 `景點漫遊` 還大），`.style-a-post` 那組自成一格的音階（26/22/20/18）整組併回 `.prose`，`.style-a-post h3` 覆寫整條刪除、`.spot-title` 22→18px，底線依 A13 只留給 `h2`；外溢範圍僅 07-16 一篇，`.prose` 未動（設計決策見第一部分第 20 點）
 - 2026-07-21：否決 `h3` 視覺記號（字符與左側色條皆試過後推翻），改以「收掉緊接 h2 後、內文
