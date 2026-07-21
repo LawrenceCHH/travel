@@ -2,7 +2,7 @@
 
 此專案已於 2026-07-11 從 Jekyll 遷移至基於 **Vite** 與 **Tailwind CSS v4** 的純前端 MPA（多頁面應用）靜態架構。所有頁面的共用 Layout 載入、文章目錄搜尋與篩選、以及 Markdown 文章解析渲染，皆直接於瀏覽器端完成，徹底擺脫了對 Ruby、Jekyll 與 Gem 的依賴。
 
-本檔案分兩部分：**第一部分**是給 Agent／開發者的架構與參考資訊（技術棧、指令、目錄結構、功能對應程式碼、關鍵設計決策），**第二部分**是更新歷史與待辦事項。安裝/建置/部署指令另見 [`../README.md`](../README.md)；全站視覺與互動風格的系統化分析（抽象設計準則＋具體元件規格）見 [`./style.md`](./style.md)；Markdown 裝飾元件的語意化命名與重複使用指引見 [`./markdown_decorations_design.md`](./markdown_decorations_design.md)。
+本檔案分兩部分：**第一部分**是給 Agent／開發者的架構與參考資訊（技術棧、指令、目錄結構、功能對應程式碼、關鍵設計決策），**第二部分**是更新歷史與待辦事項。安裝/建置/部署指令另見 [`../README.md`](../README.md)；全站視覺與互動風格的系統化分析（抽象設計準則＋具體元件規格）見 [`./style.md`](./style.md)；Markdown 裝飾元件的語意化命名與重複使用指引見 [`./markdown_decorations_design.md`](./markdown_decorations_design.md)；**只有在新增/編輯文章時**才需要參考的標題階層與 `---` 分隔線用法守則見 [`./doc_style.md`](./doc_style.md)。
 
 ---
 
@@ -255,6 +255,21 @@ posts/
     *   **CSS Cascade 陷阱與因應**：新規則刻意插入在既有 `.prose td/th overflow-wrap` 規則之後、`.toc-sidebar` 之前，讓 `.prose h3`/`.prose h4`（specificity 0,1,1）在來源順序上先於後方的 `.emergency-card h3`／`.app-info h4`（同為 0,1,1，靠來源順序決勝）出現，避免蓋掉這兩個既有卡片標題。但驗證中另外發現兩個「同 specificity 排序救不回」的隱性衝突（純 class 選擇器 specificity 只有 0,1,0，天生低於 0,1,1，不論插入順序都會被蓋掉）：07-13 `<h3 class="alert-box-title">`（提示框標題）與 07-16「7 大主題景點快速導覽」的 `<h4 class="text-xs uppercase ...">`（純 utility class 堆疊，非既有 CSS class 契約）。修法是額外新增 `.prose h3.alert-box-title` 與 `.prose .editorial-quick-jump h4` 兩條 2-class 選擇器（specificity 0,2,x，穩贏，與插入順序無關）明確恢復原始迷你標題外觀。`.spot-title`（07-16 h4）與 `.food-item-name`（DSL span，07-16 實際手寫版用的是同語意的 `.food-name` span）皆非此問題：前者被 `.style-a-post .spot-title`（0,2,0）保護，後者本來就不是 h1-h4 元素，不受影響。
     *   **唯一偏離規格書數值處**：07-16 的 `.style-a-post h3`（Day X 小節標題）固定 26px、不隨斷點縮放；規格書原定 `.prose h2` 手機版 24px，會讓母標題（總覽/景點漫遊/美食推薦）在 <768px 寬度視覺量體小於其下的子標題 Day X，故將 `.prose h2` 手機版基準值由 `1.5rem`（24px）微調為 `1.625rem`（26px，打平 Day X），`md:1.75rem`（28px）維持不變。其餘 h1/h3/h4/表格/blockquote 數值皆按規格書原值實作、未調整。
     *   **驗證**：以 Playwright 對三篇文章在 320/390/768/1280px 寬度量測 `document.body.scrollWidth` vs `window.innerWidth`，全數無新增橫向捲動；並以 computed style 逐一確認 `.emergency-card h3`（該 class 目前實際上未被任何文章使用，07-13 緊急應變區已改用 `<details class="fold">` 手風琴呈現，故此規則現階段是面向未來、非當前線上內容驗證對象）、`.app-info h4`（16px/800，未變）、`.alert-box-title`（16px serif，未變）、`.spot-title`（22px serif primary，未變）、`.editorial-quick-jump h4`（12px 大寫 muted，未變）均維持原樣；`npm run build` 通過。
+18. **標題 `border-bottom` 收斂為「只有 h2 固定有底線」（2026-07-21，含一次被推翻的中間
+    方案）**：延續第 17 點的 `.prose` 標題系統。第一版方案是條件式的：發現「大標題後面
+    緊接著更小的標題、中間沒有段落」時（例如 `## 1.2 WOWPASS 完整介紹` 後直接接 `###
+    是什麼`），h1/h2 的 `border-bottom` 分隔的其實是「標題 vs 另一個標題」而非「標題 vs
+    內文」，故用 `.prose h1:has(+ h2)`／`.prose h2:has(+ h3)` 機械化拿掉底線，並經 Opus
+    （資深 UI/UX 設計師視角）覆核核准上線。但實際套用後發現問題：07-20 一篇文章 6 個
+    `## 1.x` 就有 4 個底線忽有忽無（觸發條件藏在肉眼看不到的 markup 結構裡），讀者完全
+    抓不到規律。**第二輪推翻重議**：把這個現象回報給 Opus，Opus 反向承認第一版判斷錯誤
+    ——語意論證沒錯，但套在 `h2` 這種高頻、讀者賴以建立掃描節奏的層級上，「不可預測」
+    比「語意上稍嫌多餘」的代價更高。最終改採最簡單的固定規則：**只有 `h2` 帶
+    `border-bottom`，無條件套用；`h1`/`h3`/`h4` 一律不加**，移除所有 `:has()` 條件邏輯
+    （h1 原本的 `border-bottom` 也一併拿掉，靠字級/字重本身已夠大夠粗）。抽象準則寫入
+    `doc/style.md`：A12（分隔線只在有東西可分隔時才出現，`---` 案例仍有效）與新增 A13
+    （高頻節奏錨點層級：可預期的規律優先於消除次要的語意冗餘），B6 同步更新為最終規則。
+    **驗證**：`npm run build` 通過。
 
 ## GitHub Pages 部署設定指引
 
@@ -293,71 +308,61 @@ posts/
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
-### 2026-07-21 — 把 07-16 首爾文章的雜誌感標題/表格/blockquote 樣式內化為 `.prose` 基礎預設值
+### 2026-07-21 — 推翻標題底線 `:has()` 規則，改為「只有 h2 固定有底線」
 
-* **目標**：讓 07-16《首爾秋日漫遊手帳》手工打磨出的雜誌感視覺語言（襯線標題階層、
-  pull-quote、密集表格）成為全站文章共用的 `.prose` 基礎排版預設值，使 07-13/07-20 這類
-  「純 Markdown、無自訂 class」的文章不用改一個字就自動變好看，不必逐篇手動加 class。
-* **改動範圍**：僅改 `assets/tailwind.css`（未動任何 `src/posts/*.md` 內容）。在既有
-  `.prose td, .prose th { overflow-wrap: break-word; }` 規則之後、`.toc-sidebar` 定義之前
-  新增：`.prose h1`~`.prose h4` 襯線標題階層（h1 30/34px、h2 24~26/28px、h3 20/21px、
-  h4 15px 無襯線）；`.prose blockquote` 改為 serif pull-quote（左側 3px sand 色條，拿掉
-  italic），同步移除 `@layer base` 裡全站 `blockquote { font-style: italic }` 的殘留設定；
-  `.prose thead th`/`.prose tbody tr`/`.prose td` 補表頭底色、列分隔線與 14px 字級（刻意
-  小於 body 18px，避免密集表格撐寬回歸手機橫向捲動的舊 bug）；`.prose input[type="checkbox"]`
-  套用 `--color-primary` accent-color；`.prose hr` 加大留白。
-* **Cascade 陷阱與因應**：新規則插入位置刻意選在既有卡片元件規則（`.emergency-card h3`／
-  `.app-info h4`，皆為 specificity 0,1,1）之前，讓兩者能靠「來源順序在後」繼續蓋過新的
-  `.prose h3`/`.prose h4`。但驗證過程另外發現兩個「同 specificity 排序救不回」的隱性衝突：
-  純 class 選擇器 specificity 只有 (0,1,0)，天生就低於 `.prose h3`/`.prose h4` 的
-  (0,1,1)，不論插入順序都會被蓋掉——07-13 `<h3 class="alert-box-title">`（提示框標題）與
-  07-16「7 大主題景點快速導覽」的 `<h4 class="text-xs uppercase ...">`（純 utility class
-  堆疊，非既有 CSS class 契約）皆屬此類。修法是另外新增 `.prose h3.alert-box-title` 與
-  `.prose .editorial-quick-jump h4` 兩條 2-class 選擇器（specificity 0,2,x，穩贏、與插入
-  順序無關），明確恢復原始迷你標題外觀。`.spot-title`（07-16 h4）本身已被
-  `.style-a-post .spot-title`（0,2,0）保護，`.food-item-name`（DSL span，07-16 實際手寫版
-  用同語意的 `.food-name` span）本來就不是 h1-h4 元素，兩者皆無需額外處理。
-* **唯一偏離規格書數值處**：07-16 `.style-a-post h3`（Day X 小節標題）固定 26px、不隨斷點
-  縮放；規格書原定 `.prose h2` 手機版 24px，會讓母標題（總覽/景點漫遊/美食推薦）在
-  <768px 寬度視覺量體小於其下的子標題 Day X。故將 `.prose h2` 手機版基準值由 `1.5rem`
-  （24px）微調為 `1.625rem`（26px，打平 Day X），`md:1.75rem`（28px）維持不變；其餘
-  h1/h3/h4/表格/blockquote 數值皆按規格書原值實作、未調整。
-* **驗證**：以 Playwright 對三篇文章在 320/390/768/1280px 寬度量測
-  `document.body.scrollWidth` vs `window.innerWidth`，全數無新增橫向捲動（07-20 密集比較
-  表為既有脆弱點，重新確認未回歸）；並以 computed style 逐一確認
-  `.app-info h4`（16px/font-weight 800，未變）、`.alert-box-title`（16px serif，未變）、
-  `.spot-title`（22px serif primary，未變）、`.editorial-quick-jump h4`（12px 大寫
-  muted，未變）均維持原樣；`.emergency-card h3` 因該 class 目前實際上未被任何文章使用
-  （07-13 緊急應變區已改用 `<details class="fold">` 手風琴呈現）故只能以來源順序/specificity
-  推導確認安全，非線上內容實測。`npm run build` 通過。
+* **背景**：前一筆記錄剛上線的 `.prose h1:has(+ h2), .prose h2:has(+ h3) { border-bottom:
+  none }` 規則（h1/h2 底線在「後面緊接更小標題」時拿掉），套用到實際文章後使用者回報
+  「看起來很怪，讀者抓不到節奏」。
+* **問題量化**：`2026-07-20-韓國自由行支付教學.md` 的 6 個 `## 1.x` 小節中，`1.2`/`1.3`/
+  `1.5`/`1.6` 因為後面直接接 `###` 小標而拿掉底線，只有 `1.1`（後接段落）與 `1.4`（後接
+  比較表格）保留底線——6 個裡有 4 個忽有忽無，且觸發條件（下一個元素是段落/表格還是
+  子標題）藏在讀者看不到的 markup 結構裡，肉眼掃描完全猜不到規律。
+* **二次覆核**：把這個實測結果回報給 Opus（資深 UI/UX 設計師視角），Opus 主動推翻了自己
+  上一輪的核准：語意論證（底線在標題接標題時沒有內文可分隔）本身沒錯，但套用在 `h2`
+  這種**高頻、讀者賴以建立掃描節奏的主力層級**時，「視覺不可預測」是比「語意上稍嫌
+  多餘」更嚴重的成本；h1 之所以沒事純屬僥倖（出現次數少、且幾乎都接內文而非子標題，
+  規則幾乎不會觸發）。並明確反對把規則改套到 h3（"別搬地雷，直接拆掉"）。
+* **最終規則**：拿掉全站所有 `:has()` 條件式底線邏輯；`h1` 的 `border-bottom` 直接移除
+  （字級/字重已經夠大夠粗，不需要線）；只有 `h2` 保留 `border-bottom`，且改為固定、
+  無條件套用；`h3`/`h4` 維持原本沒有底線。
+* **文件同步**：`doc/style.md` 新增 **A13**（高頻節奏錨點層級：可預期的規律 > 消除次要
+  的語意冗餘）記錄這次教訓，A12 移除已作廢的 `:has()` 案例（保留 `---` 案例），B6
+  改寫為最終的固定 h2-only 規則；`project.md` 第一部分第 18 點整段改寫為含推翻過程的
+  完整記錄。**驗證**：`npm run build` 通過。
 
-### 2026-07-21 — 修正純 Markdown 文章裸網址撐破手機版面、TOC 圓點跑出畫面外的問題
+### 2026-07-21 — 新增 `doc/doc_style.md`：文章標題階層與 `---` 分隔線用法守則
 
-* **根因**：`2026-07-20-韓國自由行支付教學.md` 是三篇對照文章中唯一把原始長網址（如
-  `https://www.backpackers.com.tw/forum/showthread.php?t=10633428`）直接當作可見文字寫進
-  Markdown 表格欄位與清單項目，而非像另外兩篇一律用 `[短文字 ↗](url)` 包裝。裸網址沒有空格，
-  瀏覽器預設 `overflow-wrap: normal` 不會在字中間斷行，於是把 `<li>`／`<td>` 一路撐寬到
-  `<article>`，讓整頁在手機上出現橫向捲動；`.toc-fab`（右下角章節導覽圓點）是
-  `position: fixed`，其定位基準（layout viewport）被撐寬後，圓點的可視位置就落在使用者實際
-  螢幕（visual viewport）之外。以 Playwright 搭配 `devices['iPhone 13']` 模擬複驗證實：修正前
-  `window.innerWidth` 被撐寬至 438px（裝置實際可視寬度僅 390px），圓點右緣落在 418px 處，
-  超出可視範圍；修正後 `innerWidth` 恢復 390px 且無橫向捲動。
-* **內容修正**：把該文章表格「網址」欄與明洞換錢所清單中的裸網址全部改寫成連結，統一成另外
-  兩篇文章已在用的連結慣例；表格窄欄位改用單一箭頭符號當可見文字（`查看原文 ↗` 這類短句在窄
-  欄位會被逐字換行成直排、很醜），改寫成 `<a href="..." aria-label="○○原文">↗</a>` 的原生
-  HTML 連結（marked.js 會原樣通過表格儲存格內的 inline HTML），用 `aria-label` 補回螢幕
-  閱讀器需要的語意（單獨的「↗」若無 aria-label，多個連結在「連結清單」導覽模式下會全部唸成
-  同一個詞，無法辨別對應哪篇來源）。
-* **CSS 防護網**：於 `assets/tailwind.css` 的 `.prose` 區塊新增 `.prose p, .prose li { overflow-wrap: anywhere; }`
-  與 `.prose td, .prose th { overflow-wrap: break-word; }`（td/th 用較保守的 `break-word`，
-  避免匯率、日期等數字欄位被強制斷成兩行、破壞對齊），讓純 Markdown 文章即使日後不小心貼了
-  裸網址等無空格長字串，也不會再撐破手機版面——不必依賴作者每次都記得手動包連結語法。
-* **審核與驗證**：修復方向先經 Opus（資深 UI/UX 設計師視角）審核，確認診斷邏輯成立、
-  `overflow-wrap: anywhere` 不應無差別套用在 `td` 以免傷及數字欄位對齊；修正後以 Playwright
-  對三篇文章（含另外兩篇混合 HTML 文章）在 320/390px 寬度下重新驗證，均無橫向溢位、無回歸。
+* **緣起**：使用者以資深 UI/UX 設計師角度檢視 `2026-07-20-韓國自由行支付教學.md`，指出全文
+  6 個 `## 1.x` 小節前都手動加了 `---`，短小節（如 `1.1`、`1.4`，內容只有一兩段或一張表）
+  疊上 `---` 固定 `3rem` 留白後顯得比內容本身更「隆重」，長小節則不明顯；追問後延伸為
+  「標題要不要都套襯線、長短文章有沒有差、有沒有共通法則」的全站規範問題。
+* **診斷**（先由我分析，再交給 Opus 資深 UI/UX 設計師視角獨立覆核）：`.prose h1`/`.prose h2`
+  本身已內建 `border-bottom` 底線，`---` 前後又固定加 `3rem` 留白——同一個「換小節」的訊號
+  被講了兩遍（標題底線 + 手動分隔線），且這份留白份量不隨內容多寡縮放，短小節自然顯得
+  不成比例。Opus 覆核進一步指出：這不只是「份量比例」問題，而是**語意重複**——標題文字、
+  標題底線、`---` 三者都在宣告「新小節」，長小節不是「份量被稀釋所以自然」，只是讀者已經
+  捲得夠久、沒那麼容易注意到贅字而已。
+* **比對三篇文章實際標題階層用法**發現更根本的不一致：07-13 頂層用 `##`、07-16 完全繞過
+  markdown 標題改用裸 HTML `<h2>`、07-20 則用 `#` 當 Part 分卷、`##` 當小節——三篇對「哪個
+  階層對應哪一層結構」各行其是，沒有共通定義。
+* **產出規則**（寫入 `doc/doc_style.md`，僅此份新文件，未改任何 `src/posts/*.md` 內容）：
+  1. 標題階層與結構深度固定對應（`#`＝全文唯一最高層分卷斷點，通常只在文章真的分成
+     敘述文/Q&A速查等不同內容形式時才用；`##`＝主要小節；`###`＝小節內細項；`####`＝
+     元件內部迷你標籤，不受此規則約束），且此對應**不隨文章長短調整**——長文章只是
+     「用到的階層比較多」，不是「同一階層在不同文章看起來不一樣」。
+  2. `---` 只能標記文章實際用到的**最高一層**斷點（即 `#` 之間的切換），絕不用在
+     `##`/`###` 前；全文沒有 `#` 的文章（多數文章）就不需要任何 `---`。
+  3. 以 07-20 為案例作結：全文 7 個 `---` 中，只有 `# Part 1` → `# Part 2` 那一個符合規則，
+     其餘 6 個 `##` 前的與 H1 引言下方那 1 個，依規則都應移除（本次僅記錄結論於
+     `doc_style.md`，尚未實際修改該文章內容，待使用者確認後再執行）。
+* **與 `project.md` 的分工**：`doc_style.md` 只給「要寫/改文章的人」看，`project.md` 第一部分
+  第 5 行只加一句指向連結，不重複規則內容，避免 `project.md` 被非架構性的內容規範稀釋。
 
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-21：執行 `doc_style.md` 規則清理 07-20 多餘 `---`；同日新增又推翻標題底線 `:has()` 規則（最終定案見上方完整記錄）
+- 2026-07-21：把 07-16 首爾文章的雜誌感標題/表格/blockquote 樣式內化為 `.prose` 基礎預設值，讓 07-13/07-20 純 Markdown 文章免改內容自動套用（`.prose h1`~`h4`/blockquote/表格新規則，含 2-class cascade 覆寫保護既有卡片標題）
+- 2026-07-21：修正 `2026-07-20-韓國自由行支付教學.md` 裸網址撐破手機版面、TOC 圓點跑出畫面外的問題（改寫為連結＋`.prose` 新增 `overflow-wrap` 防護網）
 - 2026-07-20：於 doc/project.md 補充 `dist/` 打包清空警告與文章消失問題說明
 - 2026-07-20：補充「新增文章未顯示」對應之索引與快取更新步驟 (clean-blog-v50)
 - 2026-07-20：升級 PWA Service Worker 快取版本至 clean-blog-v49 並重新打包
