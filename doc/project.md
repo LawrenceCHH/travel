@@ -343,6 +343,29 @@ posts/
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-21 — `contact.html` 套用其他版面既有設計，修正三處風格漂移
+
+* **提問**：使用者要求把 `contact.html` 套用「目前其他版面的設計」，並在過程中補充「讓風格
+  維持一致」。
+* **盤點出三處漂移**：(1) 外層容器用 `max-w-xl`，而 `style.md` B3 明訂全站容器統一
+  `mx-auto max-w-3xl px-5`（navbar／Hero／首頁／`about.html`／`posts/*.html` 皆同），
+  `contact.html` 是全站唯一的例外；(2) 表單容器沒有 `about.html`／`posts/detail.html` 兩篇
+  文字頁共用的 `py-10 my-4 bg-surface` 抬升卡片包裝；(3) 輸入框只有裸 `border border-sand`，
+  缺少 `assets/scripts.js` 既有搜尋框（`posts/index.html` 篩選列）已經在用的
+  `rounded bg-surface text-sm text-ink shadow-sm` 組合；送出結果的成功/失敗訊息用了色票外的
+  `bg-green-50`/`bg-red-50` 色塊，而全站其餘頁面（`index.html`／`posts/index.html`／
+  `posts/detail.html`）的錯誤訊息一律是裸文字 `text-red-500`，沒有色塊背景。
+* **處理**：外層容器改回 `max-w-3xl px-5 py-10 my-4 bg-surface`（對齊 `about.html`），內層另包
+  一層 `max-w-xl` 讓表單欄位本身維持可讀寬度，兩者不衝突；三個 input/textarea 補齊
+  `rounded bg-surface text-sm text-ink shadow-sm`；成功訊息改用色票內的 `text-primary` 裸文字，
+  失敗訊息改用與其他頁面一致的 `text-red-500` 裸文字，兩者皆拿掉色塊背景與非色票的
+  green/red-50/800。
+* **未動**：`.btn-primary`、Google Apps Script 送出邏輯、`bg-contact.jpg` 皆已符合規範，未變更。
+  改動僅限 `contact.html` 的 class 與少量 innerHTML 字串，未動 `assets/tailwind.css`，故不需要
+  bump `sw.js` 的 `CACHE_NAME`。
+* **驗證**：`npm run build` 通過；用到的 class（`rounded`/`bg-surface`/`text-sm`/`shadow-sm`/
+  `text-primary`/`text-red-500`）皆為既有頁面已使用過的既有樣式，無新增 CSS。
+
 ### 2026-07-21 — 修正 07-16 標題階層忽大忽小：`.style-a-post` 併回全站音階
 
 * **提問**：使用者以資深 UI/UX 設計師角度指出 `2026-07-16-韓國首爾旅行.md`「有些標題階層忽大
@@ -370,38 +393,10 @@ posts/
 * **文件同步**：`project.md` 第一部分新增第 20 點；`doc/style.md` 新增 **A15**（同一邏輯層級
   必須共用同一組音階）。
 
-### 2026-07-21 — 否決 `h3` 視覺記號（字符／色條皆不採用），改以減少標題數量處理
-
-* **提問**：使用者以資深 UI/UX 設計師角度詢問，`###` 是否該像 07-16 那樣加上菱形（◇）之類
-  的字符當標題註記，參考風格為 `2026-07-16-韓國首爾旅行.md`。
-* **字符方案當場否決**，三個理由：(1) ◇ 已被 `.style-a-post .spot-title::before` 佔用，而
-  `.spot-title` 是 `<h4>`——同一個記號同時代表兩個層級會直接抹平階層（07-16 會變成「◇ Day
-  標題」底下再掛「◇ 景點標題」）；(2) 符號解決的是「找得到」而非「分得清」，而依 A13，`h2`
-  才是掃描錨點層級，給 `h3` 加記號等於讓它跟 `h2` 搶注意力；(3) 字符佔約 1.5em，中文長標題
-  在行動版會多折一行且左緣不再與內文對齊。另確認：符號**絕不能寫在 Markdown 裡**，因為
-  `assets/scripts.js` 的 `initTOC()` 用 `textContent` 收 h2/h3，符號會跟著灌進側欄 TOC。
-* **替代方案（左側色條）實作後也被推翻**：改試 `.prose h3 { border-left: 3px solid
-  var(--color-primary); padding-left: .75rem }`，走垂直軸避免與 `h2` 的水平底線混淆。實作時
-  處理了 5 處 specificity 滲漏——`.style-a/b/c-post h3`、`.emergency-card h3`、
-  `.prose h3.alert-box-title` 全都沒宣告 `border-left`/`padding-left`，不論 specificity 高低
-  都會原樣繼承色條，必須各自明確歸零（已從編譯後的 `dist/assets/*.css` 逐條複驗生效）。但
-  使用者實際檢視 07-20（19 個 `h3`）後判定**更亂**：色條讓每個 h3 都變成視覺焦點，19 個焦點
-  等於沒有焦點，反而稀釋 `h2` 的錨點地位。**`assets/tailwind.css` 已完整還原，最終零改動。**
-* **實際採用的解法——減少標題數量**：`2026-07-20-韓國自由行支付教學.md` 原有 19 個 `###`，
-  移除 `## 1.2 WOWPASS 完整介紹` 與 `## 1.3 Toss 完整介紹` 底下各一個「緊接在 h2 後、內文
-  只有三四行」的 `### 是什麼`，該段文字改當 h2 引言（**內容一字未改**，只刪標題行），`###`
-  減為 17 個，側欄 TOC 同步少兩條（預期行為）。`申請方式`／`儲值方式比較`／`適合誰` 等有
-  掃描價值的標題保留。
-* **一併修正的既有誤判**：先前記錄裡「07-20 有 19 個 h3 應該重新分成 3~4 個 h2 群組」的說法
-  不成立——這 19 個 h3 本來就分屬 6 個編號 `## 1.x` 之下（每組 2~7 個），結構沒有問題，需要
-  處理的只有最密的 1.2／1.3 兩節。
-* **文件同步**：`doc/style.md` 新增 **A14**（標題層級撐不住時先減標題數量，不要加裝飾）；
-  `doc/doc_style.md` 新增第 3 節（`###` 不加視覺記號＋標籤型微小節的收斂判準），原案例章節
-  順延為第 4 節並補記本次套用結果；`project.md` 第一部分新增第 19 點。**驗證**：色條版本與
-  還原後皆執行 `npm run build` 通過。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-21：否決 `h3` 視覺記號（字符與左側色條皆試過後推翻），改以「收掉緊接 h2 後、內文
+  三四行的標籤型 `###`」處理標題過密，`doc_style.md` 新增第 3 節、`style.md` 新增 A14
 - 2026-07-21：推翻標題底線 `:has()` 規則（07-20 的 6 個 `##` 有 4 個底線忽有忽無、讀者猜不到規律），改為「只有 `h2` 固定有底線、無條件套用」，`h1` 底線一併移除；抽象準則寫入 `doc/style.md` A13
 
 - 2026-07-21：新增 `doc/doc_style.md` 文章排版守則——標題階層與結構深度固定對應（`#`＝分卷／`##`＝小節／`###`＝細項／`####`＝元件標籤），且 `---` 只能出現在 `#` 前、絕不用於 `##`/`###`（標題自帶底線已負責分隔）

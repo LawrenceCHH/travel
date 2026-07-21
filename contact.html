@@ -24,26 +24,28 @@
     </div>
   </header>
 
-  <div class="mx-auto max-w-xl px-5 py-8">
-    <p class="mb-6 text-muted-text text-center">想要提供建議嗎？請填寫下方的表單送出您的建議，我會盡快回覆您！</p>
-    <form name="sentMessage" id="contactForm" class="space-y-5">
-      <div>
-        <label for="name" class="mb-1 block font-sans text-sm font-bold text-ink">您的暱稱</label>
-        <input type="text" name="name" class="w-full border border-sand px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入暱稱" id="name" required>
-      </div>
-      <div>
-        <label for="email" class="mb-1 block font-sans text-sm font-bold text-ink">電子郵件信箱</label>
-        <input type="email" name="email" class="w-full border border-sand px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入電子郵件" id="email" required>
-      </div>
-      <div>
-        <label for="message" class="mb-1 block font-sans text-sm font-bold text-ink">建議內容</label>
-        <textarea rows="5" name="message" class="w-full border border-sand px-3 py-2 focus:border-primary focus:outline-none" placeholder="請輸入您想提供的建議..." id="message" required></textarea>
-      </div>
-      <div id="success"></div>
-      <div>
-        <button type="submit" class="btn-primary" id="sendMessageButton">送出建議</button>
-      </div>
-    </form>
+  <div class="mx-auto max-w-3xl px-5 py-10 my-4 bg-surface">
+    <div class="mx-auto max-w-xl">
+      <p class="mb-6 text-muted-text text-center">想要提供建議嗎？請填寫下方的表單送出您的建議，我會盡快回覆您！</p>
+      <form name="sentMessage" id="contactForm" class="space-y-5">
+        <div>
+          <label for="name" class="mb-1 block font-sans text-sm font-bold text-ink">您的暱稱</label>
+          <input type="text" name="name" class="w-full rounded border border-sand bg-surface px-3 py-2 text-sm text-ink shadow-sm focus:border-primary focus:outline-none" placeholder="請輸入暱稱" id="name" required>
+        </div>
+        <div>
+          <label for="email" class="mb-1 block font-sans text-sm font-bold text-ink">電子郵件信箱</label>
+          <input type="email" name="email" class="w-full rounded border border-sand bg-surface px-3 py-2 text-sm text-ink shadow-sm focus:border-primary focus:outline-none" placeholder="請輸入電子郵件" id="email" required>
+        </div>
+        <div>
+          <label for="message" class="mb-1 block font-sans text-sm font-bold text-ink">建議內容</label>
+          <textarea rows="5" name="message" class="w-full rounded border border-sand bg-surface px-3 py-2 text-sm text-ink shadow-sm focus:border-primary focus:outline-none" placeholder="請輸入您想提供的建議..." id="message" required></textarea>
+        </div>
+        <div id="success" class="text-center text-sm font-semibold"></div>
+        <div>
+          <button type="submit" class="btn-primary" id="sendMessageButton">送出建議</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <div id="footer-placeholder"></div>
@@ -66,14 +68,14 @@
           body: new FormData(form)
         }).then(function (response) {
           if (response.ok) {
-            successBox.innerHTML = '<div class="rounded bg-green-50 border border-green-200 text-green-800 px-4 py-3">您的建議已成功送出！</div>';
+            successBox.innerHTML = '<span class="text-primary">您的建議已成功送出！</span>';
             form.reset();
           } else {
             throw new Error('Form submission failed');
           }
         }).catch(function (error) {
           console.error('Error submitting form:', error);
-          successBox.innerHTML = '<div class="rounded bg-red-50 border border-red-200 text-red-800 px-4 py-3">抱歉，郵件伺服器似乎沒有回應，請稍後再試！</div>';
+          successBox.innerHTML = '<span class="text-red-500">抱歉，郵件伺服器似乎沒有回應，請稍後再試！</span>';
         }).finally(function () {
           setTimeout(function () { button.disabled = false; }, 1000);
         });
