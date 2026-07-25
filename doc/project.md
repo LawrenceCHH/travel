@@ -128,7 +128,7 @@ npm run preview
 | 文章 metadata 產生（字數／閱讀時間，內部經 marked + card DSL 渲染後才剝標籤計數） | `scripts/generate-posts-metadata.js` → 產出 `public/data/posts.json` |
 | 文章內頁渲染（Markdown/HTML 解析、上一篇/下一篇導航） | `posts/detail.html` + `assets/scripts.js` |
 | 文章大綱 TOC（桌機側欄／手機 Bottom Sheet／已停用的行動版章節分頁列） | `assets/scripts.js` → `initTOC()`；`ENABLE_CHAPTER_BAR` 旗標控制分頁列是否顯示 |
-| 卡片 DSL（```compare/info/prep/apps/stepper/accordion/quickjump/stop/eat/eatarea 資料區塊，語法細節見 `doc/card_dsl.md`） | `assets/markdown-cards.js`（渲染邏輯）／`assets/scripts.js` 檔頭（`registerCardExtensions` 接線）／`scripts/verify-card-dsl.mjs`（Node 端 0-diff 驗證腳本，用法：`node scripts/verify-card-dsl.mjs <改寫前備份路徑> <改寫後文章路徑>`） |
+| 卡片 DSL（```compare/info/prep/apps/stepper/accordion/quickjump/stop/eat/eatarea 資料區塊，語法細節見 `doc/card_dsl.md`） | `assets/markdown-cards.js`（渲染邏輯）／`assets/scripts.js` 檔頭（`registerCardExtensions` 接線）／`scripts/verify-post-render.mjs`（Node 端渲染回歸驗證，用法：`node scripts/verify-post-render.mjs [基準git-ref] [檔名過濾字串]`，比對指定 ref 與工作目錄的渲染輸出是否 0 diff）／`scripts/audit-card-fields.mjs`（一次性稽核：欄位值過 `parseInline()` 的變動風險）／~~`scripts/verify-card-dsl.mjs`~~（已失效待刪，見下方註記） |
 | 文章專屬視覺風格（front matter `style` 欄位） | `scripts/generate-posts-metadata.js`（寫入 `posts.json`）／`posts/detail.html`（掛 `.post-style-<name>` class）／`assets/post-styles/<name>.css`（scoped 樣式，由 `assets/tailwind.css` 檔尾 `@import`） |
 | 卡片視覺樣式（`.food-item`／`.spot-card`／`.compare-card`／`.info-card`／`.stepper`／`.app-card`／`.emergency-card`／`.alert-box` 等） | `assets/tailwind.css` 的 `@layer components` |
 | 色彩／字型設計 Token | `assets/tailwind.css` 的 `@theme` |
@@ -164,10 +164,17 @@ src/
   posts/                       存放所有文章原始檔（.md 或 .html）的目錄，供前端 Fetch 讀取
 scripts/
   generate-posts-metadata.js   Node.js 腳本，用以提取文章 Front matter、計算閱讀時間並產出 posts.json
-  verify-card-dsl.mjs          Dev-only 驗證腳本（吃 2 個 CLI 參數：改寫前備份路徑、改寫後文章路徑，
-                                無內建預設值）：分別以「純 marked」渲染改寫前備份、「marked +
-                                registerCardExtensions」渲染改寫後文章，正規化空白後比對兩者 HTML
-                                是否逐字相同（0 diff）
+  verify-post-render.mjs       Dev-only 渲染回歸驗證：兩邊都用「當前的 markdown-cards.js」渲染，
+                                比對指定 git ref 與工作目錄的文章 HTML 是否 0 diff。適用 renderer
+                                重構／DSL 欄位語意調整／文章內容遷移等所有情境。
+                                用法：node scripts/verify-post-render.mjs [ref] [檔名過濾字串]
+  audit-card-fields.mjs        Dev-only 一次性稽核：抽出所有 fence 欄位值逐一過 marked.parseInline()，
+                                回報會變動者並依原因/欄位分類統計。用於評估「欄位改支援 Markdown
+                                語法」的風險。Phase 3 完成後可刪除
+  verify-card-dsl.mjs          【已失效，待刪】對「改寫前」刻意用純 marked（無卡片擴充）渲染，
+                                是為「手寫 HTML → DSL fence」那一次遷移設計的一次性工具。全部文章
+                                卡片化後該前提不成立，用它驗任何後續改動都會必然紅字。改用
+                                verify-post-render.mjs
 vite.config.js                 Vite 整合與多入口 (MPA) 設定檔，包含自訂 swPrecachePlugin 打包插件
 index.html                     首頁
 about.html                     關於我們頁面
@@ -452,12 +459,59 @@ posts/
       渲染，或乾脆把兩者合併成一個元件。（原文提及的 style-b/c 實驗版型已於 2026-07-25「文章
       視覺風格系統」重構時整組移除，不再適用，故不再需要一併確認。）
 
+- [ ] **卡片 DSL 欄位改用 Markdown 語法（Phase 2–5 未完成）**：Phase 0–1（稽核工具、渲染回歸
+      驗證工具、全量欄位風險稽核）已完成，結論是可行且既有內容幾乎零變動（437 個欄位值只有
+      1 筆會變，且是 `'`→`&#39;` 這種顯示相同的 escape）。尚未實作的是：讓所有 renderer 拿到
+      marked 實例並依白名單對內容型欄位跑 `parseInline()`（Phase 2）、把三篇文章裡的
+      `<a>`/`<strong>`/`<em>`/`<br>`/手寫 Tailwind class 改寫成 Markdown（Phase 3）、
+      補 `alert` 家族並評估 `fold` 是否可併入既有 `accordion`（Phase 4）、文件同步與刪除
+      失效的 `verify-card-dsl.mjs`（Phase 5）。完整規格與白名單見根目錄 `plan.md`
 - [ ] **本次 UI 調整待目視確認（2026-07-21）**：三項改動都只做到 `npm run build` 與 CSS 輸出複驗，未實際在瀏覽器目視。待確認 (a) TOC 側欄新密度是否仍嫌擠——若是，下一步是把 `.toc-sidebar` 寬度改成 `clamp(11rem, calc(50vw - 26rem), 14rem)` 讓大螢幕自動加寬（**不是再縮字**），代價是動到側欄與文章的 2rem 間隙；(b) `.post-nav-title` 在行動版 375px 下是否普遍撞到 `line-clamp: 3` 上限——若是，解法是收窄 `.post-nav` 的 `gap` 換欄寬
 - [x] **07-16 `.food-list-title` 改為 `<h3 class="food-list-title">` 進 TOC**：已改為 `<h3 class="food-list-title">`，讓 6 個美食分區成功加入 TOC Drawer / 側欄供快速跳轉，視覺樣式 0 Diff 完全不變。
 
 ## 更新歷史
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
+
+### 2026-07-25 — 卡片 DSL 欄位 Markdown 化：稽核工具與渲染回歸驗證工具（Phase 0–1，機制尚未實作）
+
+* **提問**：使用者觀察到 07-16 的 Markdown「還是很亂，沒有統一用 Markdown 格式寫內容」，並詢問
+  「fence 是不是要有另外的 `.css` 才會加上」。
+* **釐清**：fence 與 `style:` 是**兩個互不相干的軸**——fence 決定結構（`markdown-cards.js`
+  轉成 HTML，吃全站共用元件 CSS），`style:` 只是多掛一個 class 供換皮。證據：07-13 用了 6 種
+  fence 卻沒有任何 `style` 欄位與專屬 CSS，07-20 則兩者皆無。四種組合都合法。
+* **根因**：上一階段（風格系統重構）移除的是整篇 wrapper，但 fence **內部欄位值**仍是原樣字串
+  拼進 HTML 樣板，沒跑 markdown 解析。全檔只有 `markdown-cards.js:159`（`stepper`）與 `:200`
+  （`accordion`）呼叫 marked，其餘 8 個家族的欄位值都是死字串，作者要粗體／斜體／連結只能自己
+  寫 HTML。實測殘留：07-13 有 13 個 `<a>`／18 個 `<strong>`／5 個 `<br>`／10 個手寫 class，
+  07-16 有 11 個 `<a>`／11 個手寫 class（其中 `class="text-primary underline"` 是把 Tailwind
+  utility 直接寫進內容，最違背「作者只寫 Markdown」的目標）。
+* **本次交付（Phase 0–1，只做工具與稽核，未動 renderer 與文章）**：
+  1. 新增 `scripts/verify-post-render.mjs`，**取代已失效的 `scripts/verify-card-dsl.mjs`**。
+     舊工具對「改寫前」刻意用純 marked（無卡片擴充）渲染，那是為「手寫 HTML → DSL fence」
+     那一次遷移設計的一次性工具；全部文章卡片化後該前提已不成立，用它驗任何後續改動都會
+     必然紅字（上一階段的 07-16 遷移就無法用它驗證）。新工具兩邊都用當前渲染器，比對指定
+     git ref 與工作目錄的渲染輸出，適用 renderer 重構／欄位語意調整／內容遷移所有情境。
+  2. 新增 `scripts/audit-card-fields.mjs`（一次性稽核工具），抽出所有 fence 欄位值逐一過
+     `marked.parseInline()`，回報會變動者並依原因/欄位分類統計。
+* **稽核結果（決定了後續設計）**：437 個欄位值中僅 **1 筆**會因 `parseInline` 改變——
+  `eat.why` 裡的 `O'sulloc`，`'` 被 escape 成 `&#39;`，瀏覽器顯示完全相同。另有 128 筆是 URL
+  欄位（`url`/`naver`/`kakao`/`ref`），會被 GFM autolink 轉成 `<a>` 破壞樣板，已全數列入
+  「不解析」白名單。`eat.diet` 以**字尾 `*` 當警示標記**（`markdown-cards.js:310`），與 Markdown
+  強調語法直接衝突，同樣列入白名單並需特殊處理順序（先切分、再剝 `*`、最後才解析）。
+  初版稽核曾把 `stepper`/`accordion` 的 body 當成欄位值而誤報 40 筆，修正掃描範圍後排除。
+* **另一項關鍵確認**：`assets/tailwind.css:216` 設 `--tw-prose-links: var(--color-primary)`，
+  而 `.prose a` 給 `color: var(--tw-prose-links); text-decoration: underline` —— 與手寫的
+  `class="text-primary underline"` **產出完全相同的視覺**，且改用 Markdown 連結後會經過
+  `registerCardExtensions` 既有的自訂 `link` renderer，自動獲得現有手寫版所缺的
+  `rel="noopener noreferrer"`。這使 Phase 3 的內容遷移不需要新增任何 CSS。
+* **驗證**：`npm run build` 通過；`verify-post-render.mjs` 雙向自我測試——`HEAD` vs 工作目錄
+  三篇全 0 diff，`HEAD~1` vs 工作目錄正確抓到上一個 commit 移除 wrapper 的 34 字元差異。
+  本次未改 renderer 與文章內容，故未 bump `CACHE_NAME`。
+* **後續**：Phase 2（實作 inline 解析）／Phase 3（遷移三篇文章內容）／Phase 4（補 `alert`
+  家族、評估 `fold` 是否可併入既有 `accordion`）／Phase 5（文件同步、刪除失效的
+  `verify-card-dsl.mjs`）規格見 `plan.md`。
+
 
 ### 2026-07-25 — 文章視覺風格系統重構：`style` front matter 機制、刪除死 DSL 家族與孤兒 CSS、07-16 遷移為 `editorial-card`
 
@@ -509,48 +563,13 @@ posts/
   `registerCardExtensions` 渲染 diff，只有 34 個字元差異（wrapper div 本身），與規劃時的
   實測預期完全一致。守護腳本與基準檔於任務完成後刪除。
 
-### 2026-07-25 — 07-16 文章卡片化：新增 quickjump/stop/eat/eatarea DSL 家族取代手寫 HTML
-
-* **提問**：使用者回報 `src/posts/2026-07-16-韓國首爾旅行.md` 有太多 HTML tag，維護不便，
-  要求在**維持原有視覺風格**的前提下，把重複出現的 `<div>` 區塊改用 markdown fence 包成可
-  重複使用的組件，讓 Markdown 保持乾淨。
-* **根因調查**：專案已有 `assets/markdown-cards.js` 卡片 DSL（見第一部分第 12 點）與對應的
-  `food`/`spot`/`gallery` 家族，看似可以直接套用。但比對後發現這三個家族渲染出的 class 結構
-  （`.food-item-title-row`/`.spot-card`/`.friendly-badge` 等）與 07-16 目前實際使用的
-  `.style-a-post` 結構（`.food-header`/`.food-tag`/`.spot-title`/`.sub-option-list` 等）完全
-  不同——`doc/card_dsl.md` 也標註這三個家族「目前無文章使用」。追查 git log 確認 07-16 曾
-  一度改版為 style-a/b/c 三種視覺（commit `8176941`），`food`/`spot`/`gallery` 是更早一版
-  單一風格設計的產物，並未隨 style-a 定案而更新。若直接沿用舊家族會靜默改變 07-16 的實際
-  版面，違反使用者「維持原有風格」的要求。
-* **處理**：新增 `quickjump`/`stop`/`eat`/`eatarea` 4 個新家族（`CARD_LANGS` 與
-  `RENDERERS`），純字串模板逐字對應 07-16 目前的 style-a HTML（細節見第一部分第 24 點）。
-  為避免手動謄寫 30 個美食卡＋7 個景點卡時出錯，先寫一支一次性 Node 腳本用正規式從改寫前的
-  備份檔解析出每個區塊的欄位，自動產生 fence 原始碼與重組後的完整文章，再用生成結果覆蓋
-  `src/posts/2026-07-16-韓國首爾旅行.md`；解析過程中發現並修正腳本本身兩個 bug
-  （`spot-section` 的正規式邊界誤吃掉每張卡最後一個 `sub-option-item`、`signature` 欄位漏抓
-  Osulloc Tea House 一筆用半形冒號的例外寫法）。同時把 `scripts/verify-card-dsl.mjs` 由硬編
-  07-13 路徑（其中改寫前備份是已不存在的 session 暫存檔，腳本其實已無法執行）改為吃 2 個
-  必填 CLI 參數，讓它可以重複用於任何文章的改寫驗證，不只 07-13。
-* **驗證**：`node scripts/verify-card-dsl.mjs <改寫前備份> src/posts/2026-07-16-韓國首爾旅行.md`
-  正規化後 0 diff；`npm run build` 通過。檔案由 732 行降至 548 行。未跑瀏覽器截圖比對——
-  0-diff 驗證用的正是 `assets/scripts.js` 在瀏覽器裡實際呼叫的同一份 `registerCardExtensions`
-  渲染邏輯，故 Node 端逐字相同即代表瀏覽器渲染結果相同；未額外做視覺回歸測試。
-* **附帶發現並修正的迴歸**：改寫後 `public/data/posts.json` 裡 07-16 的預估閱讀時間從
-  36 分鐘跳到 69 分鐘。根因是 `scripts/generate-posts-metadata.js` 原本直接對**原始
-  Markdown 原始碼**剝除 `<...>` HTML 標籤後計數字元——手寫 HTML 版本裡，`href="長串網址"`
-  這種機器用資料本來就包在會被剝除的標籤屬性裡；改寫成 DSL fence 後，`url`/`naver`/`kakao`/
-  `ref` 等欄位的網址在原始碼裡是**不含 `<...>` 的純文字**，不會被剝除，全部被當成「可讀
-  字數」計入，一篇文章多達約 90 個 raw URL 欄位，字數嚴重虛增。修法是讓
-  `generate-posts-metadata.js` 改成先用 `marked + registerCardExtensions` 把內容渲染成
-  實際 HTML（做法比照 `verify-card-dsl.mjs`），再對渲染後的 HTML 剝標籤計數——網址此時已
-  落在 `href="..."` 屬性裡，隨標籤一併剝除，字數才貼近讀者實際會讀到的文字。此修正對
-  07-13（已用 `prep`/`stepper`/`compare`/`info`/`apps`/`accordion` DSL）與 07-20（純
-  Markdown 連結語法）同樣適用：07-16 回到 35 分鐘（貼近改寫前的 36 分鐘），07-13 由
-  37 分鐘修正為 28 分鐘（此前一直被同一問題隱性虛增，只是没那麼明顯而未被注意到），
-  07-20 由 23 分鐘微調為 20 分鐘（連結 Markdown 語法字元不再計入）。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-25：07-16 文章卡片化——新增 `quickjump`/`stop`/`eat`/`eatarea` 四個 DSL 家族取代
+  重複手寫 HTML（既有 `food`/`spot`/`gallery` 家族的 class 結構與 `.style-a-post` 不相容，
+  故另立平行家族；該三家族已於同日「文章視覺風格系統」重構中整組刪除）。同時修正閱讀時間
+  虛增：`generate-posts-metadata.js` 改為先渲染成 HTML 再剝標籤計數，避免 DSL 的 raw URL
+  欄位被當成可讀字數（07-16 回到 35 分鐘、07-13 由 37 修正為 28、07-20 由 23 微調為 20）
 - 2026-07-22：修正首頁/聯絡頁背景圖換版後瀏覽器仍顯示舊圖（`bg-index.jpg`/`bg-contact.jpg`
   內容已換版但漏 bump `CACHE_NAME`，導致 SW cache-first 策略卡住舊圖），升級至 `clean-blog-v54`
 - 2026-07-21：文章 banner 改用連結傳遞 `&bg=` query string＋同步 inline script 搶跑，修正切換

@@ -1,285 +1,209 @@
-# plan.md v2 — 文章視覺風格系統重構（決策已定案、規格已驗證）
+# plan.md — 卡片 DSL 欄位改用 Markdown 語法（消除內容裡的手寫 HTML）
 
-> **v2 說明**：v1 是調查後的提案，含 5 個開放問題。本版已納入使用者的決策，並把 v1 中
-> **5 個經實測發現是錯的技術主張**修正掉（每項都標了 🔴 修正 並附驗證方式）。這份文件現在
-> 是**可直接執行的規格**，不再是提案。
->
-> 執行前狀態：`main` 分支，working tree 只有本檔與 `scripts/__refactor-guard*` 為未追蹤新增。
+> **上一階段**（文章視覺風格系統重構）已完成並 commit，成果與遺留風險見 [`report.md`](report.md)。
+> 這份是**下一階段**的規劃，處理 report.md 第三節指出的核心問題：
+> 「風格」已經解耦了，但**內容本身仍混著原始 HTML**。
 
 ---
 
-## 0. 已定案決策
+## 1. 問題
 
-| # | 議題 | 決策 |
+上一階段移除的是整篇的 `<div class="style-a-post">` 外殼。但 fence **內部欄位值**裡的 HTML
+一個字都沒動：
+
+| | 07-13 | 07-16 | 07-20 |
+|---|---|---|---|
+| `<a href …>` | 13 | 11 | 4 |
+| `<strong>` | 18 | 3 | 0 |
+| `<br>` | 5 | 2 | 0 |
+| `<em>` | 0 | 2 | 0 |
+| 手寫 `class="…"` | 10 | **11** | 0 |
+
+最糟的是 **Tailwind utility class 直接寫進內容**：
+
+```
+sub: 方案 B（…） | …參考：<a href="https://bobbytravel.tw/blog/post/darakhyu"
+     target="_blank" class="text-primary underline">Darakhyu 膠囊旅館住宿心得 ↗</a>。
+```
+
+作者只是想放一個連結，卻得知道 `text-primary underline` 這組 class。
+
+### 根因
+
+DSL 欄位值是**原樣字串拼進 HTML 樣板**，沒跑 markdown 解析。全檔只有兩處呼叫 marked：
+`assets/markdown-cards.js:159`（`stepper`）與 `:200`（`accordion`）。其餘 8 個家族的欄位值
+都是死字串，作者要粗體／斜體／連結只能自己寫 HTML。
+
+### 另一個獨立的洞
+
+`alert-box`（7 條 CSS）與 `fold`（7 條 CSS）**有樣式但完全沒有對應的 DSL 家族**，
+07-13 只能整段手寫 `<div class="alert-box alert-warning">`。
+
+---
+
+## 2. 設計
+
+### 2.1 核心作法
+
+把各 renderer 的**內容型欄位**丟進 `marked.parseInline()`，讓作者能寫
+`[文字](url)`、`**粗體**`、`*斜體*`。
+
+`parseInline` 不會包 `<p>`，適合塞進 `<span>`／`<strong>`／`<h4>` 這類既有樣板位置。
+
+### 2.2 為什麼可行（已實測，見 §4）
+
+1. **既有內容幾乎零變動**：437 個欄位值中，只有 **1 筆**經 `parseInline` 後會改變，
+   且改的是 `'` → `&#39;`（瀏覽器顯示完全相同）。
+2. **原始 HTML 會原樣通過**：`parseInline` 放行 inline HTML，所以
+   `<a href="…" class="…">`、`<br>`、`<em>` 全部照舊輸出 → **可以漸進遷移**，
+   不必一次改完所有文章。
+3. **連結樣式會自動接上**：`assets/tailwind.css:216` 設了
+   `--tw-prose-links: var(--color-primary)`，而 `.prose a` 給
+   `color: var(--tw-prose-links); text-decoration: underline`
+   —— 與手寫的 `class="text-primary underline"` **產出完全相同的視覺**，
+   而且改用 Markdown 後還會經過 `registerCardExtensions` 既有的自訂 `link` renderer，
+   自動獲得 `target="_blank" rel="noopener noreferrer"`（現有手寫版**缺** `rel`，是個小安全缺陷）。
+
+### 2.3 欄位白名單（關鍵設計，不可一概而論）
+
+有三類欄位**絕對不能**解析：
+
+| 類別 | 欄位 | 原因 |
 |---|---|---|
-| 1 | 風格命名 | **`editorial-card`**。front matter 寫 `style: editorial-card`；class 為 `.post-style-editorial-card`；檔案為 `assets/post-styles/editorial-card.css` |
-| 2 | `food`/`spot`/`gallery`/`triage`/`emergency` 5 個未使用 DSL 家族 | **直接刪除**（含其孤兒 CSS，見 Phase 2） |
-| 3 | `.style-b-post`／`.style-c-post` 死 CSS | **直接刪除** |
-| 4 | 07-16 現有內容 | **這次一併遷移** |
-| 5 | 多篇文章共用同一份風格 | **要支援**，且需把「共用的前提條件」寫進文件（見 §2.3） |
-| 6 | `template_posts/` 受影響草稿 | **一併刪除**（4 個檔案，見 Phase 2） |
+| URL | `url` `naver` `kakao` `ref` `href` | GFM autolink 會把裸 URL 轉成 `<a>`，破壞樣板 |
+| 控制值 | `id` `cat` `level` `sigsep` | 會被拿去組 class／id，不是給人看的 |
+| 特殊語法 | `eat.diet` | **以字尾 `*` 當警示標記**（`markdown-cards.js:310`），與 Markdown 強調語法直接衝突 |
 
----
+逐家族的處理方式：
 
-## 1. 設計原則（不變，v1 此節結論正確）
+| 家族 | 解析 | 保持原樣 |
+|---|---|---|
+| `compare` | `tagline`、`row` 的 label/value、`text` | `name`、`stars` |
+| `info` | `tagline`、`row` 的 label/value、`text` | `name` |
+| `prep` | lead、rest | — |
+| `apps` | `name`、body | icon（emoji/HTML） |
+| `quickjump` | `title`、label、desc | href（`#錨點`） |
+| `stop` | `title`、`tag`、`desc`、`sub` 的 subtitle/body | `id`、`url`、`level` |
+| `eat` | `name`、`meal`、`price`、`signature`、`why`、diet 各標籤（**去尾 `*` 之後**） | `url`、`naver`、`kakao`、`ref`、`sigsep` |
+| `eatarea` | `name` | `url` |
+| `stepper` | （body 已經在解析，只需補 `title`） | — |
+| `accordion` | （body 已經在解析，只需補 `summary`、`tag`） | `id`、`cat` |
 
-> **結構（DSL 輸出的 HTML／class）永遠只有一份 canonical 版本；風格差異全部收斂到 CSS。**
+**已知限制需寫進文件**：`stop.title` / `eatarea.name` / `eat.name` 的解析結果會被包進
+既有的 `<a>` 裡，作者**不可**在這些欄位再放 Markdown 連結（會產生巢狀 `<a>`）。
 
-新增一篇風格不同的文章時：作者照 `doc/card_dsl.md` 既有語法寫 fence → front matter 加
-`style: <名稱>` → 新增一份 scoped 在 `.post-style-<名稱>` 的 CSS → **完全不寫新 JS、不動
-`markdown-cards.js`、不手寫 `<div>` 包版型**。
+### 2.4 順帶可清掉的冗餘
 
-（v1 §2「不要換 Vue」的結論維持不變，理由見 git history 的 v1；此處不重複。）
-
----
-
-## 2. 機制規格
-
-### 2.1 Front matter `style` 欄位
-
-`scripts/generate-posts-metadata.js` 的 front matter 解析是通用 key-value 迴圈，**不需改解析
-邏輯**。只需在 `posts.push({...})` 物件裡、緊鄰 `background: metadata.background || '',`
-那行之後新增：
-
-```js
-style: metadata.style || '',
-```
-
-### 2.2 `posts/detail.html` 掛 class
-
-`posts/detail.html` 第 160–172 行附近，`marked.parse()` 寫入 `innerHTML` 之後（`contentContainer`
-變數已存在），新增：
-
-```js
-if (post.style) {
-  contentContainer.classList.add(`post-style-${post.style}`);
-}
-```
-
-不會有 FOUC：class 與內容在同一個 tick 內套用。
-
-### 2.3 CSS 檔案組織
-
-新目錄 `assets/post-styles/`，每份檔案整組 scoped 在 `.post-style-<name>` 之下，由
-`assets/tailwind.css` 用 `@import` 匯入，最終仍打包成**單一** CSS bundle。
-
-🔴 **修正 1 — `@import` 必須放在 `assets/tailwind.css` 的「最末行」，不是 v1 說的第 119 行元件區。**
-
-- 實測（`npx vite build` 後檢查 `dist/assets/*.css` 內的 byte offset）：
-  - `@import` 放在第 119 行 → 風格規則落在 offset **42356**，排在 `.prose` 與多數元件 CSS **之前**。
-  - `@import` 放在檔尾 → 落在 offset **101782**（全檔最末），排在 `.style-a-post`(82057) 之後。
-- 風格檔的職責就是覆寫，來源順序必須最後。放第 119 行會產生「風格覆寫不到元件基礎樣式」的
-  cascade bug，而且是靜默的、build 不會報錯。
-- 兩種位置 Tailwind v4 都能編譯、`@apply` 都能解析（已實測），所以**沒有 build 錯誤可以提醒你放錯**。
-
-**為何仍打包成單一 bundle、不做動態 `<link>`**（v1 此段推理正確，且我補到一個更硬的理由）：
-- `vite.config.js` 的 `swPrecachePlugin` 用 `files.find(f => f.endsWith('.css'))` **只抓第一個
-  CSS 檔**寫進 sw precache 清單。多 CSS 輸出會直接讓 PWA 預快取抓錯檔案。單一 bundle 不只是
-  「比較簡單」，是現行 plugin 程式碼的硬性前提。
-- 元件 CSS 刻意不放 `@layer`（`tailwind.css` 第 119 行註解），風格 CSS 同理必須留在未分層區域。
-- 目前風格檔僅 76 行，體積無感。真的大到需要分離時再升級（YAGNI）。
-
-### 2.4 跨文章共用風格的前提（決策 5）
-
-`.post-style-<name>` scoping 天生支援多篇 front matter 填同一個值。但**有一個 v1 沒講的真實限制
-必須寫進文件**：
-
-`editorial-card.css` 的選擇器是 `.food-item` / `.spot-title` / `.food-list-title` /
-`.sub-option-list` 等，**它與 `eat`／`stop`／`eatarea`／`quickjump` 這組 DSL 家族綁定**。
-第二篇想套 `style: editorial-card` 的文章，必須使用同一組家族才會生效。
-
-因此 `doc/card_dsl.md` 新增的規範需明確寫出：
-1. 風格檔只能 scope 在 `.post-style-<name>` 下，**不得**出現文章專屬的 id 選擇器（現有 CSS
-   已符合，實測無任何 `#` 選擇器）。
-2. 風格檔必須註明「本風格依賴哪些 DSL 家族」。
-3. 只能使用 `@theme` 既有 Token（見 `doc/style.md` A4），不得發明新色票。
+`renderStop:274` 與 `renderEatarea:290` 輸出的 `class="no-underline text-inherit"`
+其實是多餘的——全站已有 `.prose h1 a, .prose h2 a, .prose h3 a, .prose h4 a
+{ color:inherit; text-decoration:none }`，而這兩處的 `<a>` 正好都在 `h4`／`h3` 內。
+（`renderEat:321` 的 `<a>` 在 `<span>` 內，**不在**該規則涵蓋範圍，那個 class 必須保留。）
 
 ---
 
 ## 3. 執行 Checklist
 
-> **每個 Phase 結束都要跑**：`npm run build && node scripts/__refactor-guard.mjs`
->
-> `scripts/__refactor-guard.mjs` 是本次任務專用的守護腳本（已寫好、基準已建立於
-> `scripts/__refactor-guard-baseline.json`，記錄了目前 56 個元件 class）。它做三件事：
-> ① 渲染 `src/posts/` 全部文章，比對元件 class 集合是否與重構前一致（唯一容許消失的是
-> `style-a-post`）；② 檢查文章用到的每個 class 在 `dist` CSS 裡都還有規則（**抓誤刪**）；
-> ③ 列出應刪而未刪的 class（第 3 項現在會列出 40 個，任務完成時應為空）。
-> 腳本本身在 Phase 5 刪除。
+> 每個 Phase 結束跑：`npm run build && node scripts/verify-post-render.mjs`
 
-### Phase 0：文件 debt
+### Phase 0 — 建立工具 ✅ 已完成
 
-- [ ] `doc/project.md` 第 5 行、第 255 行：移除對已刪除的 `./markdown_decorations_design.md`
-      的連結（該檔在 commit `480acf7` 被刪）。改指向 `doc/card_dsl.md`。
-- [ ] 🔴 **修正 2 — v1 漏了一處**：`doc/doc_style.md` 第 6 行同樣連到這個死檔案，一併處理。
-- [ ] `doc/project.md` 第 499 行也提到該檔，但那是**更新歷史記載**，屬於史實，**不要動**。
+- [x] 新增 `scripts/audit-card-fields.mjs`：抽出所有 fence 欄位值，逐一過
+      `parseInline()`，回報會變動的欄位並分類統計
+- [x] 新增 `scripts/verify-post-render.mjs`：**取代已失效的 `verify-card-dsl.mjs`**
+      （後者「改寫前」用無擴充 marked 渲染，是一次性工具，全文卡片化後驗任何改動都必然紅字）。
+      新工具兩邊都用當前渲染器，比對 git ref 與工作目錄的渲染輸出
+- [x] 雙向自我測試通過：`HEAD` vs 工作目錄 → 3 篇全 0 diff；
+      `HEAD~1` vs 工作目錄 → 正確抓到上一個 commit 移除 wrapper 的 34 字元差異
 
-### Phase 1：機制骨架（不改變任何現有渲染結果）
+### Phase 1 — 欄位風險稽核 ✅ 已完成
 
-- [ ] `scripts/generate-posts-metadata.js`：加 `style: metadata.style || '',`（見 §2.1）。
-- [ ] `posts/detail.html`：加掛 class 邏輯（見 §2.2）。
-- [ ] 建立 `assets/post-styles/` 目錄（目前已存在但為空）。
-- [ ] `npm run build:metadata` 確認 `public/data/posts.json` 每篇多出 `style` 欄位且無報錯。
+- [x] 全量掃描 437 個欄位值（已排除 `stepper`/`accordion` 的 body——它們本來就會遞迴解析，
+      初版稽核誤把那 40 行當成欄位值，是誤報）
+- [x] 結果：**僅 1 筆**會因 `parseInline` 改變 → `eat.why` 裡的 `O'sulloc`，
+      `'` 被 escape 成 `&#39;`，渲染顯示完全相同
+- [x] 確認 128 筆 URL 欄位會被 GFM autolink 影響 → 已全數列入「不解析」白名單
+- [x] 確認 `eat.diet` 的字尾 `*` 標記與 Markdown 語法衝突 → 列入白名單，需特殊處理
+- [x] 確認 `.prose a` 的顏色／底線與手寫 `class="text-primary underline"` 等價
 
-### Phase 2：刪除死代碼
+### Phase 2 — 實作 inline 解析 ⬜ 未開始
 
-**2a — DSL renderer**
-- [ ] `assets/markdown-cards.js`：刪除 `renderFood`、`renderSpot`、`renderGallery`、
-      `renderTriage`、`renderEmergency` 五個函式，以及 `CARD_LANGS` 字串與 `RENDERERS`
-      物件裡對應的項目。
-- [ ] 同檔第 1–4 行的檔頭 JSDoc 列舉了 `food`/`spot`/`gallery`/`triage`/`emergency`，一併更新。
+- [ ] `registerCardExtensions` 的 `renderer(token)` 改為把 `marked` 實例傳給**所有** renderer
+      （目前只有 `stepper`/`accordion` 拿得到，見 `markdown-cards.js:390-393`）
+- [ ] 新增小工具 `inline(marked, str)`，並依 §2.3 白名單逐家族套用
+- [ ] `eat.diet` 特殊處理：先以 `,` 切分、再判斷／剝除字尾 `*`、**最後**才對各標籤文字
+      做 inline 解析
+- [ ] 移除 §2.4 指出的兩處冗餘 class（`renderStop` / `renderEatarea`）
+- [ ] `node scripts/verify-post-render.mjs` 必須是 0 diff
+      —— **唯一容許的差異是 `O'sulloc` 那個 `&#39;`**。出現其他差異就是白名單漏了欄位
 
-**2b — 孤兒 CSS（`assets/tailwind.css`）**
+### Phase 3 — 遷移文章內容 ⬜ 未開始
 
-⚠️ 🔴 **修正 3 — v1 大幅低估了範圍，且漏講最危險的部分。** v1 只說要刪 style-b/c 那 137 行。
-實際上刪掉 5 個 renderer 會孤兒化 **~65 處選擇器**。而且**有 5 個 class 是共用的，刪了會炸掉
-線上文章**。
+逐篇把 HTML 改寫成 Markdown。因為原始 HTML 仍會原樣通過，可以一篇一篇來、隨時停手。
 
-**必須刪除**（皆已實測確認：渲染三篇線上文章後完全不出現）：
+- [ ] 07-16：11 個 `<a>` → `[文字](url)`；2 個 `<em>` → `*文字*`；
+      3 個 `<strong>` → `**文字**`；第 14 行 `<blockquote>` → `> `
+- [ ] 07-13：13 個 `<a>`、18 個 `<strong>`、5 個 `<br>`
+- [ ] 07-20：4 個 `<a>`
+- [ ] `<br>` 沒有 Markdown 等價寫法（行尾雙空格在 fence 欄位裡不可靠）——
+      **先評估**是改成兩個 `sub:`／兩段，還是保留 `<br>`。不要為了消滅 `<br>` 而讓語意變差
+- [ ] 每篇改完立刻跑 `verify-post-render.mjs`，逐篇確認只有預期內差異
 
-| 區塊 | 大約行號 | class |
-|---|---|---|
-| gallery | 739–787 | `.gallery-timeline` / `-day-group` / `-day-header` / `-day-label` / `-day-date` / `-day-items` / `-timeline-item` / `-timeline-node` / `-timeline-content` / `-spot-header` / `-spot-num` / `-spot-name` / `-spot-desc` |
-| spot | 800–822 | `.spot-card` `.day-label` `.friendly-badge`(+`.flat`/`.slope`/`.steps`) `.area-desc` `.info-subcard` `.info-subcard-title` `.spot-walk-link` |
-| food | 833–861 | `.food-item-meta-row` `.food-diet-row` `.food-item-title-row` `.food-item-name` `.food-chip` `.food-item-body` `.food-item-row`(含 `:nth-of-type` 1/2/3) `.action-btn` `.btn-naver` `.btn-kakao` `.btn-ref` |
-| triage | 903–913 | `.triage-list` `.triage-item` `.triage-num` `.triage-body` |
-| emergency | 916–922 | `.emergency-card`（含 `h3`/`p`/`p:last-child`） |
-| 另一組 food-diet | 960–964 | `.food-diet-row` `.diet-chip`(+`.is-warn`) |
+### Phase 4 — 補 `alert` 與 `fold` 家族 ⬜ 未開始
 
-**絕對不可刪除**（`eat`/`stop`/`accordion` 等保留家族仍在用，已實測確認出現在渲染結果中）：
+- [ ] `markdown-cards.js` 新增 `alert` renderer（對應 `.alert-box` / `.alert-note` /
+      `.alert-warning` / `.alert-box-title`）
+- [ ] 評估 `fold`：`accordion` 已輸出 `<details class="fold">`，先確認 07-13 那 2 個手寫
+      `<div class="fold">` 是不是同一件事——**若是，直接改用 `accordion`，不要新增家族**
+- [ ] 07-13 的 4 個手寫 `<div class="alert-box …">` 改用新 fence
+- [ ] 注意 `.prose h3.alert-box-title` 這條 2-class 選擇器（`project.md` 第一部分第 19 點記載，
+      是為了贏過 `.prose h3` 才特意加的），改動標題結構時不要打破它
 
-- `.food-item`（第 829 行，`eat` 家族也輸出）
-- `.food-actions`（第 854 行，`eat` 家族也輸出）
-- `.spot-title`（第 806 行基礎規則，`stop` 家族也輸出）
-- `.em-tag`、`.stars`
-- `.emergency-cta`(794)、`.emergency-group`(935)、第 926 行起的分類色條 — **先確認**是否仍被
-  保留家族使用再決定；守護腳本的檢查 ② 會抓到誤刪。
+### Phase 5 — 文件同步（CLAUDE.md 強制） ⬜ 未開始
 
-- [ ] 刪除 `.style-b-post` 整段（第 1072 行 `/* --- Option B ... */` 註解起 至 1135 行）。
-- [ ] 刪除 `.style-c-post` 整段（第 1137 行註解起 至檔案結尾 1210 行）。
-- [ ] 第 982–984 行的 `NEW STYLES FOR SEPARATE LAYOUT EXPERIMENTS (A, B, C)` banner 註解已
-      不合時宜（B/C 沒了、A 要搬走），一併移除。
-
-> 🔴 **修正 4 — v1 行號小偏差**：`.style-a-post` 區塊含註解實際從 **982**（banner）／**986**
-> （Option A 註解）開始，不是 v1 寫的 994。另外 `.style-a-post h3` 這條規則**已經不存在**了
-> （2026-07-21 被刪，見 `project.md` 第一部分第 20 點），要搬的是 996–1071 共 76 行純元件覆寫。
-
-**2c — card_dsl.md**
-- [ ] 移除總表第 33–37 行那 5 列。
-- [ ] 第 12、17–20 行「`food`/`spot` 與 `eat`/`stop` 是兩組不同家族、不可互換」的警語：對照
-      對象已不存在，改寫或刪除。
-- [ ] 第 137 行「`food` 三列順序依賴 `.food-item-row:nth-of-type`」的既有限制段落一併刪除。
-- [ ] 第 40–41 行 `eat`/`eatarea` 的說明裡寫著「07-16 style-a-post」，改成 `editorial-card`。
-
-**2d — template_posts（🔴 修正 5 — v1 完全沒提到這批檔案）**
-
-v1 稱這 5 個家族「從頭到尾沒被任何文章用過」——這只對 `src/posts/` 成立。`template_posts/`
-裡實際用了 **60 次 `food`、14 次 `spot`、2 次 `gallery`**，且 `_style_b.md`/`_style_c.md` 正是
-`.style-b-post`/`.style-c-post` 的唯一引用者。這批檔案 git 有追蹤，但**不在建置流程內**
-（`POSTS_DIR` 只讀 `src/posts`，全 repo 無任何程式碼 reference `template_posts`）。
-
-依決策 6，刪除以下 4 個（已逐檔稽核確認就是這 4 個，其餘 10 個 template 不受影響）：
-- [ ] `template_posts/2026-07-13-韓國首爾旅行.md`（food/spot/gallery）
-- [ ] `template_posts/2026-07-16-韓國首爾旅行.md`（food/spot/gallery）
-- [ ] `template_posts/2026-07-16-韓國首爾旅行_style_b.md`（style-b-post）
-- [ ] `template_posts/2026-07-16-韓國首爾旅行_style_c.md`（style-c-post）
-
-### Phase 3：遷移 07-16
-
-- [ ] 備份原檔到 scratchpad（給下面的渲染 diff 用）。
-- [ ] 把 `assets/tailwind.css` 第 996–1071 行的 `.style-a-post` 區塊（連同第 986–995 行的
-      Option A 說明註解，改寫成 editorial-card 的說明）搬到
-      **`assets/post-styles/editorial-card.css`**，選擇器全部改名
-      `.style-a-post` → `.post-style-editorial-card`。
-- [ ] 在 `assets/tailwind.css` **最末行**加上（見 §2.3 修正 1）：
-      ```css
-      /* 文章專屬視覺風格：必須置於檔案最末，確保來源順序最後、能覆寫上方元件樣式。 */
-      @import "./post-styles/editorial-card.css";
-      ```
-- [ ] `src/posts/2026-07-16-首爾秋日漫遊手帳.md`：
-      - 刪除第 11 行 `<div class="style-a-post">`（連同其後的空行）與第 532 行結尾的 `</div>`。
-      - front matter 新增 `style: editorial-card`。
-
-**驗證方式** 🔴 **修正 6 — 不要用 `verify-card-dsl.mjs`，它驗不了這次改動。**
-
-v1 checklist 叫人跑 `node scripts/verify-card-dsl.mjs <備份> <新檔>`。該腳本第 62 行是
-`plainMarked.parse(origContent)`——「改寫前」刻意**不掛卡片擴充**，因為它是為「手寫 HTML →
-DSL fence」那次遷移設計的。這次備份檔本身已是 DSL 版，用 plainMarked 渲染會把 ` ```eat `
-變成 `<pre><code>`，**保證 diff、必定紅字**。
-
-改用直接對照渲染輸出。預期結果（我已實測）：**唯一差異就是那層 wrapper，共 34 個字元**：
-```
-1,2d0
-< <div class="style-a-post">
-628c626
-< </div></div>   →   > </div>
-```
-- [ ] 用備份檔與新檔各自以 `registerCardExtensions` 渲染後 diff，確認差異僅止於上述 wrapper。
-- [ ] `node scripts/__refactor-guard.mjs` 通過。
-
-🔴 **修正 7 — v1 的驗收標準「逐像素一致」是錯的，有一個預期內的視覺變化。**
-
-`dist` CSS 內有 `.prose :where(.prose>:first-child){margin-top:0}`。目前 `:first-child` 是
-wrapper div（本身無 margin，所以裡面的 `<h2>總覽</h2>` 保有正常上緣間距）；拿掉 wrapper 後
-`:first-child` 變成該 `<h2>`，**首個標題的 margin-top 會被歸零**。
-
-- 僅桌機可見（手機版 `initTOC` 會在 `#post-content` 最前面 prepend 大綱框，`:first-child`
-  本來就不是 h2）。
-- 這讓 07-16 與 07-13／07-20 的開頭間距**一致**，屬於改善而非退步 — 但要知道它會變，別誤判成 bug。
-- [ ] 瀏覽器實測：`npm run dev` 開 07-16，確認 `#post-content` 上有
-      `post-style-editorial-card` class、卡片樣式正常、僅首標題上緣間距縮小。
-
-- [ ] `public/sw.js`：`CACHE_NAME` `clean-blog-v54` → `clean-blog-v55`。
-
-### Phase 4：註解與文件
-
-🔴 **修正 8 — v1 漏掉這些寫死了舊架構前提的程式碼註解。**
-
-- [ ] `assets/scripts.js` 第 463–465 行 `initTOC` 的註解寫著「style-a/b/c 等版型會把整篇內容
-      包一層 `<div class="style-x-post">`，此時標題會是孫節點，因此也放行」。遷移後這個前提
-      消失，必須改寫。
-      **程式邏輯本身不用改** — 已實測：07-16 的 TOC 成員數不變（13 個標題，深度由 1 變 0，
-      過濾條件 `parent === contentContainer || parent.parentElement === contentContainer`
-      兩種深度都放行）。07-13 仍有 depth=1 的 `.alert-box-title` 需要這條放行規則，**不可
-      把放行條件收緊**。
-- [ ] `assets/markdown-cards.js` 第 498 行 `renderEatarea` 的 JSDoc 提到「07-16 style-a-post」，改名。
-- [ ] `doc/card_dsl.md`：新增一節，寫明 `style` front matter 用法、`assets/post-styles/` 慣例、
-      §2.4 的三條共用前提，以及「風格差異只寫 CSS，不要為了換皮再造一組 DSL 家族」這條守則。
-- [ ] `doc/style.md` B 節：補上風格檔規格（scope、Token、@import 位置）。
-
-### Phase 5：文件同步（CLAUDE.md 強制）
-
-- [ ] `doc/project.md`「更新歷史」新增一筆帶日期（2026-07-25）的完整記錄；把現在排第二新的
-      記錄壓縮成一行摘要。
-- [ ] `doc/project.md` 第一部分：新增「文章視覺風格系統」設計決策點（比照現有第 9–24 點寫法），
-      重點記下 §2.3 的 `@import` 位置陷阱與 §2.4 的共用前提。
-- [ ] `doc/project.md` 第 405 行的待辦事項提到 style-a/b/c 版型，內容已過時，更新或移除。
-      第 258/259/304/350/422/482 行提到 `.style-a-post` 者多為**更新歷史/史實記載**，保留不動。
-- [ ] `README.md`：本次不涉及安裝/建置/部署步驟變化，預期不需改；確認後略過。
-- [ ] 刪除 `scripts/__refactor-guard.mjs` 與 `scripts/__refactor-guard-baseline.json`。
-- [ ] 刪除 `plan.md`（或依使用者指示保留）。
+- [ ] `doc/card_dsl.md`：改寫語法說明，示範 Markdown 寫法；明確標示哪些欄位**不**解析
+      （§2.3 表格）與巢狀連結的限制（§2.3 末）
+- [ ] `doc/project.md`：更新歷史新增一筆；第二新壓成一行；功能→程式碼速查表更新
+- [ ] `doc/project.md`：把 `verify-card-dsl.mjs` 的說明改成 `verify-post-render.mjs`
+- [ ] 刪除已失效的 `scripts/verify-card-dsl.mjs`
+- [ ] 決定 `scripts/audit-card-fields.mjs` 去留（一次性稽核工具，建議 Phase 3 結束後刪）
+- [ ] `public/sw.js` bump `CACHE_NAME`（v55 → v56）
 
 ---
 
-## 4. 已知陷阱
+## 4. 已執行部分的實測數據
 
-- **CSS cascade layers**：風格 CSS 位於未分層區域，若宣告了 `display`/`position`/`color` 這類
-  Tailwind utility 也會設的屬性，會壓過 `xl:hidden` 之類 JS 加上的 responsive utility
-  （`project.md` 第一部分第 21 點，`.toc-fab` 桌機外洩實例）。
-- **`@import` 位置**：見 §2.3 修正 1。放錯位置 build 不會報錯，是靜默失敗。
-- **`:last-of-type`/`:first-of-type` 對無 wrapper 的相鄰卡片失效**：`apps`/`eat` 這類直接輸出
-  多個相鄰 `<div>` 的家族要用 `.foo + .foo`（`project.md` 第 9、24 點）。
-- **PWA 快取**：忘記 bump `CACHE_NAME` 是本專案最常見疏漏（2026-07-22 曾為此出線上事故）。
-- **`manifest.json`／`sw.js` 的空 front matter（`---\n---`）不可移除。**
+```
+$ node scripts/audit-card-fields.mjs --verbose
+掃描 437 個欄位值，其中 129 個經 parseInline 後會改變
+
+=== 依變動原因分類 ===
+  Markdown 連結 ([]())       128 筆（其中 128 筆在「不解析」白名單內，無風險）
+  其他                         1 筆
+
+=== 真正需要處理的（不在白名單內）：1 筆 ===
+[eat.why] 2026-07-16-首爾秋日漫遊手帳.md
+  原始: …可改至斜對面的 O'sulloc 綠茶專專賣店…
+  解析: …可改至斜對面的 O&#39;sulloc 綠茶專專賣店…
+```
+
+```
+$ node scripts/verify-post-render.mjs
+  ✅ 2026-07-13-…md —— 0 diff（21049 字元）
+  ✅ 2026-07-16-…md —— 0 diff（43812 字元）
+  ✅ 2026-07-20-…md —— 0 diff（10287 字元）
+```
 
 ---
 
-## 5. 完成驗收
+## 5. 風險
 
-1. `npm run build` 通過。
-2. `node scripts/__refactor-guard.mjs` 三項檢查全綠（第 ③ 項應從目前的 40 個降到 0 個）。
-3. 07-16 渲染輸出與遷移前的 diff 僅有那 34 個字元的 wrapper。
-4. 瀏覽器實測 07-16 視覺正常，`#post-content` 帶 `post-style-editorial-card`。
-5. `src/posts/*.md` 裡不再有任何用於「整篇視覺換皮」的手寫 `<div class="...">` wrapper。
-6. `grep -rn "style-[abc]-post\|renderFood\|renderSpot\|renderGallery\|renderTriage\|renderEmergency"`
-   在 `assets/`、`src/`、`template_posts/`、`doc/`（史實記載除外）應無殘留。
+1. **白名單漏欄位 = 靜默破版**。漏掉某個 URL 欄位，GFM autolink 會把它變成 `<a>` 塞進
+   `href="…"` 屬性裡，產出壞掉的 HTML。`verify-post-render.mjs` 的 0-diff 檢查是主要防線。
+2. **`eat.diet` 的處理順序**若寫反（先解析再剝 `*`），30 筆美食卡的警示標籤會全部失效，
+   而且不會報錯。
+3. **Phase 3 是人工改寫，最容易出錯**。務必逐篇驗證，不要三篇一起改完才跑。
+4. **`<br>` 沒有乾淨的 Markdown 對應**。不要為了「消滅所有 HTML」這個潔癖硬改，
+   保留 `<br>` 是可接受的結果。
+5. 本階段**不觸碰** report.md 第三節列出的其他遺留問題（class 命名帶內容語意、
+   `style:` 打錯字無警告、`initTOC` 深度啟發式、`template_posts/` 孤兒目錄、
+   `CACHE_NAME` 手動 bump）——那些是各自獨立的題目。

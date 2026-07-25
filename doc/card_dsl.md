@@ -4,10 +4,14 @@
 用來把精簡的 `key: value` / `label | value` 資料逐字渲染成卡片化 HTML。渲染邏輯全部在
 `assets/markdown-cards.js`（`registerCardExtensions()`，注册為 marked.js 的 block 級擴充），
 由 `assets/scripts.js` 檔頭在 `window.marked` 上接線，純字串邏輯、無 DOM 依賴，可在瀏覽器與
-Node 共用。改寫文章時若要確保輸出與手寫 HTML 逐字等價，可用
-`node scripts/verify-card-dsl.mjs <改寫前備份路徑> <改寫後文章路徑>` 做 0-diff 比對
-（純 marked vs marked+擴充，正規化空白後比對；備份路徑通常先手動存一份改寫前的檔案到
-scratchpad 再傳入，腳本本身不內建任何預設路徑）。
+Node 共用。改動 renderer 或遷移文章內容時，用
+`node scripts/verify-post-render.mjs [基準 git ref] [檔名過濾字串]` 驗證渲染輸出沒有改變
+（不給參數＝以 `HEAD` 為基準比對工作目錄的全部文章）。
+
+> 舊的 `scripts/verify-card-dsl.mjs` **已失效**：它對「改寫前」刻意用純 marked（無卡片擴充）
+> 渲染，是為「手寫 HTML → DSL fence」那一次遷移設計的一次性工具。全部文章都卡片化之後，
+> 拿它驗任何後續改動都會必然紅字（fence 會被當成 `<pre><code>`）。一律改用
+> `verify-post-render.mjs`。
 
 以下總表與範例以 `assets/markdown-cards.js` 目前實際支援的清單為準；
 `quickjump`/`stop`/`eat`/`eatarea` 家族專為 `src/posts/2026-07-16-韓國首爾旅行.md`
