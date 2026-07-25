@@ -1,28 +1,27 @@
 #!/usr/bin/env node
 /**
- * Dev-only 驗證腳本：比對「首爾文章卡片 DSL 重構」前後渲染出的 HTML 是否逐字相同。
+ * Dev-only 驗證腳本：比對某篇文章「卡片 DSL 重構」前後渲染出的 HTML 是否逐字相同。
  *
- * - 原始版本：src/posts/2026-07-13-韓國首爾旅行.md 改寫前的備份（見 ORIG_PATH），
- *   用純 marked（無擴充）渲染。
- * - 改寫後版本：目前工作區的 src/posts/2026-07-13-韓國首爾旅行.md，
- *   用 marked + registerCardExtensions 渲染。
+ * - 原始版本：改寫前的備份檔（純 marked，無擴充）。
+ * - 改寫後版本：改寫後的文章檔（marked + registerCardExtensions）。
  * - 兩者各自剝除 front matter 後渲染，再正規化空白（移除標籤間空白、連續空白壓成一個、trim）
  *   比對是否完全相同。
  *
- * 用法：node scripts/verify-card-dsl.mjs
+ * 用法：node scripts/verify-card-dsl.mjs <改寫前備份路徑> <改寫後文章路徑>
+ * 備份路徑是暫時性檔案（通常放在 scratchpad），故本腳本不內建預設路徑——呼叫時務必自行指定。
  */
 import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { Marked } from 'marked';
 import { registerCardExtensions } from '../assets/markdown-cards.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const ORIG_PATH = resolve(
-  '/tmp/claude-1000/-home-lawrencechh-j-travel/c841c1d6-6f20-4f59-a53d-86576430e7ad/scratchpad/orig.md'
-);
-const NEW_PATH = resolve(__dirname, '../src/posts/2026-07-13-韓國首爾旅行.md');
+const [origArg, newArg] = process.argv.slice(2);
+if (!origArg || !newArg) {
+  console.error('用法：node scripts/verify-card-dsl.mjs <改寫前備份路徑> <改寫後文章路徑>');
+  process.exit(2);
+}
+const ORIG_PATH = resolve(origArg);
+const NEW_PATH = resolve(newArg);
 
 function stripFrontMatter(raw) {
   if (!raw.startsWith('---')) return raw;

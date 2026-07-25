@@ -125,10 +125,10 @@ npm run preview
 | 功能 | 主要檔案 / 進入點 |
 | --- | --- |
 | 首頁／目錄頁前端分頁與標籤篩選、搜尋 | `assets/scripts.js` → `initPagination()`；資料來源 `public/data/posts.json` |
-| 文章 metadata 產生（字數／閱讀時間） | `scripts/generate-posts-metadata.js` → 產出 `public/data/posts.json` |
+| 文章 metadata 產生（字數／閱讀時間，內部經 marked + card DSL 渲染後才剝標籤計數） | `scripts/generate-posts-metadata.js` → 產出 `public/data/posts.json` |
 | 文章內頁渲染（Markdown/HTML 解析、上一篇/下一篇導航） | `posts/detail.html` + `assets/scripts.js` |
 | 文章大綱 TOC（桌機側欄／手機 Bottom Sheet／已停用的行動版章節分頁列） | `assets/scripts.js` → `initTOC()`；`ENABLE_CHAPTER_BAR` 旗標控制分頁列是否顯示 |
-| 卡片 DSL（```food/spot/compare/info/gallery/prep/apps/triage/emergency/stepper 資料區塊） | `assets/markdown-cards.js`（渲染邏輯）／`assets/scripts.js` 檔頭（`registerCardExtensions` 接線）／`scripts/verify-card-dsl.mjs`（Node 端 0-diff 驗證腳本） |
+| 卡片 DSL（```food/spot/compare/info/gallery/prep/apps/triage/emergency/stepper/accordion/quickjump/stop/eat/eatarea 資料區塊） | `assets/markdown-cards.js`（渲染邏輯）／`assets/scripts.js` 檔頭（`registerCardExtensions` 接線）／`scripts/verify-card-dsl.mjs`（Node 端 0-diff 驗證腳本，用法：`node scripts/verify-card-dsl.mjs <改寫前備份路徑> <改寫後文章路徑>`） |
 | 卡片視覺樣式（`.food-item`／`.spot-card`／`.compare-card`／`.info-card`／`.stepper`／`.app-card`／`.emergency-card`／`.alert-box` 等） | `assets/tailwind.css` 的 `@layer components` |
 | 色彩／字型設計 Token | `assets/tailwind.css` 的 `@theme` |
 | 導覽列／頁尾動態載入 | `assets/scripts.js` 尾端 fetch 邏輯 + `public/components/navbar.html`／`footer.html` |
@@ -144,8 +144,9 @@ assets/
   tailwind.css                 Tailwind v4 CSS 原始碼（定義主題 Tokens 與自訂組件）
   scripts.js                   通用 JS，含雙頁面分頁 (initPagination)、文章大綱 (initTOC)、元件動態載入與 PWA 註冊
   markdown-cards.js            Card DSL：marked block 擴充 registerCardExtensions()，把 ```food/spot/compare/
-                                info/gallery/prep/apps/triage/emergency/stepper 資料區塊逐字還原成卡片 HTML
-                                （純字串邏輯，可在 Node 與瀏覽器共用），由 scripts.js 最上方在 window.marked 上註冊
+                                info/gallery/prep/apps/triage/emergency/stepper/accordion/quickjump/stop/eat/
+                                eatarea 資料區塊逐字還原成卡片 HTML（純字串邏輯，可在 Node 與瀏覽器共用），
+                                由 scripts.js 最上方在 window.marked 上註冊
   fonts/                       自我託管的 Lora + Open Sans 字型 (woff2)
 public/
   components/                  共用佈局元件
@@ -160,8 +161,10 @@ src/
   posts/                       存放所有文章原始檔（.md 或 .html）的目錄，供前端 Fetch 讀取
 scripts/
   generate-posts-metadata.js   Node.js 腳本，用以提取文章 Front matter、計算閱讀時間並產出 posts.json
-  verify-card-dsl.mjs          Dev-only 驗證腳本：分別以「純 marked」渲染改寫前備份、「marked + registerCardExtensions」
-                                渲染改寫後文章，正規化空白後比對兩者 HTML 是否逐字相同（0 diff）
+  verify-card-dsl.mjs          Dev-only 驗證腳本（吃 2 個 CLI 參數：改寫前備份路徑、改寫後文章路徑，
+                                無內建預設值）：分別以「純 marked」渲染改寫前備份、「marked +
+                                registerCardExtensions」渲染改寫後文章，正規化空白後比對兩者 HTML
+                                是否逐字相同（0 diff）
 vite.config.js                 Vite 整合與多入口 (MPA) 設定檔，包含自訂 swPrecachePlugin 打包插件
 index.html                     首頁
 about.html                     關於我們頁面
@@ -338,6 +341,35 @@ posts/
     `#post-header` 的 `backgroundImage` 每 30ms 取樣一次驗證，從第一筆（約 10ms）起就已經是正確
     圖片，全程未出現 `bg-post.jpg`。
 
+24. **新增 `quickjump`/`stop`/`eat`/`eatarea` 卡片家族，07-16 手寫 HTML 改為 fenced block
+    （2026-07-25）**：07-16 文章的「7 大主題景點快速導覽」`<div>`、7 個 `.spot-section`、
+    6 個 `.food-list-title`、30 個 `.food-item` 原本全是手寫 HTML，改用新家族後消除約 460
+    行鷹架。**未直接重用既有 `food`/`spot`/`gallery` 家族**：這三個是 2026-07-15 卡片 DSL
+    初版時針對「單一風格」設計的產物，後續 07-16 改版為 style-a/b/c 三種視覺（見更早的更新
+    `8176941`），style-a 勝出後定案的實際 HTML（`.food-header`/`.food-tag`/`.food-price`/
+    `.food-body`/`.food-why`/`.spot-title`/`.sub-option-list` 等，全部 `.style-a-post` 作用域）
+    與 `renderFood`/`renderSpot`/`renderGallery` 輸出的舊結構（`.food-item-title-row`/
+    `.spot-card`/`.friendly-badge` 等）完全不同——這也是 `doc/card_dsl.md` 標註這三個家族
+    「目前無文章使用」的原因。直接沿用會靜默改變 07-16 的實際版面，故新增一組平行家族，
+    對應目前唯一在用的 style-a 結構；`food`/`spot`/`gallery` 三個舊家族原樣保留、未刪除
+    （非本次變更範圍，是否清理留待未來評估）。
+    *   **`stop`（`.spot-section`）**：`level` 欄位（`diet`/`flat`/`slope`/`steps`）對應
+        07-16 原始 4 種 h4 標籤 utility class 組合（逐字保留，非新設計）；`sub` 欄位為
+        `子標題 | 內文`，內文可含原樣 HTML（`<br>`/`<em>`/`<a>`）。
+    *   **`eat`（`.food-item`）**：`diet` 欄位逗號分隔；單一項目字尾加 `*` 觸發紅框警示樣式
+        （`font-bold text-red-700 bg-red-50 border border-red-200`），用來逐字保留原始資料裡
+        「需排隊!」在 30 筆中兩種並存寫法之一（多數是純 `.food-tag.diet` 樣式，僅
+        London Bagel Museum 一筆是警示樣式）——這是原始內容既有的不一致，非本次引入。
+        另新增可省的 `sigsep: half` 欄位：`<strong>招牌菜</strong>` 後的分隔符號 29 筆是全形
+        「：」，僅 Osulloc Tea House 仁寺洞店一筆原始是半形「: 」，同樣逐字保留。
+    *   **`quickjump`（`.editorial-quick-jump`）／`eatarea`（`.food-list-title`）**：分別對應
+        07-16 僅出現 1 次與 6 次的簡單清單/標題列，欄位設計比照既有家族的 `key: value` 慣例。
+    *   **`scripts/verify-card-dsl.mjs` 泛化**：原本硬編 07-13 的改寫前備份路徑（一個已不存在
+        的 session 暫存檔，腳本其實已不可執行），改為吃 2 個必填 CLI 參數（備份路徑／文章
+        路徑），本次與未來改寫其他文章皆可重複使用；本次驗證：`node scripts/verify-card-dsl.mjs
+        <scratchpad 備份> src/posts/2026-07-16-韓國首爾旅行.md` 正規化後 0 diff，
+        `npm run build` 通過。
+
 ## GitHub Pages 部署設定指引
 
 由於本專案採用自訂的 GitHub Actions 工作流（監聽 `main` 工作分支）來建置並部署至 GitHub Pages，若遇到 `Branch "main" is not allowed to deploy to github-pages due to environment protection rules` 錯誤，請前往 GitHub 儲存庫網頁端進行以下兩項設定：
@@ -379,6 +411,46 @@ posts/
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-25 — 07-16 文章卡片化：新增 quickjump/stop/eat/eatarea DSL 家族取代手寫 HTML
+
+* **提問**：使用者回報 `src/posts/2026-07-16-韓國首爾旅行.md` 有太多 HTML tag，維護不便，
+  要求在**維持原有視覺風格**的前提下，把重複出現的 `<div>` 區塊改用 markdown fence 包成可
+  重複使用的組件，讓 Markdown 保持乾淨。
+* **根因調查**：專案已有 `assets/markdown-cards.js` 卡片 DSL（見第一部分第 12 點）與對應的
+  `food`/`spot`/`gallery` 家族，看似可以直接套用。但比對後發現這三個家族渲染出的 class 結構
+  （`.food-item-title-row`/`.spot-card`/`.friendly-badge` 等）與 07-16 目前實際使用的
+  `.style-a-post` 結構（`.food-header`/`.food-tag`/`.spot-title`/`.sub-option-list` 等）完全
+  不同——`doc/card_dsl.md` 也標註這三個家族「目前無文章使用」。追查 git log 確認 07-16 曾
+  一度改版為 style-a/b/c 三種視覺（commit `8176941`），`food`/`spot`/`gallery` 是更早一版
+  單一風格設計的產物，並未隨 style-a 定案而更新。若直接沿用舊家族會靜默改變 07-16 的實際
+  版面，違反使用者「維持原有風格」的要求。
+* **處理**：新增 `quickjump`/`stop`/`eat`/`eatarea` 4 個新家族（`CARD_LANGS` 與
+  `RENDERERS`），純字串模板逐字對應 07-16 目前的 style-a HTML（細節見第一部分第 24 點）。
+  為避免手動謄寫 30 個美食卡＋7 個景點卡時出錯，先寫一支一次性 Node 腳本用正規式從改寫前的
+  備份檔解析出每個區塊的欄位，自動產生 fence 原始碼與重組後的完整文章，再用生成結果覆蓋
+  `src/posts/2026-07-16-韓國首爾旅行.md`；解析過程中發現並修正腳本本身兩個 bug
+  （`spot-section` 的正規式邊界誤吃掉每張卡最後一個 `sub-option-item`、`signature` 欄位漏抓
+  Osulloc Tea House 一筆用半形冒號的例外寫法）。同時把 `scripts/verify-card-dsl.mjs` 由硬編
+  07-13 路徑（其中改寫前備份是已不存在的 session 暫存檔，腳本其實已無法執行）改為吃 2 個
+  必填 CLI 參數，讓它可以重複用於任何文章的改寫驗證，不只 07-13。
+* **驗證**：`node scripts/verify-card-dsl.mjs <改寫前備份> src/posts/2026-07-16-韓國首爾旅行.md`
+  正規化後 0 diff；`npm run build` 通過。檔案由 732 行降至 548 行。未跑瀏覽器截圖比對——
+  0-diff 驗證用的正是 `assets/scripts.js` 在瀏覽器裡實際呼叫的同一份 `registerCardExtensions`
+  渲染邏輯，故 Node 端逐字相同即代表瀏覽器渲染結果相同；未額外做視覺回歸測試。
+* **附帶發現並修正的迴歸**：改寫後 `public/data/posts.json` 裡 07-16 的預估閱讀時間從
+  36 分鐘跳到 69 分鐘。根因是 `scripts/generate-posts-metadata.js` 原本直接對**原始
+  Markdown 原始碼**剝除 `<...>` HTML 標籤後計數字元——手寫 HTML 版本裡，`href="長串網址"`
+  這種機器用資料本來就包在會被剝除的標籤屬性裡；改寫成 DSL fence 後，`url`/`naver`/`kakao`/
+  `ref` 等欄位的網址在原始碼裡是**不含 `<...>` 的純文字**，不會被剝除，全部被當成「可讀
+  字數」計入，一篇文章多達約 90 個 raw URL 欄位，字數嚴重虛增。修法是讓
+  `generate-posts-metadata.js` 改成先用 `marked + registerCardExtensions` 把內容渲染成
+  實際 HTML（做法比照 `verify-card-dsl.mjs`），再對渲染後的 HTML 剝標籤計數——網址此時已
+  落在 `href="..."` 屬性裡，隨標籤一併剝除，字數才貼近讀者實際會讀到的文字。此修正對
+  07-13（已用 `prep`/`stepper`/`compare`/`info`/`apps`/`accordion` DSL）與 07-20（純
+  Markdown 連結語法）同樣適用：07-16 回到 35 分鐘（貼近改寫前的 36 分鐘），07-13 由
+  37 分鐘修正為 28 分鐘（此前一直被同一問題隱性虛增，只是没那麼明顯而未被注意到），
+  07-20 由 23 分鐘微調為 20 分鐘（連結 Markdown 語法字元不再計入）。
+
 ### 2026-07-22 — 修正首頁/聯絡頁背景圖換版後瀏覽器仍顯示舊圖的問題
 
 * **提問**：使用者回報「commit and push 沒有更新網頁的圖片」——懷疑是快取問題，要求清快取
@@ -400,27 +472,11 @@ posts/
   鏈；且效果需清空瀏覽器既有 Cache Storage/或等新 SW 接管後才看得出來，無法在本次工具環境內
   重現「使用者瀏覽器已有舊快取」的狀態)。
 
-### 2026-07-21 — 修正切換文章時 banner 先閃錯誤圖片再跳正確圖片的問題
-
-* **提問**：使用者回報「頁面跳轉的時候，會先跳原始類別的 banner 才會轉換當前文章的 banner，
-  那個 lag 非常明顯」。
-* **根因**：`posts/detail.html` 是所有文章共用的通用模板，`<header id="post-header">` 寫死預設圖
-  `bg-post.jpg`（也是文章列表頁 `posts/index.html` 用的同一張），正確的 `post.background` 要等
-  `DOMContentLoaded` 內 `fetch('data/posts.json')` 完成才會替換，兩者之間的網路延遲就是使用者
-  看到的「閃一下」。設計理由見第一部分第 23 點。
-* **處理**：`index.html`（首頁卡片連結）、`posts/index.html`（列表連結）、`posts/detail.html`
-  （上/下一篇導覽連結）三處產生連結時，把已經拿在手上的 `post.background` 一併塞進 `&bg=` query
-  string；`detail.html` 在 `<header>` 之後插入一段同步 inline `<script>`，剖析 `bg` 參數並立刻寫
-  `header.style.backgroundImage`，搶在 `posts.json` fetch 與瀏覽器對預設圖發出請求之前完成替換。
-  `DOMContentLoaded` 內原本讀 `posts.json` 後覆寫 banner 的邏輯保留不動，作為 `bg` 參數缺漏時
-  （直接貼網址、書籤、爬蟲）的 fallback。
-* **驗證**：`npm run dev` 起本地伺服器，以 Playwright 開首頁、點文章卡片連結，確認產生的網址帶有
-  `&bg=%2Fimg%2Fposts%2Fwowpass.jpg`；對 `#post-header` 的 `backgroundImage` 每 30ms 取樣直到
-  1.5 秒，從第一筆（約 10ms）起就已是正確圖片，全程未出現 `bg-post.jpg`，並用截圖確認頁面渲染
-  正常、`console --errors` 無錯誤。未改動任何 CSS，不需要 bump `sw.js` 的 `CACHE_NAME`。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-21：文章 banner 改用連結傳遞 `&bg=` query string＋同步 inline script 搶跑，修正切換
+  文章時先閃錯誤圖片再跳正確圖片的 lag（設計理由見第一部分第 23 點；未改 CSS，未 bump
+  `CACHE_NAME`）
 - 2026-07-21：文章頁三處 UI/UX 調整——TOC 側欄改行距/padding 而非縮字、桌機 FAB 外洩改用 `@media` 直接關閉（cascade layers 優先序問題）、上/下一篇按鈕改為顯示標題的 `.post-nav-*` 連結對，順手修掉 `title` 屬性未跳脫的 bug (CACHE_NAME 升至 v53)
 - 2026-07-21：`contact.html` 套用其他版面既有的容器／卡片／輸入框樣式，修正三處與全站不一致的風格漂移（外層 `max-w-xl`→`max-w-3xl`、補齊卡片包裝、成功/失敗訊息改回裸文字），對齊 `style.md` B3
 - 2026-07-21：修正 07-16 標題階層忽大忽小（`Day 1` 比母標題 `景點漫遊` 還大），`.style-a-post` 那組自成一格的音階（26/22/20/18）整組併回 `.prose`，`.style-a-post h3` 覆寫整條刪除、`.spot-title` 22→18px，底線依 A13 只留給 `h2`；外溢範圍僅 07-16 一篇，`.prose` 未動（設計決策見第一部分第 20 點）

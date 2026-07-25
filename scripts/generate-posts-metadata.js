@@ -1,8 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Marked } from 'marked';
+import { registerCardExtensions } from '../assets/markdown-cards.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const cardMarked = new Marked();
+registerCardExtensions(cardMarked);
 
 const POSTS_DIR = path.join(__dirname, '../src/posts');
 const OUTPUT_JSON = path.join(__dirname, '../public/data/posts.json');
@@ -77,7 +82,14 @@ files.forEach(file => {
   });
 
   // 預先計算閱讀時間 (與原 Jekyll kramdown 除以 300 邏輯對齊)
-  const cleanContent = content.replace(/^---[\s\S]*?---/, '').replace(/<\/?[^>]+(>|$)/g, "").trim();
+  // 一律先用 marked + card DSL 擴充渲染成實際 HTML 再剝標籤計數，而非直接對原始 Markdown
+  // 剝標籤：卡片 DSL fence（```food/stop/eat/... 等）裡的 url/href/naver/kakao 等機器用欄位
+  // 是原始碼裡的純文字（不含 `<...>`），若直接對原始碼剝標籤會把整串網址算進「可讀字數」，
+  // 使用大量 DSL 卡片的文章（如 2026-07-16，約 90 個 raw URL 欄位）閱讀時間嚴重虛增。
+  // 渲染後這些欄位會落在 href="..." 屬性裡，隨標籤一起被剝除，字數才貼近讀者實際會讀到的文字。
+  const bodyContent = content.replace(/^---[\s\S]*?---/, '').trim();
+  const renderedHtml = cardMarked.parse(bodyContent);
+  const cleanContent = renderedHtml.replace(/<\/?[^>]+(>|$)/g, '').trim();
   const charCount = cleanContent.length;
   const minutes = charCount < 300 ? 1 : Math.floor(charCount / 300) + 1;
   const readTime = `閱讀時間約 ${minutes} 分鐘`;

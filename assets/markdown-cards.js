@@ -11,7 +11,8 @@
  *   registerCardExtensions(marked); // marked 可以是全域單例，也可以是 new Marked() 實例
  */
 
-const CARD_LANGS = 'food|spot|compare|gallery|prep|apps|triage|emergency|info|stepper|accordion';
+const CARD_LANGS =
+  'food|spot|compare|gallery|prep|apps|triage|emergency|info|stepper|accordion|quickjump|stop|eat|eatarea';
 const CARD_BLOCK_RE = new RegExp(
   `^ {0,3}\`\`\`(${CARD_LANGS})[ \\t]*\\n([\\s\\S]*?)\\n {0,3}\`\`\`[ \\t]*(?:\\n|$)`
 );
@@ -419,6 +420,138 @@ ${contentHtml}
 </details>`;
 }
 
+/**
+ * 「7 大主題景點快速導覽」跳轉清單（07-16 style-a-post 專用，僅出現一次）。
+ * 格式：`title: 標題` 一行，之後每行 `href | 連結文字 | 說明`。
+ */
+function renderQuickjump(body) {
+  let title = '';
+  const items = [];
+  for (const line of bodyLines(body)) {
+    const [key, val] = kv(line);
+    if (key === 'title') {
+      title = val;
+      continue;
+    }
+    const parts = line.split(FIELD_SEP);
+    const href = (parts[0] || '').trim();
+    const label = (parts[1] || '').trim();
+    const desc = parts.slice(2).join(FIELD_SEP).trim();
+    items.push(
+      `<div><a href="${href}" class="text-primary hover:underline font-serif font-bold">${label}</a> <span class="text-xs text-muted-text">${desc}</span></div>`
+    );
+  }
+
+  return `<div class="editorial-quick-jump my-6 p-4 bg-sand/5 border border-sand/30 rounded-sm">
+  <h4 class="text-xs uppercase tracking-widest text-muted-text font-bold mb-3">${title}</h4>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+    ${items.join('\n    ')}
+  </div>
+</div>`;
+}
+
+// level → 07-16 style-a-post 既有的「友善度」徽章 utility class 組合（逐字對應手寫版四種變體）。
+const STOP_LEVEL_CLASS = {
+  diet: 'food-tag diet ml-3',
+  flat: 'food-tag bg-sand/20 text-primary-dark ml-3',
+  slope: 'food-tag bg-[#f6eed6] text-[#6e4f0a] ml-3',
+  steps: 'food-tag bg-[#f4e6dc] text-[#833411] ml-3',
+};
+
+/**
+ * 景點漫遊主題章節卡（07-16 style-a-post `.spot-section`，與既有未使用的 `spot` 家族
+ * 結構不同——`spot` 對應的是尚未被任何文章採用的 `.spot-card` 舊設計，不可混用）。
+ * `sub` 欄位為 `子標題 | 內文`，可含原樣 HTML（`<br>`/`<em>`/`<a>` 等）。
+ */
+function renderStop(body) {
+  const f = { subs: [] };
+  for (const line of bodyLines(body)) {
+    const [key, val] = kv(line);
+    if (key === 'sub') {
+      const [subtitle, subbody] = splitFirst(val, FIELD_SEP);
+      f.subs.push({ subtitle, subbody });
+    } else {
+      f[key] = val;
+    }
+  }
+
+  const tagClass = STOP_LEVEL_CLASS[f.level] || 'food-tag ml-3';
+  const subsHtml = f.subs
+    .map(
+      (s) => `
+    <div class="sub-option-item">
+      <strong>${s.subtitle}</strong>
+      ${s.subbody}
+    </div>`
+    )
+    .join('');
+
+  return `<div class="spot-section">
+  <h4 id="${f.id}" class="spot-title"><a href="${f.url}" target="_blank" class="no-underline text-inherit">${f.title}</a> <span class="${tagClass}">${f.tag}</span></h4>
+  <p class="spot-desc">${f.desc}</p>
+  <div class="sub-option-list">${subsHtml}
+  </div>
+</div>`;
+}
+
+/**
+ * 美食推薦分區小標題（07-16 style-a-post `.food-list-title`，刻意維持 `<div>` 而非標題元素，
+ * 故不進 TOC——見 doc/project.md 待辦事項）。
+ */
+function renderEatarea(body) {
+  const f = {};
+  for (const line of bodyLines(body)) {
+    const [key, val] = kv(line);
+    f[key] = val;
+  }
+  return `<div class="food-list-title"><a href="${f.url}" target="_blank" class="no-underline text-inherit">${f.name}</a></div>`;
+}
+
+/**
+ * 美食卡（07-16 style-a-post `.food-item`，與既有未使用的 `food` 家族結構不同——`food`
+ * 對應的是尚未被任何文章採用的 `.food-item-title-row` 舊設計，不可混用）。
+ * `diet` 欄位以逗號分隔；單一項目字尾加 `*` 會改用警示樣式（如「需排隊!」的紅框變體），
+ * 逐字對應原始 30 筆手寫資料裡兩種並存的既有樣式差異。
+ */
+function renderEat(body) {
+  const f = {};
+  for (const line of bodyLines(body)) {
+    const [key, val] = kv(line);
+    f[key] = val;
+  }
+
+  const dietTags = (f.diet || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((d) => {
+      if (d.endsWith('*')) {
+        return `<span class="food-tag font-bold text-red-700 bg-red-50 border border-red-200">${d.slice(0, -1)}</span>`;
+      }
+      return `<span class="food-tag diet">${d}</span>`;
+    })
+    .join('\n      ');
+
+  const sigSep = f.sigsep === 'half' ? ': ' : '：';
+
+  return `<div class="food-item">
+  <div class="food-header">
+    <span class="food-name"><a href="${f.url}" target="_blank" class="no-underline text-inherit">${f.name}</a></span>
+    <div class="food-meta">
+      <span class="food-tag">${f.meal}</span>
+      ${dietTags ? `${dietTags}\n      ` : ''}<span class="food-price">${f.price}</span>
+    </div>
+  </div>
+  <p class="food-body"><strong>招牌菜</strong>${sigSep}${f.signature}</p>
+  <p class="food-why">${f.why}</p>
+  <div class="food-actions">
+    <a href="${f.naver}" target="_blank" class="food-action-link">Naver ↗</a>
+    <a href="${f.kakao}" target="_blank" class="food-action-link">Kakao ↗</a>
+    <a href="${f.ref}" target="_blank" class="food-action-link">食記參考 ↗</a>
+  </div>
+</div>`;
+}
+
 const RENDERERS = {
   food: renderFood,
   spot: renderSpot,
@@ -429,6 +562,10 @@ const RENDERERS = {
   triage: renderTriage,
   emergency: renderEmergency,
   info: renderInfo,
+  quickjump: renderQuickjump,
+  stop: renderStop,
+  eat: renderEat,
+  eatarea: renderEatarea,
 };
 
 // ---- marked 擴充註冊 ----------------------------------------------------
