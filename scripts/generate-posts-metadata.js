@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import { Marked } from 'marked';
 import { registerCardExtensions } from '../assets/markdown-cards.js';
 
@@ -18,6 +19,23 @@ if (!fs.existsSync(POSTS_DIR)) {
 }
 if (!fs.existsSync(path.dirname(OUTPUT_JSON))) {
   fs.mkdirSync(path.dirname(OUTPUT_JSON), { recursive: true });
+}
+
+function getFileUpdatedDate(filePath) {
+  try {
+    const gitDate = execSync(`git log -1 --format="%ad" --date=format:"%Y-%m-%d" -- "${filePath}"`, { encoding: 'utf8' }).trim();
+    if (gitDate) return gitDate;
+  } catch (e) {
+    // Ignore git errors
+  }
+  try {
+    const stats = fs.statSync(filePath);
+    const d = new Date(stats.mtime);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  } catch (e) {
+    return '';
+  }
 }
 
 const files = fs.readdirSync(POSTS_DIR);
@@ -82,11 +100,6 @@ files.forEach(file => {
   });
 
   // 預先計算閱讀時間 (與原 Jekyll kramdown 除以 300 邏輯對齊)
-  // 一律先用 marked + card DSL 擴充渲染成實際 HTML 再剝標籤計數，而非直接對原始 Markdown
-  // 剝標籤：卡片 DSL fence（```food/stop/eat/... 等）裡的 url/href/naver/kakao 等機器用欄位
-  // 是原始碼裡的純文字（不含 `<...>`），若直接對原始碼剝標籤會把整串網址算進「可讀字數」，
-  // 使用大量 DSL 卡片的文章（如 2026-07-16，約 90 個 raw URL 欄位）閱讀時間嚴重虛增。
-  // 渲染後這些欄位會落在 href="..." 屬性裡，隨標籤一起被剝除，字數才貼近讀者實際會讀到的文字。
   const bodyContent = content.replace(/^---[\s\S]*?---/, '').trim();
   const renderedHtml = cardMarked.parse(bodyContent);
   const cleanContent = renderedHtml.replace(/<\/?[^>]+(>|$)/g, '').trim();
@@ -95,11 +108,21 @@ files.forEach(file => {
   const readTime = `閱讀時間約 ${minutes} 分鐘`;
 
   const id = path.parse(file).name;
+
+  // 日期解析邏輯：優先用 frontmatter 的 date，無則解析檔名前綴 (如 YYYY-MM-DD)
+  const filenameDateMatch = file.match(/^(\d{4}-\d{2}-\d{2})/);
+  const filenameDate = filenameDateMatch ? filenameDateMatch[1] : '';
+  const date = metadata.date || filenameDate;
+
+  // 自動抓取最後編輯時間
+  const updatedDate = getFileUpdatedDate(filePath);
+
   posts.push({
     id,
     title: metadata.title || id,
     subtitle: metadata.subtitle || '',
-    date: metadata.date || '',
+    date: date || '',
+    updatedDate: updatedDate || '',
     background: metadata.background || '',
     tags: tags.filter(Boolean),
     readTime,
@@ -107,8 +130,9 @@ files.forEach(file => {
   });
 });
 
-// 依日期排序 (新 -> 舊)，與 Jekyll posts 排序方式一致
+// 依日期排序 (新 -> 舊)
 posts.sort((a, b) => new Date(b.date) - new Date(a.date));
 
 fs.writeFileSync(OUTPUT_JSON, JSON.stringify(posts, null, 2), 'utf8');
 console.log(`[build:metadata] Processed ${posts.length} posts. Generated JSON at ${OUTPUT_JSON}`);
+

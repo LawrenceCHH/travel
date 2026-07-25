@@ -99,12 +99,41 @@
         document.getElementById('post-title').textContent = post.title;
         document.getElementById('post-subtitle').textContent = post.subtitle;
 
-        // 4. 設定文章元資料與閱讀時間
-        const dateObj = new Date(post.date);
-        const formattedDate = isNaN(dateObj.getTime())
-          ? post.date
-          : `${dateObj.getFullYear()}年${String(dateObj.getMonth() + 1).padStart(2, '0')}月${String(dateObj.getDate()).padStart(2, '0')}日`;
-        document.getElementById('post-meta-info').innerHTML = `${formattedDate} &middot; <span class="reading-time" title="預估閱讀時間">${post.readTime}</span>`;
+        // 4. 設定文章元資料（閱讀時間獨自一列，建立時間與最後編輯時間獨自一列）
+        function formatMetaDate(dStr) {
+          if (!dStr) return '';
+          const trimmed = String(dStr).trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+          const d = new Date(trimmed);
+          if (isNaN(d.getTime())) return trimmed;
+          const pad = n => String(n).padStart(2, '0');
+          const yyyy = d.getFullYear();
+          const mm = pad(d.getMonth() + 1);
+          const dd = pad(d.getDate());
+          return `${yyyy}-${mm}-${dd}`;
+        }
+
+        const createdStr = formatMetaDate(post.date);
+        const updatedStr = formatMetaDate(post.updatedDate);
+
+        const dateParts = [];
+        if (createdStr) {
+          dateParts.push(`<span>建立時間: ${createdStr}</span>`);
+        }
+        if (updatedStr) {
+          dateParts.push(`<span>更新時間: ${updatedStr}</span>`);
+        }
+
+        let metaHtml = '';
+        if (post.readTime) {
+          metaHtml += `<div class="reading-time-row"><span class="reading-time" title="預估閱讀時間">${post.readTime}</span></div>`;
+        }
+        if (dateParts.length > 0) {
+          metaHtml += `<div class="dates-row flex flex-wrap items-center justify-center gap-x-3 gap-y-1 opacity-90">${dateParts.join('<span aria-hidden="true">&middot;</span>')}</div>`;
+        }
+
+        document.getElementById('post-meta-info').innerHTML =
+          `<div class="flex flex-col items-center gap-1.5">${metaHtml}</div>`;
 
         // 5. 設定標籤
         const tagsContainer = document.getElementById('post-tags');
