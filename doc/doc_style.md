@@ -3,7 +3,7 @@
 > **這份文件只給「要寫或改文章」的人看**——平常改程式碼、改樣式、改架構不需要參考這份。
 > 只有在 `src/posts/` 新增文章、或調整既有文章的標題/分隔線結構時才需要翻這份文件。
 > 全站視覺系統（色票、字型、元件規格）見 [`./style.md`](./style.md)；卡片 DSL 語法見
-> [`./markdown_decorations_design.md`](./markdown_decorations_design.md)；本檔只管「純
+> [`./card_dsl.md`](./card_dsl.md)；本檔只管「純
 > Markdown 標題階層與 `---` 分隔線」這兩件事的規則。
 
 背景：`.prose` 基礎排版已把 h1~h4 統一做成襯線標題（見 `project.md` 第一部分第 17 點），

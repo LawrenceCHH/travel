@@ -124,6 +124,7 @@ files.forEach(file => {
     date: date || '',
     updatedDate: updatedDate || '',
     background: metadata.background || '',
+    style: metadata.style || '',
     tags: tags.filter(Boolean),
     readTime,
     markdownPath: `src/posts/${file}`

@@ -171,6 +171,12 @@
           contentContainer.innerHTML = cleanContent;
         }
 
+        // 8a. 文章專屬視覺風格：front matter 的 style 欄位掛上 .post-style-<name> class，
+        // 與渲染在同一個 tick 內套用，不會有 FOUC。
+        if (post.style) {
+          contentContainer.classList.add(`post-style-${post.style}`);
+        }
+
         // 8b. 表格橫向捲動修正：避免窄螢幕被撐破版
         contentContainer.querySelectorAll('table').forEach(table => {
           const wrapper = document.createElement('div');

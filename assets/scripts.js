@@ -460,10 +460,13 @@ function initTOC(contentContainer) {
   const ENABLE_CHAPTER_BAR = false;
 
   // 僅收「文章區塊層級」的章節標題：一般 Markdown 產生的 h2/h3 是 contentContainer 的直接子節點；
-  // style-a/b/c 等版型會把整篇內容包一層 <div class="style-x-post">，此時標題會是孫節點，因此也放行
-  // 「父層剛好是 contentContainer 的直接子節點」這種深度。卡片元件（.emergency-card / .spot-section /
-  // .food-item 等）內部自帶的標題巢狀更深（曾孫節點以上），不會被以下條件收進來，避免像「緊急應變」
-  // 這種一節內含多張卡片時，TOC 被救護車/警局/各醫院等卡片標題灌爆。
+  // 少數卡片元件會把單一標題包一層 wrapper div（如 07-13 的 <div class="alert-box"><h3
+  // class="alert-box-title">），此時標題是孫節點，因此也放行「父層剛好是 contentContainer 的
+  // 直接子節點」這種深度（2026-07-25 前 07-16 的 <div class="style-a-post"> 整篇 wrapper 也曾
+  // 依賴這條放行規則，遷移到 style front matter 後該 wrapper 已移除，但放行規則仍是 07-13 這類
+  // 案例所必需，不可收緊）。卡片元件（.spot-section / .food-item 等）內部自帶的標題巢狀更深
+  // （曾孫節點以上），不會被以下條件收進來，避免像「緊急應變」這種一節內含多張卡片時，TOC 被
+  // 各分類聯絡卡標題灌爆。
   const headings = Array.from(contentContainer.querySelectorAll('h2, h3')).filter(h => {
     const parent = h.parentElement;
     return parent === contentContainer || parent.parentElement === contentContainer;

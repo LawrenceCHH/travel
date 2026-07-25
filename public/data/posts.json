@@ -6,6 +6,7 @@
     "date": "2026-07-20",
     "updatedDate": "2026-07-25",
     "background": "/img/posts/wowpass.jpg",
+    "style": "",
     "tags": [
       "韓國",
       "首爾"
@@ -20,6 +21,7 @@
     "date": "2026-07-16",
     "updatedDate": "2026-07-25",
     "background": "img/posts/三清洞.jpg",
+    "style": "editorial-card",
     "tags": [
       "韓國",
       "首爾"
@@ -34,6 +36,7 @@
     "date": "2026-07-13",
     "updatedDate": "2026-07-25",
     "background": "img/posts/luggage.jpg",
+    "style": "",
     "tags": [
       "韓國",
       "首爾",

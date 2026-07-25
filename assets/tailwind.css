@@ -272,9 +272,9 @@
      讓 07-13/07-20 這類「純 Markdown、無自訂 class」的文章不用改一個字就
      自動套用。刻意插入在既有 .prose td/th 規則之後、.toc-sidebar 之前（而
      非檔案末尾）：新增的 .prose h3/.prose h4（specificity 0,1,1）與後面
-     卡片元件區塊的 .emergency-card h3／.app-info h4（同為 0,1,1）源碼順序
-     互相牽制——這些元件規則寫在更後面，才能在 tie-break 時繼續蓋過本區塊，
-     07-13 的緊急聯絡卡片/App 卡片標題才不會被本次改動影響。
+     卡片元件區塊的 .app-info h4（同為 0,1,1）源碼順序互相牽制——這些元件規則
+     寫在更後面，才能在 tie-break 時繼續蓋過本區塊，App 卡片標題才不會被本次
+     改動影響。
      =================================================================== */
 
   /* --- 標題階層（h1-h4；h5/h6 全站未使用故不處理） ---
@@ -349,8 +349,8 @@
 
   /* 07-13《行前準備》裡 <h3 class="alert-box-title"> 是既有 .alert-box 提示框標題，
      class 選擇器 specificity 只有 (0,1,0)，天生就低於上面 .prose h3 的 (0,1,1)——
-     這與 .emergency-card h3／.app-info h4（同為 0,1,1，靠來源順序牽制）不同，靠調整
-     插入位置救不回來，必須額外用 2-class 選擇器（specificity 0,2,0，穩贏）明確恢復
+     這與 .app-info h4（同為 0,1,1，靠來源順序牽制）不同，靠調整插入位置救不回來，
+     必須額外用 2-class 選擇器（specificity 0,2,0，穩贏）明確恢復
      原始迷你標題外觀，避免被放大成一般章節標題。margin-top 已由既有更高 specificity
      的 `.alert-box > :first-child { margin-top: 0 }` 保護，這裡不需重覆設定。 */
   .prose h3.alert-box-title {
@@ -735,130 +735,22 @@
     @apply border-sand/70 bg-paper text-muted-text;
   }
 
-  /* --- 總覽：主題景點快速跳轉流線時間軸面板 --- */
-  .gallery-timeline {
-    @apply my-8 flex flex-col gap-6 relative;
-  }
-  .gallery-day-group {
-    @apply flex flex-col md:flex-row md:gap-8 items-start;
-  }
-  .gallery-day-header {
-    @apply w-full md:w-32 shrink-0 flex flex-row md:flex-col gap-2 md:gap-0.5 pb-2 md:pb-0 border-b border-sand/20 md:border-b-0 select-none;
-  }
-  .gallery-day-label {
-    @apply text-xs font-black tracking-widest text-primary font-sans;
-  }
-  .gallery-day-date {
-    @apply text-xs font-bold text-muted-text font-sans;
-  }
-  .gallery-day-items {
-    @apply flex-1 w-full pl-2 md:pl-0 mt-3 md:mt-0 relative;
-  }
-  .gallery-day-items::before {
-    content: '';
-    @apply absolute left-[7px] top-2 bottom-2 w-[1px] bg-sand/35;
-  }
-  .gallery-timeline-item {
-    @apply pl-6 pb-5 relative flex items-start last:pb-2;
-  }
-  .gallery-timeline-node {
-    @apply absolute left-[4px] top-[7.5px] w-[7px] h-[7px] rounded-full border border-sand bg-paper transition-all duration-150;
-  }
-  .gallery-timeline-item:hover .gallery-timeline-node {
-    @apply bg-primary border-primary scale-110;
-  }
-  .gallery-timeline-content {
-    @apply flex-1 block no-underline text-ink hover:text-primary transition-colors duration-150;
-  }
-  .gallery-spot-header {
-    @apply flex items-baseline gap-2 mb-1;
-  }
-  .gallery-spot-num {
-    @apply text-[10px] font-extrabold tracking-wider text-primary uppercase font-sans;
-  }
-  .gallery-spot-name {
-    @apply text-[15px] font-bold text-ink transition-colors duration-150;
-  }
-  .gallery-timeline-item:hover .gallery-spot-name {
-    @apply text-primary;
-  }
-  .gallery-spot-desc {
-    @apply text-[13px] leading-relaxed text-muted-text block;
-  }
-
-  /* --- 行前提醒膠囊 + 一鍵緊急 CTA --- */
+  /* --- 行前提醒膠囊 --- */
   .prep-pill-row { @apply my-6 flex flex-col gap-2.5; }
   .prep-pill {
     @apply rounded-md border border-sand/60 bg-surface px-3.5 py-3 text-[14px] font-semibold leading-relaxed text-ink;
   }
-  .emergency-cta {
-    @apply mt-1 flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3.5 text-[15px] font-extrabold text-paper no-underline transition-colors;
-  }
-  .emergency-cta:hover { @apply bg-primary-dark text-paper; }
 
-  /* --- 景點漫遊：主題章節卡（雜誌感大襯線標題） --- */
-  .spot-card {
-    @apply my-6 rounded-lg border border-sand/60 border-l-4 border-l-primary bg-surface p-5;
-  }
-  .day-label {
-    @apply mb-2 inline-flex items-center rounded-full bg-sand/20 px-2.5 py-0.5 text-xs font-bold text-primary-dark;
-  }
+  /* --- 景點漫遊：基礎規則（.spot-title／.stars 由 stop 家族輸出，仍在使用） --- */
   .spot-title { @apply mb-3 font-serif text-[22px] font-bold leading-snug text-ink; }
   .stars { @apply inline-flex items-center gap-0.5 font-bold text-[13px]; color: #b8912e; }
-  .friendly-badge {
-    @apply mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-extrabold;
-  }
-  .friendly-badge.flat { @apply bg-sand/20 text-primary-dark; }
-  .friendly-badge.slope { @apply bg-[#f6eed6] text-[#6e4f0a]; }
-  .friendly-badge.steps { @apply bg-[#f4e6dc] text-[#833411]; }
-  .area-desc { @apply mb-3 text-[16px] text-ink; }
-  .info-subcard {
-    @apply mt-4 border-t border-sand/50 pt-3 text-[14.5px];
-  }
-  .info-subcard-title { @apply mb-1.5 text-sm font-extrabold text-primary-dark; }
-  .spot-walk-link {
-    @apply mt-4 flex items-center gap-2.5 rounded-md border border-sand/50 bg-paper px-3.5 py-3 text-[14px] font-extrabold text-primary-dark no-underline transition-colors;
-  }
-  .spot-walk-link:hover { @apply border-sand bg-sand/15 text-primary-dark; }
 
-  /* --- 美食推薦：雜誌感卡片（大襯線店名 + 招牌菜 highlight，一眼掃到想吃什麼） ---
-     不改動 30 筆項目的 HTML：沿用既有 title/meta/diet/body 結構，純以 flex order 把
-     「餐別＋屬性」提到店名上方當 kicker，並用 :nth-of-type 把 body 內既有的
-     價位帶(1)／招牌菜(2)／為何適合(3) 三列重排為「招牌菜(hero)→價位→理由→按鈕」。
-     全 30 筆 body 列順序一致（已驗證），故 nth-of-type 選取穩定。 */
+  /* --- 美食推薦：基礎規則（.food-item／.food-actions 由 eat 家族輸出，仍在使用） --- */
   .food-item {
     @apply my-4 flex flex-col rounded-lg border border-sand/50 bg-surface p-5 transition-colors;
   }
   .food-item:hover { @apply border-primary/40; }
-  .food-item-meta-row { @apply order-1 mb-1.5 flex flex-wrap items-center gap-1.5; }
-  .food-diet-row { @apply order-2 mb-2 flex flex-wrap gap-1.5; }
-  .food-item-title-row { @apply order-3 mb-2; }
-  .food-item-name { @apply font-serif text-[22px] font-bold leading-snug text-ink; }
-  .food-chip { @apply rounded-full px-2.5 py-0.5 text-[11px] font-bold whitespace-nowrap; }
-  .chip-meal { @apply bg-sand/20 text-primary-dark; }
-  .chip-snack { @apply bg-[#f6eed6] text-[#8a6d1f]; }
-  .chip-cafe { @apply bg-[#e7ddd0] text-[#7a5c43]; }
-  .chip-gift { @apply bg-[#f4e6dc] text-[#a34e1f]; }
-
-  .food-item-body { @apply order-4 flex flex-col; }
-  .food-item-row strong { @apply mr-1 text-[11.5px] font-semibold uppercase tracking-wide text-muted-text; }
-  /* 招牌菜 → 視覺主角（承接大店名的暖褐副標） */
-  .food-item-row:nth-of-type(2) {
-    @apply order-1 mb-0.5 text-[17px] font-bold leading-snug;
-    color: var(--color-primary);
-  }
-  /* 價位帶 → 次要 meta */
-  .food-item-row:nth-of-type(1) { @apply order-2 text-[13.5px] leading-normal text-muted-text; }
-  /* 為何適合此同伴 → 說明本文 */
-  .food-item-row:nth-of-type(3) { @apply order-3 mt-3 text-[14.5px] leading-relaxed text-ink; }
   .food-actions { @apply order-4 mt-4 flex flex-wrap gap-2; }
-  .action-btn {
-    @apply inline-flex min-h-10 flex-1 items-center justify-center whitespace-nowrap rounded-md px-2 py-2 text-[13px] font-bold no-underline transition-transform;
-  }
-  .action-btn:active { transform: scale(0.98); }
-  .btn-naver { background-color: #03cf5d; color: #ffffff; }
-  .btn-kakao { background-color: #fee500; color: #191919; }
-  .btn-ref { @apply border border-sand/60 bg-paper text-ink; }
 
   /* --- 機場通關：垂直時間軸 Stepper --- */
   .stepper { @apply relative my-6 pl-6; }
@@ -887,54 +779,24 @@
   .app-info p { @apply mb-0 text-[14px] leading-normal text-muted-text; }
 
   /* --- 緊急應變：分類色碼系統（危急時一眼鎖定該看哪一塊） ---
-     刻意在此區塊引入 5 色語意色票（醫療紅／警察藍／旅遊資訊琥珀／代表處綠／醫院靛），
-     為功能性導引（wayfinding）服務，優先於全站的暖褐單色高雅調性；色相皆取「去飽和的
-     深色版」以維持沉穩，文字色對白底皆 ≥4.5:1 通過 WCAG AA。同一組色碼同時用於置頂的
-     情境速查（triage）與下方聯絡卡的左色條，讓「速查→細節」形成一致的顏色記憶。
-     .cat-* 的 border-left-color 刻意放在本區塊最末（見下方），以在來源順序上壓過
-     .emergency-card／.triage-item 各自的 border 顏色，確保左色條確實吃到分類色。 */
+     刻意引入 5 色語意色票（醫療紅／警察藍／旅遊資訊琥珀／代表處綠／醫院靛），為功能性
+     導引（wayfinding）服務，優先於全站的暖褐單色高雅調性；色相皆取「去飽和的深色版」
+     以維持沉穩，文字色對白底皆 ≥4.5:1 通過 WCAG AA。現由 `accordion` 家族的
+     `<details class="fold border-l-4 cat-*">`（左色條）與內層 `.em-tag.badge-*`
+     （分類 chip）共用同一組色碼。 */
   .badge-medical  { background: #fbeeee; color: #8f2f2f; }
   .badge-police   { background: #eef2f9; color: #35507a; }
   .badge-info     { background: #fbf4e6; color: #8a6420; }
   .badge-embassy  { background: #eef5ef; color: #3a6144; }
   .badge-hospital { background: #ecf4f4; color: #2f6060; }
-
-  /* 情境速查：置頂總表，色碼＋可點擊直撥 */
-  .triage-list { @apply my-6 flex flex-col gap-2; }
-  .triage-item {
-    @apply flex items-center gap-3 rounded-lg border border-sand/50 border-l-[5px] bg-surface p-3 no-underline transition-colors;
-  }
-  .triage-item:hover { @apply bg-sand/10; }
-  .triage-num {
-    @apply flex-none rounded-md px-3 py-2 text-center text-[15px] font-extrabold leading-none;
-    min-width: 3.75rem;
-  }
-  .triage-body { @apply text-[13.5px] leading-snug text-muted-text; }
-  .triage-body strong { @apply mb-0.5 block text-[15px] font-bold text-ink; }
-
-  /* 聯絡資訊扁平條列版（承接情境速查的色碼，左色條由 .cat-* 覆寫預設暖褐；移除卡片外框與背景，呈現類似 app-card 簡約流線排版） */
-  .emergency-card {
-    @apply my-3.5 border-l-4 pl-4 py-3;
-    border-left-color: #b56a43;
-  }
-  .emergency-card h3 { @apply mb-1.5 flex flex-wrap items-center gap-2 text-[16.5px] font-extrabold text-ink; }
-  .emergency-card p { @apply mb-2 text-[14.5px] leading-normal text-muted-text; }
-  .emergency-card p:last-child { @apply mb-0; }
   .em-tag {
     @apply inline-flex flex-none items-center rounded-full px-2 py-0.5 text-[11px] font-bold;
   }
-  /* 左色條分類色（置於本區塊最末，來源順序壓過 .emergency-card／.triage-item 的 border 色） */
   .cat-medical  { border-left-color: #b23a3a; }
   .cat-police   { border-left-color: #3f5e8c; }
   .cat-info     { border-left-color: #b07d1f; }
   .cat-embassy  { border-left-color: #4a7a55; }
   .cat-hospital { border-left-color: #3f7676; }
-
-  /* 緊急應變區的分組標籤：刻意用 <p> 而非 <h3>，讓 TOC 只保留「緊急應變」一個條目，
-     視覺上仍以小標＋底線分隔「電話／代表處／醫院」三組 */
-  .emergency-group {
-    @apply mb-3 mt-8 border-b border-sand/50 pb-1.5 text-sm font-bold tracking-wide text-muted-text;
-  }
 
   /* --- 實用資訊：機場接駁比較卡（取代 5 欄表格，手機零水平捲動） --- */
   .compare-card {
@@ -956,13 +818,6 @@
   .info-row { @apply mt-1.5 text-[14.5px] leading-relaxed text-ink; }
   .info-row strong { @apply text-primary-dark; }
 
-  /* --- 美食：長輩友善屬性晶片（比餐別晶片更輕，讀者一眼可篩選） --- */
-  .food-diet-row { @apply mb-2.5 flex flex-wrap gap-1.5; }
-  .diet-chip {
-    @apply inline-flex items-center rounded-full border border-sand/60 bg-paper px-2 py-0.5 text-[11px] font-semibold text-muted-text;
-  }
-  .diet-chip.is-warn { @apply border-[#d4a373] text-[#8c5e3c]; }
-
   /* --- 摺疊細節（保險條款／違禁品清單） --- */
   .fold { @apply my-6 rounded-md border border-sand/60 bg-surface px-4; }
   .fold > summary {
@@ -979,232 +834,6 @@
   .fold > *:not(summary) { @apply text-[14.5px] leading-relaxed; }
   .fold > *:last-child { @apply mb-4; }
 
-  /* ==========================================================================
-     NEW STYLES FOR SEPARATE LAYOUT EXPERIMENTS (A, B, C)
-     ========================================================================== */
+/* 文章專屬視覺風格：必須置於檔案最末，確保來源順序最後、能覆寫上方元件樣式。 */
+@import "./post-styles/editorial-card.css";
 
-  /* --- Option A: Modern Editorial Print Style ---
-     2026-07-21 標題階層整併：這組樣式原本是為「文章內最大的標題就是 h3」設計的獨立音階
-     （h3 26 / spot-title 22 / food-list-title 20 / food-name 18），但 07-16 這篇同時用了
-     裸 <h2>，等於在上面又疊一階，於是 h3 26px 撞上 .prose h2 行動版 26px（且 h3 底線 3px
-     比 h2 的 2px 更粗），母標題反而比子標題輕；同層的「Day X」(26) 與「◇ ○○區美食」(20)
-     又差了 6px，而孫層 .spot-title (22) 還大過叔層 food-list-title (20)。
-     改為與全站 .prose 共用同一組音階：
-       h2 26/28（不動）→ Day X 與 food-list-title 20/21 → spot-title 與 food-name 18。
-     .style-a-post h3 的整條覆寫直接刪掉，讓 Day X 回落到 .prose h3（同 07-13/07-20 的
-     ### 外觀）；底線依 A13 只留給 h2，故 h3 與 food-list-title 的 border-bottom 一併移除。 */
-  .style-a-post .spot-section {
-    @apply mb-10 pb-8 border-b border-sand/20 last:border-b-0;
-  }
-  .style-a-post .spot-title {
-    @apply font-serif text-[18px] font-bold text-primary mt-4 mb-2 flex items-center gap-2;
-  }
-  .style-a-post .spot-title::before {
-    content: '◇';
-    @apply text-primary font-normal text-base;
-  }
-  .style-a-post .spot-desc {
-    @apply text-[16px] text-ink leading-relaxed mb-4 pl-6;
-  }
-  .style-a-post .sub-option-list {
-    @apply space-y-3 pl-6 mb-6;
-  }
-  .style-a-post .sub-option-item {
-    @apply text-[15px] text-muted-text leading-relaxed border-l border-sand/40 pl-3;
-  }
-  .style-a-post .sub-option-item strong {
-    @apply text-ink font-semibold block mb-1;
-  }
-  /* 與「Day X」同一階（h2 之下的第一層分節），故刻意與 .prose h3 完全同款：同字級、同留白、
-     同樣不加底線。差別只在它是 <div> 不進 TOC——見 doc/project.md 待辦。 */
-  .style-a-post .food-list-title {
-    @apply font-serif text-[20px] md:text-[21px] font-bold text-ink mt-9 mb-4 pl-0;
-  }
-  .style-a-post .food-item {
-    @apply relative p-0 mb-12 border-0 bg-transparent rounded-none shadow-none last:mb-0;
-  }
-  .style-a-post .food-item:hover {
-    @apply border-0;
-  }
-  .style-a-post .food-item:has(+ h3, + .food-list-title) {
-    @apply mb-0;
-  }
-  .style-a-post .food-item:not(:last-child):not(:has(+ h3, + .food-list-title))::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: -24px;
-    width: 100%;
-    height: 1px;
-    background: rgb(148 137 121 / 0.25);
-  }
-  .style-a-post .food-header {
-    @apply flex flex-wrap items-center justify-between gap-2 mb-2;
-  }
-  .style-a-post .food-name {
-    @apply font-serif text-[18px] font-bold text-ink;
-  }
-  .style-a-post .food-meta {
-    @apply flex flex-wrap items-center gap-1.5;
-  }
-  .style-a-post .food-tag {
-    @apply inline-flex items-center rounded bg-sand/10 text-primary-dark px-1.5 py-0.5 text-[11px] font-semibold;
-  }
-  .style-a-post .food-tag.diet {
-    @apply bg-paper border border-sand/40 text-muted-text;
-  }
-  .style-a-post .food-price {
-    @apply text-xs text-muted-text font-semibold ml-2;
-  }
-  .style-a-post .food-body {
-    @apply text-[14.5px] leading-relaxed text-ink mt-2;
-  }
-  .style-a-post .food-why {
-    @apply text-muted-text italic mt-2 pl-3 border-l border-sand/30;
-  }
-  .style-a-post .food-actions {
-    @apply flex flex-wrap gap-3 mt-3;
-  }
-  .style-a-post .food-action-link {
-    @apply text-xs text-primary font-bold hover:underline;
-  }
-
-  /* --- Option B: Bauhaus Minimalist Axis Style --- */
-  .style-b-post h3 {
-    @apply font-sans text-[22px] font-bold text-ink uppercase tracking-wide border-b-2 border-ink pb-1 mt-10 mb-6;
-  }
-  .style-b-post .axis-timeline {
-    @apply relative border-l border-sand/60 pl-6 ml-3 space-y-8 my-6;
-  }
-  .style-b-post .axis-spot {
-    @apply relative;
-  }
-  .style-b-post .axis-node {
-    @apply absolute -left-[31px] top-[6px] h-2.5 w-2.5 border border-primary bg-paper rotate-45;
-  }
-  .style-b-post .axis-spot:hover .axis-node {
-    @apply bg-primary scale-110 transition-transform duration-150;
-  }
-  .style-b-post .axis-title {
-    @apply font-sans text-[18px] font-extrabold text-ink mb-2;
-  }
-  .style-b-post .axis-badge {
-    @apply inline-block border border-primary text-primary text-[10px] font-bold tracking-widest px-2 py-0.5 mb-3;
-  }
-  .style-b-post .axis-desc {
-    @apply text-[15px] leading-relaxed text-muted-text mb-4;
-  }
-  .style-b-post .axis-sub-list {
-    @apply space-y-3 my-3;
-  }
-  .style-b-post .axis-sub-item {
-    @apply text-[14px] text-ink leading-relaxed border-l-2 border-sand/40 pl-3;
-  }
-  .style-b-post .axis-sub-item strong {
-    @apply text-primary-dark;
-  }
-  .style-b-post .axis-food-header {
-    @apply font-sans text-[13px] uppercase tracking-wider text-muted-text font-bold mt-8 mb-4 border-b border-sand/20 pb-1;
-  }
-  .style-b-post .axis-food-item {
-    @apply mb-4 pb-4 border-b border-dashed border-sand/20 last:border-b-0;
-  }
-  .style-b-post .axis-food-name-row {
-    @apply flex items-center gap-2 mb-2;
-  }
-  .style-b-post .axis-food-name {
-    @apply font-sans text-[16px] font-bold text-ink;
-  }
-  .style-b-post .axis-food-tag {
-    @apply border border-sand/40 text-muted-text text-[10px] px-1.5 py-0.5;
-  }
-  .style-b-post .axis-food-tag.diet {
-    @apply border-primary/40 text-primary;
-  }
-  .style-b-post .axis-food-row {
-    @apply text-[14px] leading-relaxed text-ink mt-1;
-  }
-  .style-b-post .axis-food-row strong {
-    @apply text-primary;
-  }
-  .style-b-post .axis-food-actions {
-    @apply flex gap-4 mt-2 text-[12px] text-muted-text;
-  }
-  .style-b-post .axis-food-action-link {
-    @apply text-primary hover:underline;
-  }
-
-  /* --- Option C: Warm Paper Folio Style --- */
-  .style-c-post h3 {
-    @apply font-serif text-[24px] font-bold text-ink mt-10 mb-6 flex items-center gap-2;
-  }
-  .style-c-post h3::after {
-    content: '';
-    @apply flex-grow h-[1px] border-t border-dashed border-sand/60 ml-3;
-  }
-  .style-c-post .folio-ticket {
-    @apply my-6 rounded border border-dashed border-sand bg-sand/5 p-5;
-  }
-  .style-c-post .folio-ticket-header {
-    @apply flex flex-wrap items-center justify-between gap-2 border-b border-dashed border-sand/50 pb-2 mb-3;
-  }
-  .style-c-post .folio-ticket-day {
-    @apply font-serif text-xs font-bold tracking-widest text-primary uppercase;
-  }
-  .style-c-post .folio-ticket-title {
-    @apply font-serif text-[18px] font-bold text-ink;
-  }
-  .style-c-post .folio-ticket-badge {
-    @apply border border-dashed border-primary/60 text-primary text-[11px] px-2 py-0.5;
-  }
-  .style-c-post .folio-ticket-desc {
-    @apply text-[15px] leading-relaxed text-ink mb-4;
-  }
-  .style-c-post .folio-sub-list {
-    @apply grid grid-cols-1 md:grid-cols-2 gap-4 mt-4;
-  }
-  .style-c-post .folio-sub-card {
-    @apply bg-paper border border-sand/40 p-3 rounded-sm shadow-sm;
-  }
-  .style-c-post .folio-sub-card-title {
-    @apply font-serif text-[13px] font-bold text-primary border-b border-sand/20 pb-1 mb-1.5;
-  }
-  .style-c-post .folio-sub-card-text {
-    @apply text-[13.5px] leading-relaxed text-muted-text;
-  }
-  .style-c-post .folio-food-section {
-    @apply mt-6 border border-sand/40 p-4 bg-paper rounded-sm;
-  }
-  .style-c-post .folio-food-section-title {
-    @apply text-xs uppercase tracking-wider text-primary font-bold border-b border-sand/30 pb-1 mb-3;
-  }
-  .style-c-post .folio-food-item {
-    @apply mb-4 pb-4 border-b border-dashed border-sand/30 last:border-b-0 last:pb-0 last:mb-0;
-  }
-  .style-c-post .folio-food-header {
-    @apply flex flex-wrap items-center gap-2 mb-1.5;
-  }
-  .style-c-post .folio-food-star {
-    @apply text-primary text-xs;
-  }
-  .style-c-post .folio-food-name {
-    @apply font-serif text-[16px] font-bold text-ink;
-  }
-  .style-c-post .folio-food-tag {
-    @apply text-[11px] font-semibold text-muted-text bg-sand/10 px-2 py-0.5 rounded-full;
-  }
-  .style-c-post .folio-food-tag.diet {
-    @apply bg-paper border border-sand/50;
-  }
-  .style-c-post .folio-food-detail {
-    @apply pl-4 text-[14px] leading-relaxed text-ink space-y-1;
-  }
-  .style-c-post .folio-food-detail strong {
-    @apply text-primary-dark;
-  }
-  .style-c-post .folio-food-links {
-    @apply pl-4 flex gap-4 mt-2 text-[12.5px];
-  }
-  .style-c-post .folio-food-link {
-    @apply text-primary hover:underline font-medium;
-  }

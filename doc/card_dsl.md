@@ -1,6 +1,6 @@
 # 卡片 DSL 語法參考
 
-這是本站文章內文裡可用的一組 Markdown fenced code block（```food ~ ```eatarea），
+這是本站文章內文裡可用的一組 Markdown fenced code block（```prep ~ ```eatarea，共 10 種），
 用來把精簡的 `key: value` / `label | value` 資料逐字渲染成卡片化 HTML。渲染邏輯全部在
 `assets/markdown-cards.js`（`registerCardExtensions()`，注册為 marked.js 的 block 級擴充），
 由 `assets/scripts.js` 檔頭在 `window.marked` 上接線，純字串邏輯、無 DOM 依賴，可在瀏覽器與
@@ -9,16 +9,14 @@ Node 共用。改寫文章時若要確保輸出與手寫 HTML 逐字等價，可
 （純 marked vs marked+擴充，正規化空白後比對；備份路徑通常先手動存一份改寫前的檔案到
 scratchpad 再傳入，腳本本身不內建任何預設路徑）。
 
-以下總表與範例以 `assets/markdown-cards.js` 目前實際支援的清單為準；`food`/`spot`/`gallery`/
-`triage`/`emergency` 家族的語法範例逐字擷取自 `src/posts/2026-07-13-韓國首爾行前準備與緊急連絡.md`；
-`quickjump`/`stop`/`eat`/`eatarea` 家族專為 `src/posts/2026-07-16-韓國首爾旅行.md`（style-a-post
-版型）而建，語法範例逐字擷取自該篇文章。
+以下總表與範例以 `assets/markdown-cards.js` 目前實際支援的清單為準；
+`quickjump`/`stop`/`eat`/`eatarea` 家族專為 `src/posts/2026-07-16-韓國首爾旅行.md`
+（`editorial-card` 風格）而建，語法範例逐字擷取自該篇文章。
 
-**重要**：`food`/`spot` 與 `eat`/`stop` 是兩組完全不同的家族，渲染出的 HTML 結構不相容，
-不可混用（詳見下方總表備註與 `doc/project.md` 第一部分第 24 點）——`food`/`spot`/`gallery`
-是 2026-07-15 卡片 DSL 初版時針對單一風格設計的產物，07-16 後續改版為 style-a/b/c 三種視覺，
-最終定案的 style-a 實際 HTML 與這三個舊家族的輸出並不相同，故三者至今仍是「目前無文章使用」
-狀態；新增內容時務必先確認自己的文章實際套用哪一版 HTML 結構，再選對應家族。
+> `food`/`spot`/`gallery`/`triage`/`emergency` 5 個家族原本是 2026-07-15 卡片 DSL 初版時
+> 針對單一風格設計的產物，後續一直沒有任何文章使用，已於 2026-07-25「文章視覺風格系統」
+> 重構時連同其孤兒 CSS 一併移除。若日後需要類似家族，請參考 `quickjump`/`stop`/`eat`/
+> `eatarea` 的寫法重新設計，不要嘗試恢復舊實作。
 
 ## 總表
 
@@ -30,15 +28,10 @@ scratchpad 再傳入，腳本本身不內建任何預設路徑）。
 | `info` | `.info-card`（無色條、平框＋分隔線，不支援 `stars`） | 一張卡 | 純參考資訊，不是選項（在地習俗、氣候卡規定） |
 | `apps` | 多個相鄰 `.app-card`（無外層 wrapper） | 一組多張 | 推薦 App／工具清單 |
 | `accordion` | `<details class="fold border-l-4 cat-*">` | 一張可摺疊卡 | 分類化的摘要＋展開細節（緊急聯絡各分類） |
-| `food` | `.food-item` | 一張卡 | 美食項目（價位帶／招牌菜／為何適合）——**目前無文章使用** |
-| `spot` | `.spot-card` | 一張卡 | 景點介紹（day 標籤／友善度徽章／子卡）——**目前無文章使用** |
-| `gallery` | `.gallery-timeline` 內依 Day 分組的 `.gallery-day-group` | 一組多張 | 景點快速導覽時間軸——**目前無文章使用** |
-| `triage` | `.triage-list` 內多個可點擊 `.triage-item` | 一組多張 | 緊急情境速查（`tel:`／錨點）——**目前無文章使用** |
-| `emergency` | `.emergency-card`（分類色條） | 一張卡 | 緊急聯絡資訊——**目前無文章使用**（07-13 現在改用 `accordion` 呈現同類內容） |
-| `quickjump` | `.editorial-quick-jump` 內標題＋連結格狀清單 | 一組多張（僅一次） | 07-16 style-a-post「7 大主題景點快速導覽」，全文僅出現一次 |
-| `stop` | `.spot-section`（h4 標題＋友善度徽章＋子選項清單） | 一張卡 | 07-16 style-a-post 景點漫遊主題章節——**與 `spot` 家族結構不同，不可互換** |
-| `eat` | `.food-item`（`.food-header`/`.food-tag`/`.food-body`/`.food-why`/`.food-actions`） | 一張卡 | 07-16 style-a-post 美食推薦項目——**與 `food` 家族結構不同，不可互換** |
-| `eatarea` | `.food-list-title` | 一個標題列 | 07-16 style-a-post 美食推薦分區小標題（採用 `<h3 class="food-list-title">`，可進入 TOC 供 Drawer 索引定位） |
+| `quickjump` | `.editorial-quick-jump` 內標題＋連結格狀清單 | 一組多張（僅一次） | 07-16「7 大主題景點快速導覽」，全文僅出現一次；套用 `editorial-card` 風格 |
+| `stop` | `.spot-section`（h4 標題＋友善度徽章＋子選項清單） | 一張卡 | 07-16 景點漫遊主題章節，套用 `editorial-card` 風格 |
+| `eat` | `.food-item`（`.food-header`/`.food-tag`/`.food-body`/`.food-why`/`.food-actions`） | 一張卡 | 07-16 美食推薦項目，套用 `editorial-card` 風格 |
+| `eatarea` | `.food-list-title` | 一個標題列 | 07-16 美食推薦分區小標題（採用 `<h3 class="food-list-title">`，可進入 TOC 供 Drawer 索引定位） |
 
 ## 語法範例（皆為現有文章真實片段）
 
@@ -134,14 +127,12 @@ url: https://www.google.com/search?q=...
 
 ## 注意事項
 
-- **`food` 三列順序**：`food` 家族目前雖無文章使用，但其 CSS（`.food-item-row:nth-of-type`）依賴
-  body 固定「價位帶→招牌菜→為何適合」三列順序做視覺重排；若日後恢復使用，新增卡片務必維持此順序。
 - **多行 body 的空行規則**：`stepper`／`accordion` 的多行內容前後、清單前後都需要保留空行，
   marked.js 才會把 `*   ` 解析成 `<ul><li>`；省略空行會被當成純文字，`*` 不會轉換成項目符號。
 - **`apps` 無外層 wrapper**：多個 `.app-card` 相鄰輸出、無共用父層，CSS 若要做去尾/去頭樣式須用
   相鄰選擇器（如 `.app-card + .app-card`），`:first-of-type`/`:last-of-type` 對此無效。
-- **URL 欄位原樣輸出**：`map`／`map_kakao`／`href` 等連結欄位不做 `encodeURIComponent`，保留原始
-  查詢字串（含韓文）。
+- **URL 欄位原樣輸出**：`url`／`naver`／`kakao`／`ref`／`href` 等連結欄位不做 `encodeURIComponent`，
+  保留原始查詢字串（含韓文）。
 - **`compare` vs `info`**：兩者結構平行，但語意分工是「`compare` = 可擇一的選項（有色條、可加
   `stars`）」「`info` = 純參考資訊（無色條、不支援 `stars`）」，新增內容前先判斷屬於哪一種。
 - **`stop` 的 `level` 四種值**：`diet`（`.food-tag.diet` 樣式，如「極度舒適」）／`flat`（沙色底，
@@ -152,3 +143,31 @@ url: https://www.google.com/search?q=...
   即可還原紅框樣式；`<strong>招牌菜</strong>` 後面的分隔符號 29 筆是全形「：」，僅 1 筆原始
   資料是半形「: 」，須加 `sigsep: half` 才能逐字還原——兩者都是原始內容既有的不一致，不是
   新增資料時應該模仿的寫法（新資料建議统一用不加 `*` 的 diet 標籤、全形「：」）。
+
+## 文章視覺風格系統（`style` front matter，2026-07-25）
+
+DSL 輸出的 HTML／class 永遠只有一份 canonical 版本；不同文章想要不同的整篇視覺風格，
+不靠改 renderer 或手寫 wrapper `<div>`，而是靠一個獨立的 CSS 層：
+
+1. **front matter 加一個欄位**：`style: <風格名稱>`（例如 07-16 用的 `style: editorial-card`）。
+   `scripts/generate-posts-metadata.js` 會把它原樣寫進 `posts.json` 的 `style` 欄位；
+   `posts/detail.html` 在 `marked.parse()` 完成、`innerHTML` 寫入的同一個 tick 內，判斷
+   `post.style` 是否有值，有的話就 `contentContainer.classList.add('post-style-' + post.style)`
+   ——不會有 FOUC，也不需要在 Markdown 裡手寫任何 wrapper。
+2. **風格 CSS 放 `assets/post-styles/<風格名稱>.css`**，整份檔案 scope 在
+   `.post-style-<風格名稱>` 之下，由 `assets/tailwind.css` **最末行** `@import` 進來
+   （見 `doc/style.md` B8：位置放錯 build 不會報錯，是靜默的 cascade 失效，務必放最後）。
+3. **多篇文章要共用同一份風格**：front matter 填同一個 `style` 值即可，`.post-style-<name>`
+   天生支援多篇套用。但有個必要前提——風格檔的選擇器綁定特定 DSL 家族（例如
+   `editorial-card.css` 綁定 `quickjump`/`stop`/`eat`/`eatarea` 這組家族的 class，如
+   `.spot-title`/`.food-item`/`.food-list-title`），**第二篇文章必須使用同一組 DSL 家族**，
+   風格才會生效；新增風格檔時務必在檔頭註明「本風格依賴哪些 DSL 家族」。
+4. **風格檔只能用 `@theme` 既有 Token**（見 `doc/style.md` B1），不得發明新色票；也不得出現
+   文章專屬的 `#id` 選擇器——這是共用機制成立的前提，寫死單篇專屬選擇器會讓其他文章即使套用
+   同一 `style` 值也無法生效。
+5. **新增一篇風格不同的文章時的完整流程**：照本檔既有語法寫 fence → front matter 加
+   `style: <名稱>` → 新增一份 scoped 在 `.post-style-<名稱>` 的 CSS → **完全不寫新 JS、
+   不動 `markdown-cards.js`、不手寫 `<div>` 包版型**。風格差異永遠只寫 CSS，不要為了換皮
+   再造一組 DSL 家族（這正是 `food`/`spot`/`gallery`/`triage`/`emergency` 5 個家族當初
+   變成孤兒代碼的原因——07-16 改版視覺時另外設計了一套新家族，而不是把舊家族的 CSS
+   抽換掉，導致兩者都得維護）。

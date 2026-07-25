@@ -1,7 +1,7 @@
 /**
- * Card DSL 擴充：把文章 markdown 裡精簡的 ```food / ```spot / ```compare / ```gallery /
- * ```prep / ```apps / ```triage / ```emergency / ```info / ```stepper 資料區塊，在 marked
- * 渲染時逐字還原成與手寫版本相同的卡片 HTML。
+ * Card DSL 擴充：把文章 markdown 裡精簡的 ```compare / ```prep / ```apps / ```info /
+ * ```stepper / ```accordion / ```quickjump / ```stop / ```eat / ```eatarea 資料區塊，在
+ * marked 渲染時逐字還原成與手寫版本相同的卡片 HTML。
  *
  * 純字串邏輯，不引用 document / window 等瀏覽器專有物件，可在 Node 環境（驗證腳本、
  * 未來若要在建置時預渲染）與瀏覽器（scripts.js 於 window.marked 上註冊）共用。
@@ -12,7 +12,7 @@
  */
 
 const CARD_LANGS =
-  'food|spot|compare|gallery|prep|apps|triage|emergency|info|stepper|accordion|quickjump|stop|eat|eatarea';
+  'compare|prep|apps|info|stepper|accordion|quickjump|stop|eat|eatarea';
 const CARD_BLOCK_RE = new RegExp(
   `^ {0,3}\`\`\`(${CARD_LANGS})[ \\t]*\\n([\\s\\S]*?)\\n {0,3}\`\`\`[ \\t]*(?:\\n|$)`
 );
@@ -44,106 +44,6 @@ function splitFirst(str, sep) {
 const FIELD_SEP = ' | ';
 
 // ---- 各家族 renderer ---------------------------------------------------
-
-function renderFood(body) {
-  const f = {};
-  for (const line of bodyLines(body)) {
-    const [key, val] = kv(line);
-    f[key] = val;
-  }
-
-  const MEAL_CLASS = {
-    正餐: 'chip-meal',
-    小吃: 'chip-snack',
-    咖啡廳: 'chip-cafe',
-    伴手禮: 'chip-gift',
-  };
-  const mealChips = (f.meal || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((m) => `<span class="food-chip ${MEAL_CLASS[m] || ''}">${m}</span>`)
-    .join('');
-
-  let dietRow = '';
-  if (f.diet) {
-    const chips = f.diet
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .map((d) => {
-        if (d.endsWith('!')) {
-          return `<span class="diet-chip is-warn">${d.slice(0, -1)}</span>`;
-        }
-        return `<span class="diet-chip">${d}</span>`;
-      })
-      .join('');
-    dietRow = `<div class="food-diet-row">${chips}</div>`;
-  }
-
-  // map 為 naver／kakao 共用的搜尋字串；少數店名 kakao 端原始資料多一個空白，
-  // 以可省的 map_kakao 覆寫欄位保留這個既有差異，逐字還原。
-  const mapKakao = f.map_kakao || f.map;
-
-  return `<div class="food-item">
-  <div class="food-item-title-row"><span class="food-item-name">${f.name}</span></div>
-  <div class="food-item-meta-row">${mealChips}</div>
-  ${dietRow}
-  <div class="food-item-body">
-    <div class="food-item-row"><strong>價位帶：</strong>${f.price}</div>
-    <div class="food-item-row"><strong>招牌菜：</strong>${f.signature}</div>
-    <div class="food-item-row"><strong>為何適合此同伴：</strong>${f.why}</div>
-    <div class="food-actions">
-      <a class="action-btn btn-naver" href="https://map.naver.com/v5/search/${f.map}" target="_blank">Naver 地圖</a>
-      <a class="action-btn btn-kakao" href="https://map.kakao.com/?q=${mapKakao}" target="_blank">Kakao 地圖</a>
-      <a class="action-btn btn-ref" href="${f.ref}" target="_blank">食記參考</a>
-    </div>
-  </div>
-</div>`;
-}
-
-function renderSpot(body) {
-  const f = { subs: [] };
-  for (const line of bodyLines(body)) {
-    const [key, val] = kv(line);
-    if (key === 'sub') {
-      const [subtitle, subbody] = splitFirst(val, FIELD_SEP);
-      f.subs.push({ subtitle, subbody });
-    } else {
-      f[key] = val;
-    }
-  }
-
-  const dayHtml = f.day ? `<span class="day-label">${f.day}</span>\n  ` : '';
-
-  let badgeHtml = '';
-  if (f.badge) {
-    const [level, badgeRest] = splitFirst(f.badge, FIELD_SEP);
-    const [stars, text] = splitFirst(badgeRest, FIELD_SEP);
-    badgeHtml = `<div class="friendly-badge ${level}"><span class="stars">${stars}</span>&nbsp;${text}</div>\n  `;
-  }
-
-  const subsHtml = f.subs
-    .map(
-      (s) => `
-  <div class="info-subcard">
-    <div class="info-subcard-title">${s.subtitle}</div>
-    <p>${s.subbody}</p>
-  </div>`
-    )
-    .join('');
-
-  let walkHtml = '';
-  if (f.walk) {
-    const [wtext, href] = splitFirst(f.walk, FIELD_SEP);
-    walkHtml = `\n  <a class="spot-walk-link" href="${href}">${wtext}</a>`;
-  }
-
-  return `<div class="spot-card">
-  ${dayHtml}<h4 id="${f.id}" class="spot-title">${f.title}</h4>
-  ${badgeHtml}<p class="area-desc">${f.desc}</p>${subsHtml}${walkHtml}
-</div>`;
-}
 
 function renderCompare(body) {
   let name = '';
@@ -203,84 +103,6 @@ function renderInfo(body) {
 </div>`;
 }
 
-function renderGallery(body) {
-  const DAY_DATES = {
-    'Day 1': '10/15 (四)',
-    'Day 2': '10/16 (五)',
-    'Day 3': '10/17 (六)',
-    'Day 4': '10/18 (日)',
-  };
-
-  const items = bodyLines(body).map((line) => {
-    const parts = line.split(FIELD_SEP);
-    const href = (parts[0] || '').trim();
-    const name = (parts[1] || '').trim();
-    const theme = parts.slice(2).join(FIELD_SEP).trim();
-    
-    // Extract Day number (e.g., "Day 1")
-    const dayMatch = theme.match(/\((Day\s*\d+)/i);
-    const dayStr = dayMatch ? dayMatch[1] : '';
-    
-    // Extract Spot number from href (e.g., "#spot-1" -> "Spot 1")
-    const spotNumMatch = href.match(/spot-(\d+)/i);
-    const spotNum = spotNumMatch ? `${spotNumMatch[1]}` : '';
-    
-    // Clean up theme (remove the Day part entirely)
-    const cleanTheme = theme.replace(/\s*\(Day\s*\d+[^)]*\)/i, '').trim();
-    
-    return { href, name, theme: cleanTheme, dayStr, spotNum };
-  });
-
-  // Group items by Day
-  const groups = [];
-  let currentGroup = null;
-  
-  for (const item of items) {
-    const dStr = item.dayStr || 'Other';
-    if (!currentGroup || currentGroup.dayStr !== dStr) {
-      currentGroup = {
-        dayStr: dStr,
-        dateStr: DAY_DATES[dStr] || '',
-        items: []
-      };
-      groups.push(currentGroup);
-    }
-    currentGroup.items.push(item);
-  }
-
-  const groupsHtml = groups.map((g) => {
-    const itemsHtml = g.items.map((item) => {
-      return `
-      <div class="gallery-timeline-item">
-        <div class="gallery-timeline-node"></div>
-        <a class="gallery-timeline-content" href="${item.href}">
-          <div class="gallery-spot-header">
-            <span class="gallery-spot-name">${item.name}</span>
-          </div>
-          <div class="gallery-spot-desc">${item.theme}</div>
-        </a>
-      </div>`;
-    }).join('');
-
-    const dateHeader = g.dateStr ? `<span class="gallery-day-date">${g.dateStr}</span>` : '';
-
-    return `
-    <div class="gallery-day-group">
-      <div class="gallery-day-header">
-        <span class="gallery-day-label">${g.dayStr.toUpperCase()}</span>
-        ${dateHeader}
-      </div>
-      <div class="gallery-day-items">
-        ${itemsHtml}
-      </div>
-    </div>`;
-  }).join('');
-
-  return `<div class="gallery-timeline not-prose">
-  ${groupsHtml}
-</div>`;
-}
-
 function renderPrep(body) {
   const pills = bodyLines(body)
     .map((line) => {
@@ -304,43 +126,6 @@ function renderApps(body) {
       return `<div class="app-card"><div class="app-icon-wrapper">${icon}</div><div class="app-info"><h4>${name}</h4><p>${appBody}</p></div></div>`;
     })
     .join('\n');
-}
-
-function renderTriage(body) {
-  const items = bodyLines(body)
-    .map((line) => {
-      const parts = line.split(FIELD_SEP);
-      const cat = (parts[0] || '').trim();
-      const href = (parts[1] || '').trim();
-      const num = (parts[2] || '').trim();
-      const bold = (parts[3] || '').trim();
-      const rest = parts.slice(4).join(FIELD_SEP).trim();
-      return `<a class="triage-item cat-${cat}" href="${href}"><span class="triage-num badge-${cat}">${num}</span><span class="triage-body"><strong>${bold}</strong>${rest}</span></a>`;
-    })
-    .join('\n  ');
-
-  return `<div class="triage-list not-prose">
-  ${items}
-</div>`;
-}
-
-function renderEmergency(body) {
-  const f = { ps: [] };
-  for (const line of bodyLines(body)) {
-    const [key, val] = kv(line);
-    if (key === 'p') {
-      f.ps.push(val);
-    } else {
-      f[key] = val;
-    }
-  }
-
-  const psHtml = f.ps.map((p) => `\n  <p>${p}</p>`).join('');
-  const idAttr = f.id ? ` id="${f.id}"` : '';
-
-  return `<div class="emergency-card cat-${f.cat}"${idAttr}>
-  <h3><span class="em-tag badge-${f.cat}">${f.tag}</span>${f.title}</h3>${psHtml}
-</div>`;
 }
 
 /**
@@ -421,7 +206,7 @@ ${contentHtml}
 }
 
 /**
- * 「7 大主題景點快速導覽」跳轉清單（07-16 style-a-post 專用，僅出現一次）。
+ * 「7 大主題景點快速導覽」跳轉清單（07-16 editorial-card 風格專用，僅出現一次）。
  * 格式：`title: 標題` 一行，之後每行 `href | 連結文字 | 說明`。
  */
 function renderQuickjump(body) {
@@ -450,7 +235,7 @@ function renderQuickjump(body) {
 </div>`;
 }
 
-// level → 07-16 style-a-post 既有的「友善度」徽章 utility class 組合（逐字對應手寫版四種變體）。
+// level → 07-16 editorial-card 風格既有的「友善度」徽章 utility class 組合（逐字對應手寫版四種變體）。
 const STOP_LEVEL_CLASS = {
   diet: 'food-tag diet ml-3',
   flat: 'food-tag bg-sand/20 text-primary-dark ml-3',
@@ -459,8 +244,7 @@ const STOP_LEVEL_CLASS = {
 };
 
 /**
- * 景點漫遊主題章節卡（07-16 style-a-post `.spot-section`，與既有未使用的 `spot` 家族
- * 結構不同——`spot` 對應的是尚未被任何文章採用的 `.spot-card` 舊設計，不可混用）。
+ * 景點漫遊主題章節卡（07-16 editorial-card 風格 `.spot-section`）。
  * `sub` 欄位為 `子標題 | 內文`，可含原樣 HTML（`<br>`/`<em>`/`<a>` 等）。
  */
 function renderStop(body) {
@@ -495,7 +279,7 @@ function renderStop(body) {
 }
 
 /**
- * 美食推薦分區小標題（07-16 style-a-post `.food-list-title`，採用 `<h3>` 讓大綱 TOC Drawer 抓取索引）。
+ * 美食推薦分區小標題（07-16 editorial-card 風格 `.food-list-title`，採用 `<h3>` 讓大綱 TOC Drawer 抓取索引）。
  */
 function renderEatarea(body) {
   const f = {};
@@ -507,8 +291,7 @@ function renderEatarea(body) {
 }
 
 /**
- * 美食卡（07-16 style-a-post `.food-item`，與既有未使用的 `food` 家族結構不同——`food`
- * 對應的是尚未被任何文章採用的 `.food-item-title-row` 舊設計，不可混用）。
+ * 美食卡（07-16 editorial-card 風格 `.food-item`）。
  * `diet` 欄位以逗號分隔；單一項目字尾加 `*` 會改用警示樣式（如「需排隊!」的紅框變體），
  * 逐字對應原始 30 筆手寫資料裡兩種並存的既有樣式差異。
  */
@@ -552,14 +335,9 @@ function renderEat(body) {
 }
 
 const RENDERERS = {
-  food: renderFood,
-  spot: renderSpot,
   compare: renderCompare,
-  gallery: renderGallery,
   prep: renderPrep,
   apps: renderApps,
-  triage: renderTriage,
-  emergency: renderEmergency,
   info: renderInfo,
   quickjump: renderQuickjump,
   stop: renderStop,
