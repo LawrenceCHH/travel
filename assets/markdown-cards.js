@@ -495,8 +495,7 @@ function renderStop(body) {
 }
 
 /**
- * 美食推薦分區小標題（07-16 style-a-post `.food-list-title`，刻意維持 `<div>` 而非標題元素，
- * 故不進 TOC——見 doc/project.md 待辦事項）。
+ * 美食推薦分區小標題（07-16 style-a-post `.food-list-title`，採用 `<h3>` 讓大綱 TOC Drawer 抓取索引）。
  */
 function renderEatarea(body) {
   const f = {};
@@ -504,7 +503,7 @@ function renderEatarea(body) {
     const [key, val] = kv(line);
     f[key] = val;
   }
-  return `<div class="food-list-title"><a href="${f.url}" target="_blank" class="no-underline text-inherit">${f.name}</a></div>`;
+  return `<h3 class="food-list-title"><a href="${f.url}" target="_blank" class="no-underline text-inherit">${f.name}</a></h3>`;
 }
 
 /**
@@ -572,6 +571,24 @@ const RENDERERS = {
 
 export function registerCardExtensions(marked) {
   marked.use({
+    renderer: {
+      link(hrefOrToken, title, text) {
+        let href, linkTitle, linkText;
+        if (typeof hrefOrToken === 'object' && hrefOrToken !== null) {
+          href = hrefOrToken.href;
+          linkTitle = hrefOrToken.title;
+          linkText = hrefOrToken.text || hrefOrToken.tokens?.map((t) => t.raw || t.text).join('') || '';
+        } else {
+          href = hrefOrToken;
+          linkTitle = title;
+          linkText = text;
+        }
+        const titleAttr = linkTitle ? ` title="${linkTitle}"` : '';
+        const isExternal = typeof href === 'string' && (href.startsWith('http://') || href.startsWith('https://'));
+        const targetAttr = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+        return `<a href="${href || '#'}"${titleAttr}${targetAttr}>${linkText}</a>`;
+      },
+    },
     extensions: [
       {
         name: 'cardBlock',

@@ -38,7 +38,7 @@ scratchpad 再傳入，腳本本身不內建任何預設路徑）。
 | `quickjump` | `.editorial-quick-jump` 內標題＋連結格狀清單 | 一組多張（僅一次） | 07-16 style-a-post「7 大主題景點快速導覽」，全文僅出現一次 |
 | `stop` | `.spot-section`（h4 標題＋友善度徽章＋子選項清單） | 一張卡 | 07-16 style-a-post 景點漫遊主題章節——**與 `spot` 家族結構不同，不可互換** |
 | `eat` | `.food-item`（`.food-header`/`.food-tag`/`.food-body`/`.food-why`/`.food-actions`） | 一張卡 | 07-16 style-a-post 美食推薦項目——**與 `food` 家族結構不同，不可互換** |
-| `eatarea` | `.food-list-title` | 一個標題列 | 07-16 style-a-post 美食推薦分區小標題（刻意維持 `<div>` 非標題元素，不進 TOC） |
+| `eatarea` | `.food-list-title` | 一個標題列 | 07-16 style-a-post 美食推薦分區小標題（採用 `<h3 class="food-list-title">`，可進入 TOC 供 Drawer 索引定位） |
 
 ## 語法範例（皆為現有文章真實片段）
 

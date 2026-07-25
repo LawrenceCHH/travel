@@ -405,7 +405,7 @@ posts/
 - [ ] **style-a 版型行動版開頭出現兩個重複的摘要／導覽區塊**：修正 `initTOC()` 抓不到 style-a/b/c 版型標題的 bug 後（見更新歷史），`buildMobileOutlineAndSheet()` 產生的自動大綱框「本文章節」（列出 總覽／景點漫遊／美食推薦）現在會插在 `#post-content` 最前面，緊接著又是 `.style-a-post` 內「總覽」小節裡手寫的「7 大主題景點快速導覽」格狀清單——兩者功能高度重疊，行動版一開頭連續出現兩個摘要區塊。需要決定去重方式：例如拿掉手寫的 quick-jump 區塊、或讓自動大綱偵測到頁面已有等價的手寫導覽時跳過渲染，或乾脆把兩者合併成一個元件。style-b／style-c 版型是否有同樣狀況也要一併確認。
 
 - [ ] **本次 UI 調整待目視確認（2026-07-21）**：三項改動都只做到 `npm run build` 與 CSS 輸出複驗，未實際在瀏覽器目視。待確認 (a) TOC 側欄新密度是否仍嫌擠——若是，下一步是把 `.toc-sidebar` 寬度改成 `clamp(11rem, calc(50vw - 26rem), 14rem)` 讓大螢幕自動加寬（**不是再縮字**），代價是動到側欄與文章的 2rem 間隙；(b) `.post-nav-title` 在行動版 375px 下是否普遍撞到 `line-clamp: 3` 上限——若是，解法是收窄 `.post-nav` 的 `gap` 換欄寬
-- [ ] **07-16 `.food-list-title` 是 `<div>` 不進 TOC**：2026-07-21 已把它的字級與「`### Day X`」對齊（同屬 `h2` 之下第一層），但 Day X 是 `<h3>`、它是 `<div>`，同一邏輯層級只有一半進得了側欄 TOC。若要一致，改成 `<h3 class="food-list-title">` 即可（`initTOC()` 收 h2/h3），代價是側欄多 6 條；先擱置待使用者決定
+- [x] **07-16 `.food-list-title` 改為 `<h3 class="food-list-title">` 進 TOC**：已改為 `<h3 class="food-list-title">`，讓 6 個美食分區成功加入 TOC Drawer / 側欄供快速跳轉，視覺樣式 0 Diff 完全不變。
 
 ## 更新歷史
 

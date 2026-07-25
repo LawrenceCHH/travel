@@ -332,6 +332,21 @@
     margin-bottom: 0.5rem; /* mb-2 */
   }
 
+  /* 標題內的連結：移除底線並繼承標題文字顏色（保持標題質感與連結功能） */
+  .prose h1 a,
+  .prose h2 a,
+  .prose h3 a,
+  .prose h4 a {
+    text-decoration: none;
+    color: inherit;
+  }
+  .prose h1 a:hover,
+  .prose h2 a:hover,
+  .prose h3 a:hover,
+  .prose h4 a:hover {
+    color: var(--color-primary);
+  }
+
   /* 07-13《行前準備》裡 <h3 class="alert-box-title"> 是既有 .alert-box 提示框標題，
      class 選擇器 specificity 只有 (0,1,0)，天生就低於上面 .prose h3 的 (0,1,1)——
      這與 .emergency-card h3／.app-info h4（同為 0,1,1，靠來源順序牽制）不同，靠調整
@@ -1011,10 +1026,10 @@
   .style-a-post .food-item:hover {
     @apply border-0;
   }
-  .style-a-post .food-item:has(+ .food-list-title) {
+  .style-a-post .food-item:has(+ h3, + .food-list-title) {
     @apply mb-0;
   }
-  .style-a-post .food-item:not(:last-child):not(:has(+ .food-list-title))::before {
+  .style-a-post .food-item:not(:last-child):not(:has(+ h3, + .food-list-title))::before {
     content: '';
     position: absolute;
     left: 0;
