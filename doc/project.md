@@ -4,7 +4,7 @@
 
 此專案已於 2026-07-11 從 Jekyll 遷移至基於 **Vite** 與 **Tailwind CSS v4** 的純前端 MPA（多頁面應用）靜態架構。所有頁面的共用 Layout 載入、文章目錄搜尋與篩選、以及 Markdown 文章解析渲染，皆直接於瀏覽器端完成，徹底擺脫了對 Ruby、Jekyll 與 Gem 的依賴。
 
-本檔案分兩部分：**第一部分**是給 Agent／開發者的架構與參考資訊（技術棧、指令、目錄結構、功能對應程式碼、關鍵設計決策），**第二部分**是更新歷史與待辦事項。安裝/建置/部署指令另見 [`../README.md`](../README.md)；全站視覺與互動風格的系統化分析（抽象設計準則＋具體元件規格）見 [`./style.md`](./style.md)；卡片 DSL 語法參考（含 `style` front matter 用法）見 [`./card_dsl.md`](./card_dsl.md)；**只有在新增/編輯文章時**才需要參考的標題階層與 `---` 分隔線用法守則見 [`./doc_style.md`](./doc_style.md)。
+本檔案分兩部分：**第一部分**是給 Agent／開發者的架構與參考資訊（技術棧、指令、目錄結構、功能對應程式碼、關鍵設計決策），**第二部分**是更新歷史與待辦事項。安裝/建置/部署指令另見 [`../README.md`](../README.md)；全站視覺與互動風格的系統化分析（抽象設計準則＋具體元件規格）見 [`./style.md`](./style.md)；卡片 DSL 語法參考（含 `style` front matter 用法）見 [`./card_dsl.md`](./card_dsl.md)；**只有在新增/編輯文章時**才需要參考的標題階層與 `---` 分隔線用法守則見 [`./doc_style.md`](./doc_style.md)；**新增「先寫架構、後填內容」類型的文章時**，先看 [`../doc_template/README.md`](../doc_template/README.md) 是否已有對應風格的模板可直接填空。
 
 ---
 
@@ -174,6 +174,7 @@ npm run preview
 | 自訂 404 頁（GitHub Pages 找不到路徑時的 fallback；文章 id 查無資料/缺 id 時也會前端導向此頁） | `404.html`（build 進入點）／`posts/detail.html` 的 `window.location.replace(base + '404.html')` |
 | lint／格式化 | `eslint.config.js`（flat config）／`.prettierrc.json`／`.prettierignore`；`npm run lint`／`npm run format` |
 | 前端錯誤監控（預設關閉） | `assets/scripts.js` 頂部 `ERROR_WEBHOOK_URL` 常數＋ `reportError()`，掛 `window.addEventListener('error'/'unhandledrejection', ...)` |
+| 文章模板（先寫架構、後填內容，只放骨架＋佔位符，不含實際文字） | `doc_template/README.md`（使用流程與相關文件索引）／`doc_template/travel-itinerary-editorial-card.md`（`style: editorial-card` 風格骨架，抽取自 07-16 文章） |
 
 ## 專案目錄結構對照表
 
@@ -220,6 +221,8 @@ public/
   sw.js                        PWA Service Worker 快取腳本，打包時由 Vite 插件填入雜湊資源檔名
 src/
   posts/                       存放所有文章原始檔（.md 或 .html）的目錄，供前端 Fetch 讀取
+doc_template/                 「先寫架構、後填內容」文章模板（只含骨架＋佔位符，不進 build，
+                                供 Agent 填內容產出 src/posts/ 新文章），見 README.md 使用流程
 scripts/
   generate-posts-metadata.js   Node.js 腳本，用以提取文章 Front matter、計算閱讀時間並產出 posts.json
   verify-post-render.mjs       Dev-only 渲染回歸驗證：兩邊都用「當前的 markdown-cards.js／
@@ -773,6 +776,30 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-26 — 新增 `doc_template/`，把 07-16 文章架構抽成「先寫架構、後填內容」模板
+
+* **範圍**：使用者要求把 `2026-07-16-首爾秋日漫遊手帳.md` 的架構抽出來存成可重複使用的
+  模板，讓之後寫類似風格（多天行程、按景點分段、文末附分區美食清單）的新文章時，只需準備
+  內容，交由 Agent 依模板填空即可產出完整文章，不必每次重新設計結構。
+* **新增檔案**：
+  - `doc_template/travel-itinerary-editorial-card.md`——`style: editorial-card` 風格骨架，
+    保留 front matter／`總覽`（`quickjump`）／`景點漫遊`（`### Day N` ＋ `stop` fence）／
+    `美食推薦`（`### 區域` ＋美食卡）四個區塊的結構與欄位，內容全部替換為 `{{...}}` 佔位符，
+    並用 `<!-- -->` 註解標出容易漏掉的規則（`quickjump` 條目數需對應 `stop` 區塊數、`level`
+    四選一、美食卡觸發條件）。
+  - `doc_template/README.md`——說明「使用者準備內容→Agent 填模板」兩步驟流程、模板清單、
+    Agent 填內容時的完整步驟（複製檔案→取代佔位符→刪除說明註解→`build:metadata`／`dev`
+    驗證渲染→視需要回頭更新本檔更新歷史），以及新增其他風格模板時的擴充方式。
+* **關鍵決策：模板不重複抄寫 `card_dsl.md` 的完整語法規則**，只放最少量的行內提醒——完整
+  欄位定義、合法值、觸發條件判斷邏輯，一律以 `doc/card_dsl.md`／`doc/doc_style.md`／
+  `doc/style.md` 為準，避免未來語法變動時模板與文件兩處要一起維護、卻容易漏改其中一處。
+* **定位限制**：此模板只適合「多天行程＋景點分段＋分區美食」這類手帳型遊記；性質差異大的
+  文章（單日城市漫步、無明確景點分段等）不應硬套，`doc_template/README.md` 已明寫此限制，
+  並指向 `doc/card_dsl.md` 供從零挑選合適的 fence 家族。
+* **驗證**：純新增文件，未改動任何程式碼、渲染邏輯或既有文章內容，`doc_template/` 不在
+  `vite.config.js` 的建置輸入內、不影響 `npm run build`；不需要 `verify-post-render.mjs`
+  回歸驗證。
+
 ### 2026-07-26 — 中文襯線字體自架，解決跨裝置一致性（待辦事項落地）
 
 * **範圍**：落地待辦事項「中文襯線字體跨裝置一致性」——`--font-serif` 雖列了
@@ -856,30 +883,12 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
   正確雜湊檔名；連續兩次 `npm run build`（無任何來源變動）確認雜湊值不變，證明可重現、非
   時間戳/隨機值。
 
-### 2026-07-26 — 修正 dev server 下 manifest／icon 連結 base path 疊加成 `/travel/travel/...` 的 404
-
-* **範圍**：使用者反映 `npm run dev` 主控台跳出 manifest 相關的「Syntax error」噪音；追查後
-  確認是 `index.html`／`posts/index.html`／`posts/detail.html`／`404.html`／`contact.html`
-  五個檔案的 `<link rel="manifest">`／`icon`／`apple-touch-icon` 寫死帶 base 前綴的
-  `/travel/manifest.json`、`/travel/img/icons/icon.svg`、`/travel/img/icons/icon-192.png`。
-  這幾個檔案放在 `public/` 目錄，依 Vite 慣例本該用「相對於 public 根目錄」的路徑
-  （`/manifest.json`）讓 Vite 自動套用 `base` 設定；因為原始碼已經手動帶了一次 `/travel/`
-  前綴，dev server 的 html transform 又再疊加一次 `base`，變成
-  `/travel/travel/manifest.json`（404），瀏覽器把這個 404 錯誤頁當 manifest 解析就跳出
-  Syntax error。以 `curl` 直接請求 dev server 輸出的 HTML 驗證重現。production build 不受
-  影響——build 階段的資產解析對「原始碼已含 base 前綴、且該路徑在 `publicDir` 內找不到對應
-  檔案」的情況不會再疊加，`dist/index.html` 一直都只有單一 `/travel/manifest.json`，純粹是
-  開發時主控台噪音。
-* **修法**：五個檔案的三個 tag 全部改回不含 base 前綴的 `/manifest.json`、
-  `/img/icons/icon.svg`、`/img/icons/icon-192.png`，讓 Vite 在 dev 與 build 兩種模式都自動
-  套用同一份 `base: '/travel/'` 設定，不再手動疊加。
-* **驗證**：`npm run dev` 起服務後用 `curl` 逐一確認 `index.html`／`posts/index.html`／
-  `posts/detail.html`／`404.html`／`contact.html` 五頁輸出的三個連結皆為單一 `/travel/`
-  前綴（改前重現為雙重 `/travel/travel/`）；`npm run build` 後 `dist/` 五頁輸出不變，仍是
-  正確的單一前綴，`public/data/posts.json` 未被意外改動。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- **2026-07-26**：修正 dev server 下 `index.html`／`posts/index.html`／`posts/detail.html`／
+  `404.html`／`contact.html` 五個檔案的 manifest／icon 連結因原始碼已含 `/travel/` base
+  前綴、又被 dev server 疊加一次 base，變成 `/travel/travel/...` 404（production build 不
+  受影響）；改回不含前綴的 `/manifest.json` 等路徑，讓 Vite 統一套用 base 設定。
 - **2026-07-26（SEO 架構審查落地）**：新增 OG meta／`sitemap.xml`／`robots.txt`／自訂 404
   頁（`generatePostPagesPlugin`／`generateSeoFilesPlugin`／`postUrl()`）、`eslint`／
   `prettier` 工具、`ERROR_WEBHOOK_URL` 前端錯誤監控埋點（預設關閉），完整設計決策見第一
