@@ -22,6 +22,17 @@ Node 共用。改動 renderer 或遷移文章內容時，用
 > 重構時連同其孤兒 CSS 一併移除。若日後需要類似家族，請參考 `quickjump`/`stop`/`eat`/
 > `eatarea` 的寫法重新設計，不要嘗試恢復舊實作。
 
+> **`eat`／`eatarea` 新文章請勿再用下方 fence 語法（2026-07-26 起）**：兩者已改用純
+> Markdown 寫法——`eat` 由 `assets/markdown-sections.js` 依「內容形狀」自動辨識重組
+> （語法見 `plan.md` §2.1：`#### [店名](連結)` ＋ 反引號標籤列 ＋ `**招牌菜**` 段落 ＋
+> 描述 ＋ 連結清單），`eatarea` 直接寫 `### [分區名稱](連結)` 即可、完全不需要任何轉換層
+> （CSS 早已把純 `<h3>` 設計成與 `.food-list-title` 同款）。07-16 全部 30 張美食卡與 6 個
+> 分區標題已於 2026-07-26 遷移完畢。下方 `eat`/`eatarea` 的 fence 語法**仍受渲染器支援**
+> （`markdown-cards.js` 未刪除對應 renderer，向後相容、不強制既有內容改寫），只是不再是
+> 建議寫法，僅供讀懂舊 commit 歷史或 `assets/markdown-cards.js` 原始碼時參考。完整規劃
+> 見根目錄 `plan.md`；本檔尚未依此改寫成「Markdown 寫作約定手冊」（見 `plan.md` Phase E，
+> 待其餘家族 `compare`/`info`/`prep`/`apps`/`stepper` 決策後一併重寫，避免分批改動）。
+
 ## 總表
 
 | fence | 渲染成什麼 | 一個 block = | 適合放什麼內容 |

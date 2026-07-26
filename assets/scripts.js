@@ -1,5 +1,9 @@
 import { registerCardExtensions } from './markdown-cards.js';
-if (typeof window !== 'undefined' && window.marked) registerCardExtensions(window.marked);
+import { registerSectionExtensions } from './markdown-sections.js';
+if (typeof window !== 'undefined' && window.marked) {
+  registerCardExtensions(window.marked);
+  registerSectionExtensions(window.marked);
+}
 
 function toggleNav() {
   var nav = document.getElementById('navbarResponsive');

@@ -4,11 +4,13 @@ import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { Marked } from 'marked';
 import { registerCardExtensions } from '../assets/markdown-cards.js';
+import { registerSectionExtensions } from '../assets/markdown-sections.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const cardMarked = new Marked();
 registerCardExtensions(cardMarked);
+registerSectionExtensions(cardMarked);
 
 const POSTS_DIR = path.join(__dirname, '../src/posts');
 const OUTPUT_JSON = path.join(__dirname, '../public/data/posts.json');

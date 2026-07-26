@@ -1,209 +1,209 @@
-# plan.md — 卡片 DSL 欄位改用 Markdown 語法（消除內容裡的手寫 HTML）
+# plan.md — 純 Markdown 寫作 ＋ 前端結構轉換層
 
-> **上一階段**（文章視覺風格系統重構）已完成並 commit，成果與遺留風險見 [`report.md`](report.md)。
-> 這份是**下一階段**的規劃，處理 report.md 第三節指出的核心問題：
-> 「風格」已經解耦了，但**內容本身仍混著原始 HTML**。
+> **目標（已與使用者確認）**：
+> **作者只用 Markdown 寫內容；不同頁面要呈現的風格，統一由 CSS 和前端程式解析 Markdown 後套用。**
+>
+> 上一階段（文章視覺風格系統重構）已完成並 commit，成果與遺留風險見 [`report.md`](report.md)。
 
 ---
 
-## 1. 問題
+## 1. 方向修正：本檔上一版寫錯了
 
-上一階段移除的是整篇的 `<div class="style-a-post">` 外殼。但 fence **內部欄位值**裡的 HTML
-一個字都沒動：
+本檔上一版把問題理解成「fence 語法可以留，只要讓 `key: value` 的**值**支援 Markdown」（讀法 A）。
+經與使用者確認，真正的目標是**讀法 B**：`` ```eat `` 加上 `key: value` 這種寫法**本身就不是
+Markdown**，整個自訂 DSL 才是「格式不統一」的來源。
 
-| | 07-13 | 07-16 | 07-20 |
-|---|---|---|---|
-| `<a href …>` | 13 | 11 | 4 |
-| `<strong>` | 18 | 3 | 0 |
-| `<br>` | 5 | 2 | 0 |
-| `<em>` | 0 | 2 | 0 |
-| 手寫 `class="…"` | 10 | **11** | 0 |
+因此方向改為：**廢掉 fence DSL → 作者寫純 Markdown → 前端依「內容形狀」重組成卡片結構 → CSS 上色。**
 
-最糟的是 **Tailwind utility class 直接寫進內容**：
+**存在證明**：07-20 那篇是純 Markdown 寫的——30 個標題、37 行表格、56 個清單項、1 個引用，
+`<` 只出現 4 次（且僅為了 `aria-label` 無障礙屬性）。純 Markdown 完全寫得出完整文章。
+
+---
+
+## 2. 核心設計：用「形狀」判斷語意，不用「位置順序」
+
+這是本方案最重要的取捨。
+
+**位置約定**（第一段是 meta、第二段是招牌菜、第三段是描述）一旦作者少寫一段就整組錯位，
+而且**不會報錯**。這個專案已經踩過這個坑——`card_dsl.md` 記載 `.food-item-row:nth-of-type`
+依賴固定順序是既有的已知限制。
+
+**形狀判斷**則是自我描述的：
+- 「只由 code span 組成的段落」→ meta 標籤列
+- 「以粗體開頭的段落」→ 招牌菜列
+- 「每一項都是單一連結的清單」→ 動作按鈕列
+- 其餘段落 → 描述
+
+**段落順序調換也不會跑錯格子**，因為每種內容的形狀不同。這解決了我原本擔心的「靜默錯誤」問題。
+
+### 2.1 美食卡的 Markdown 約定（原型已驗證）
+
+```markdown
+#### [味成屋 (미성옥)](https://www.google.com/search?q=...)
+
+`正餐` `不辣` `無內臟` `無生食` `11,000 ~ 45,000 韓元`
+
+**招牌菜**：韓牛雪濃湯 (설렁탕) / 白切韓牛肉盤
+
+純牛骨慢熬湯頭極清淡溫潤且完全不辣、無生食與內臟，不加鹽上桌。
+
+- [Naver ↗](<https://map.naver.com/v5/search/미성옥 시청점>)
+- [Kakao ↗](https://map.kakao.com/?q=미성옥)
+- [食記參考 ↗](https://bigfang.tw/blog/post/seolleongtang-miseongok)
+```
+
+- **反引號當標籤**是關鍵技巧：`` `正餐` `` 是 Markdown 原生 code span，任何編輯器都讀得懂，
+  CSS 把它變成標籤 pill，完全不需要自訂語法。
+- meta 槽位：第一個＝餐別、最後一個＝價格、中間＝飲食標籤；字尾 `*` 用警示樣式
+  （`*` 在 code span 內是字面值，不會被當成 Markdown 強調語法）。
+- **觸發條件**（兩者都成立才判定為美食卡）：`####` 內容是單一連結，且緊接著的段落只由
+  code span 組成。已用反向測試確認一般 `####` 不會被誤判。
+
+### 2.2 實作方式
+
+marked v12 的 `hooks.processAllTokens`，**在 token 陣列上重組**（而非對渲染後的 HTML 跑正則），
+不受標籤巢狀、屬性引號等問題影響。純字串邏輯，Node／瀏覽器共用，沿襲既有架構。
+
+檔案：`assets/markdown-sections.js`（新增，與既有 `markdown-cards.js` 並存，可漸進遷移）。
+
+---
+
+## 3. 原型結果（已完成，見 §5 Phase A）
+
+**全部 30 張真實美食卡自動轉換後逐張比對：**
 
 ```
-sub: 方案 B（…） | …參考：<a href="https://bobbytravel.tw/blog/post/darakhyu"
-     target="_blank" class="text-primary underline">Darakhyu 膠囊旅館住宿心得 ↗</a>。
+✅ 逐字等價              29 張
+✅ 僅網址百分比編碼不同   0 張
+❌ 有結構差異            1 張
 ```
 
-作者只是想放一個連結，卻得知道 `text-primary underline` 這組 class。
+唯一差異是 `Cafe Onion` 那筆的 `O'sulloc` → `O&#39;sulloc`（HTML 實體，瀏覽器顯示完全相同），
+與 Phase 1 稽核當時預測的完全是同一筆。
 
-### 根因
+### 3.1 真實資料暴露的問題（手打測資看不到）
 
-DSL 欄位值是**原樣字串拼進 HTML 樣板**，沒跑 markdown 解析。全檔只有兩處呼叫 marked：
-`assets/markdown-cards.js:159`（`stepper`）與 `:200`（`accordion`）。其餘 8 個家族的欄位值
-都是死字串，作者要粗體／斜體／連結只能自己寫 HTML。
+**URL 含空格**：30 個 `naver`/`kakao` 網址中有 **13 個含空格**（韓文店名＋分店名，
+如 `.../만족오향족발 시청점`）。標準 Markdown 連結語法在空格處就斷掉，13 張卡全部渲染錯誤。
 
-### 另一個獨立的洞
+**解法**：CommonMark 的角括號語法 `[文字](<含空格的網址>)`。已實測有效，且 `href` 輸出
+與現行 fence 版**逐字相同**（本轉換層直接取 token 的原始 `href`，只有 marked 的預設 renderer
+才會做百分比編碼）。
 
-`alert-box`（7 條 CSS）與 `fold`（7 條 CSS）**有樣式但完全沒有對應的 DSL 家族**，
-07-13 只能整段手寫 `<div class="alert-box alert-warning">`。
-
----
-
-## 2. 設計
-
-### 2.1 核心作法
-
-把各 renderer 的**內容型欄位**丟進 `marked.parseInline()`，讓作者能寫
-`[文字](url)`、`**粗體**`、`*斜體*`。
-
-`parseInline` 不會包 `<p>`，適合塞進 `<span>`／`<strong>`／`<h4>` 這類既有樣板位置。
-
-### 2.2 為什麼可行（已實測，見 §4）
-
-1. **既有內容幾乎零變動**：437 個欄位值中，只有 **1 筆**經 `parseInline` 後會改變，
-   且改的是 `'` → `&#39;`（瀏覽器顯示完全相同）。
-2. **原始 HTML 會原樣通過**：`parseInline` 放行 inline HTML，所以
-   `<a href="…" class="…">`、`<br>`、`<em>` 全部照舊輸出 → **可以漸進遷移**，
-   不必一次改完所有文章。
-3. **連結樣式會自動接上**：`assets/tailwind.css:216` 設了
-   `--tw-prose-links: var(--color-primary)`，而 `.prose a` 給
-   `color: var(--tw-prose-links); text-decoration: underline`
-   —— 與手寫的 `class="text-primary underline"` **產出完全相同的視覺**，
-   而且改用 Markdown 後還會經過 `registerCardExtensions` 既有的自訂 `link` renderer，
-   自動獲得 `target="_blank" rel="noopener noreferrer"`（現有手寫版**缺** `rel`，是個小安全缺陷）。
-
-### 2.3 欄位白名單（關鍵設計，不可一概而論）
-
-有三類欄位**絕對不能**解析：
-
-| 類別 | 欄位 | 原因 |
-|---|---|---|
-| URL | `url` `naver` `kakao` `ref` `href` | GFM autolink 會把裸 URL 轉成 `<a>`，破壞樣板 |
-| 控制值 | `id` `cat` `level` `sigsep` | 會被拿去組 class／id，不是給人看的 |
-| 特殊語法 | `eat.diet` | **以字尾 `*` 當警示標記**（`markdown-cards.js:310`），與 Markdown 強調語法直接衝突 |
-
-逐家族的處理方式：
-
-| 家族 | 解析 | 保持原樣 |
-|---|---|---|
-| `compare` | `tagline`、`row` 的 label/value、`text` | `name`、`stars` |
-| `info` | `tagline`、`row` 的 label/value、`text` | `name` |
-| `prep` | lead、rest | — |
-| `apps` | `name`、body | icon（emoji/HTML） |
-| `quickjump` | `title`、label、desc | href（`#錨點`） |
-| `stop` | `title`、`tag`、`desc`、`sub` 的 subtitle/body | `id`、`url`、`level` |
-| `eat` | `name`、`meal`、`price`、`signature`、`why`、diet 各標籤（**去尾 `*` 之後**） | `url`、`naver`、`kakao`、`ref`、`sigsep` |
-| `eatarea` | `name` | `url` |
-| `stepper` | （body 已經在解析，只需補 `title`） | — |
-| `accordion` | （body 已經在解析，只需補 `summary`、`tag`） | `id`、`cat` |
-
-**已知限制需寫進文件**：`stop.title` / `eatarea.name` / `eat.name` 的解析結果會被包進
-既有的 `<a>` 裡，作者**不可**在這些欄位再放 Markdown 連結（會產生巢狀 `<a>`）。
-
-### 2.4 順帶可清掉的冗餘
-
-`renderStop:274` 與 `renderEatarea:290` 輸出的 `class="no-underline text-inherit"`
-其實是多餘的——全站已有 `.prose h1 a, .prose h2 a, .prose h3 a, .prose h4 a
-{ color:inherit; text-decoration:none }`，而這兩處的 `<a>` 正好都在 `h4`／`h3` 內。
-（`renderEat:321` 的 `<a>` 在 `<span>` 內，**不在**該規則涵蓋範圍，那個 class 必須保留。）
+**這是「純 Markdown」路線的第一個真實成本**：作者得知道網址含空格時要加角括號。
 
 ---
 
-## 3. 執行 Checklist
+## 4. 尚未解決的難題（誠實列出，不要假裝已解決）
 
-> 每個 Phase 結束跑：`npm run build && node scripts/verify-post-render.mjs`
+原型只證明了 `eat` 這一個家族可行。以下是全面遷移前必須先想清楚的：
 
-### Phase 0 — 建立工具 ✅ 已完成
+1. ~~`stop.level` 的 4 種顏色徽章無法用純 Markdown 表達~~ **✅ 已決策（2026-07-26）**：
+   `stop` 屬於「帶顏色變體」類，比照 `accordion`／`quickjump` **保留 fence**。不需要為
+   顏色徽章設計形狀約定，`markdown-cards.js` 的 `renderStop` 不動。
 
-- [x] 新增 `scripts/audit-card-fields.mjs`：抽出所有 fence 欄位值，逐一過
-      `parseInline()`，回報會變動的欄位並分類統計
-- [x] 新增 `scripts/verify-post-render.mjs`：**取代已失效的 `verify-card-dsl.mjs`**
-      （後者「改寫前」用無擴充 marked 渲染，是一次性工具，全文卡片化後驗任何改動都必然紅字）。
-      新工具兩邊都用當前渲染器，比對 git ref 與工作目錄的渲染輸出
-- [x] 雙向自我測試通過：`HEAD` vs 工作目錄 → 3 篇全 0 diff；
-      `HEAD~1` vs 工作目錄 → 正確抓到上一個 commit 移除 wrapper 的 34 字元差異
+2. ~~`accordion` 的 `<details>` 摺疊沒有 Markdown 原生語法~~ **✅ 已決策（2026-07-26）**：
+   **保留 fence**。`<details>/<summary>` 摺疊與 5 種分類色都沒有純 Markdown 對應語法，
+   工程上不值得為它發明約定。
 
-### Phase 1 — 欄位風險稽核 ✅ 已完成
+3. **`quickjump` 是只出現一次的客製版型** **✅ 已決策（2026-07-26）**：**保留 fence**。
+   全站僅一處使用，訂一套形狀約定不划算。
 
-- [x] 全量掃描 437 個欄位值（已排除 `stepper`/`accordion` 的 body——它們本來就會遞迴解析，
-      初版稽核誤把那 40 行當成欄位值，是誤報）
-- [x] 結果：**僅 1 筆**會因 `parseInline` 改變 → `eat.why` 裡的 `O'sulloc`，
-      `'` 被 escape 成 `&#39;`，渲染顯示完全相同
-- [x] 確認 128 筆 URL 欄位會被 GFM autolink 影響 → 已全數列入「不解析」白名單
-- [x] 確認 `eat.diet` 的字尾 `*` 標記與 Markdown 語法衝突 → 列入白名單，需特殊處理
-- [x] 確認 `.prose a` 的顏色／底線與手寫 `class="text-primary underline"` 等價
+4. **`eatarea` 不需要新設計**——原以為它跟 `eat` 一樣需要形狀判斷，但檢查
+   `assets/post-styles/editorial-card.css:49-53` 才發現：`.food-list-title` 本來就
+   被刻意設計成與純 Markdown 的 `<h3>` **同字級、同留白、同樣不加底線**（2026-07-21 那次
+   標題階層整併的結果），CSS 選擇器 `.food-item:has(+ h3, + .food-list-title)` 也早就同時
+   涵蓋兩者。07-16 現有 6 個 `eatarea` 標題裡 **5 個其實已經是純 `### [名稱](url)`**，只剩
+   1 個（仁寺洞文藝區美食）還是 fence。**結論：`eatarea` 不需要任何轉換層程式碼**，直接寫
+   `### [名稱](url)` 即可。已核對 `assets/scripts.js:474` 的 TOC 大綱篩選邏輯——只看
+   `parent === contentContainer`（DOM 深度），不看 class，所以原 fence 版
+   `<h3 class="food-list-title">` 跟純 Markdown 版 `<h3>` 在 TOC 大綱裡的行為**完全一樣**，
+   沒有落差。渲染輸出唯一的結構差異是少了 `class="food-list-title"`／`<a>` 的
+   `class="no-underline text-inherit"`——兩者都已被 `.prose h3` 與
+   `.prose h1 a,h2 a,h3 a,h4 a{color:inherit;text-decoration:none}` 涵蓋（§2.4），
+   純屬 HTML 結構差異，視覺與功能都不受影響。
 
-### Phase 2 — 實作 inline 解析 ⬜ 未開始
+5. **其餘家族仍待決策**：`compare`（含 `stars`）、`info`、`prep`、`apps`、`stepper`
+   （07-13 使用）尚未逐一套用「高重複規則形狀 → 純 Markdown／顏色變體或一次性 → 保留
+   fence」的判準。**留到 Phase D 個別評估時再決策**，不阻塞本階段 `eat`/`eatarea` 遷移。
 
-- [ ] `registerCardExtensions` 的 `renderer(token)` 改為把 `marked` 實例傳給**所有** renderer
-      （目前只有 `stepper`/`accordion` 拿得到，見 `markdown-cards.js:390-393`）
-- [ ] 新增小工具 `inline(marked, str)`，並依 §2.3 白名單逐家族套用
-- [ ] `eat.diet` 特殊處理：先以 `,` 切分、再判斷／剝除字尾 `*`、**最後**才對各標籤文字
-      做 inline 解析
-- [ ] 移除 §2.4 指出的兩處冗餘 class（`renderStop` / `renderEatarea`）
-- [ ] `node scripts/verify-post-render.mjs` 必須是 0 diff
-      —— **唯一容許的差異是 `O'sulloc` 那個 `&#39;`**。出現其他差異就是白名單漏了欄位
+6. **一般 h4 誤判風險**：目前靠「h4 是單一連結 ＋ 下一段只有 code span」雙重條件擋住。
+   反向測試通過，但文章數變多後仍需持續驗證。
 
-### Phase 3 — 遷移文章內容 ⬜ 未開始
+**已確認的方向（2026-07-26 拍板）**：不追求「消滅所有 fence」。`eat`/`eatarea` 這種高重複、
+形狀規則的內容改用純 Markdown；`stop`/`accordion`/`quickjump` 這種帶顏色變體或全站只出現一次
+的，保留 fence 是合理的工程判斷。目標是「作者寫內容時 95% 的時間都在寫純 Markdown」，不是
+「fence 歸零」。
 
-逐篇把 HTML 改寫成 Markdown。因為原始 HTML 仍會原樣通過，可以一篇一篇來、隨時停手。
+---
 
-- [ ] 07-16：11 個 `<a>` → `[文字](url)`；2 個 `<em>` → `*文字*`；
-      3 個 `<strong>` → `**文字**`；第 14 行 `<blockquote>` → `> `
-- [ ] 07-13：13 個 `<a>`、18 個 `<strong>`、5 個 `<br>`
-- [ ] 07-20：4 個 `<a>`
-- [ ] `<br>` 沒有 Markdown 等價寫法（行尾雙空格在 fence 欄位裡不可靠）——
-      **先評估**是改成兩個 `sub:`／兩段，還是保留 `<br>`。不要為了消滅 `<br>` 而讓語意變差
-- [ ] 每篇改完立刻跑 `verify-post-render.mjs`，逐篇確認只有預期內差異
+## 5. Checklist
 
-### Phase 4 — 補 `alert` 與 `fold` 家族 ⬜ 未開始
+### Phase A — `eat` 家族原型 ✅ 已完成
 
-- [ ] `markdown-cards.js` 新增 `alert` renderer（對應 `.alert-box` / `.alert-note` /
-      `.alert-warning` / `.alert-box-title`）
-- [ ] 評估 `fold`：`accordion` 已輸出 `<details class="fold">`，先確認 07-13 那 2 個手寫
-      `<div class="fold">` 是不是同一件事——**若是，直接改用 `accordion`，不要新增家族**
-- [ ] 07-13 的 4 個手寫 `<div class="alert-box …">` 改用新 fence
-- [ ] 注意 `.prose h3.alert-box-title` 這條 2-class 選擇器（`project.md` 第一部分第 19 點記載，
-      是為了贏過 `.prose h3` 才特意加的），改動標題結構時不要打破它
+- [x] 確認 marked v12.0.2 支援 `hooks.processAllTokens`（可在 token 層重組，不需正則處理 HTML）
+- [x] 取得現行 `eat` fence 的精確渲染輸出當對照基準
+- [x] 設計「形狀判斷」約定（§2.1），刻意避開位置順序依賴
+- [x] 新增 `assets/markdown-sections.js`：`collapseFoodCards()` token 重組 ＋ `foodCard` renderer
+- [x] 新增 `scripts/__proto-test.mjs`：3 個手打案例（多標籤／警示標籤／無標籤）＋
+      2 個反向測試（一般 h4、h4 是連結但下段不是 code span）→ **5 項全過**
+- [x] 新增 `scripts/__proto-bulk.mjs`：把 07-16 全部 30 張真實美食卡自動轉換後逐張比對
+      → **29/30 逐字等價**，1 筆為已知的撇號 HTML 實體差異
+- [x] 發現並解決「13 個網址含空格」問題（角括號語法，`href` 輸出逐字相同）
 
-### Phase 5 — 文件同步（CLAUDE.md 強制） ⬜ 未開始
+### Phase B — 決策 ✅ 已完成（2026-07-26）
 
-- [ ] `doc/card_dsl.md`：改寫語法說明，示範 Markdown 寫法；明確標示哪些欄位**不**解析
-      （§2.3 表格）與巢狀連結的限制（§2.3 末）
-- [ ] `doc/project.md`：更新歷史新增一筆；第二新壓成一行；功能→程式碼速查表更新
-- [ ] `doc/project.md`：把 `verify-card-dsl.mjs` 的說明改成 `verify-post-render.mjs`
+- [x] §4 第 1 點：`stop` 的 4 種顏色徽章要怎麼處理 → **保留 fence**（歸類為「帶顏色變體」）
+- [x] §4 第 2 點：`accordion` 的摺疊與分類色要怎麼處理 → **保留 fence**
+- [x] 確認「不追求 fence 歸零」這個目標設定是否符合預期 → **確認**：`eat`/`eatarea` 轉純
+      Markdown，`stop`/`accordion`/`quickjump` 保留 fence
+- [x] （執行時發現，非原 checklist 項目）確認 `eatarea` 不需要形狀轉換層——CSS 早已把純
+      `<h3>` 與 `.food-list-title` 設計成同款，07-16 現有 6 處裡 5 處已是純 Markdown
+
+### Phase C — `eat`／`eatarea` 正式接線與遷移 ✅ 已完成（2026-07-26）
+
+- [ ] `assets/scripts.js` 檔頭接線 `registerSectionExtensions`（比照現有 `registerCardExtensions`）
+- [ ] `scripts/generate-posts-metadata.js` 的閱讀時間計算也要註冊（否則字數會算錯）
+- [ ] `scripts/verify-post-render.mjs` 同步註冊，否則驗證會失真
+- [x] 用 `__proto-bulk.mjs` 的轉換函式批次改寫 07-16 的 30 張美食卡
+- [x] 把 07-16 僅剩的 1 個 `eatarea` fence（仁寺洞文藝區美食）改成純 `### [名稱](url)`
+      （不需轉換層程式碼，見 §4 第 4 點）
+- [x] `node scripts/verify-post-render.mjs` → 兩處容許差異：`O'sulloc` 的 `&#39;`（Phase 1
+      稽核已知）、`eatarea` 少掉的 `food-list-title`／`no-underline text-inherit` 兩個 class
+      （見 §4 第 4 點，視覺與 TOC 行為皆不受影響）
+- [x] 瀏覽器目視確認視覺無變化（headless Chromium 截圖比對，`.food-item` 30 張正常渲染，
+      無 console error，「仁寺洞文藝區美食」與其餘 5 個區塊標題視覺與 TOC 行為一致）
+- [x] `public/sw.js` bump `CACHE_NAME`（v55 → v56）
+
+### Phase D — 其餘家族 ⬜ 未開始（依 Phase B 決策範圍已縮小）
+
+> `stop`／`accordion`／`quickjump` 已在 Phase B 決策保留 fence，`eatarea` 已在 §4 第 4 點
+> 確認不需轉換層，三者都**不需要**本 Phase 的工作。Phase D 範圍縮小為僅剩的家族：
+
+- [ ] 07-13 的 `compare`（含 `stars`）：評估是否高重複規則形狀，決定純 Markdown／保留 fence
+- [ ] 07-13 的 `info`：同上
+- [ ] 07-13 的 `prep`：同上
+- [ ] 07-13 的 `apps`：同上
+- [ ] 07-13 的 `stepper`：同上（本身已部分支援遞迴 Markdown body，需確認 `title` 欄位是否也要改）
+
+### Phase E — 收尾 ⬜ 未開始
+
+- [ ] `doc/card_dsl.md` 改寫：從「fence 語法手冊」改成「Markdown 寫作約定手冊」
+- [ ] `doc/doc_style.md`：補上新的寫作約定（反引號標籤、角括號網址、卡片形狀）
+- [ ] `doc/project.md`：更新歷史、速查表、設計決策
 - [ ] 刪除已失效的 `scripts/verify-card-dsl.mjs`
-- [ ] 決定 `scripts/audit-card-fields.mjs` 去留（一次性稽核工具，建議 Phase 3 結束後刪）
-- [ ] `public/sw.js` bump `CACHE_NAME`（v55 → v56）
+- [ ] 刪除原型腳本 `scripts/__proto-test.mjs`、`scripts/__proto-bulk.mjs`、
+      `scripts/audit-card-fields.mjs`
+- [ ] 移除 `markdown-cards.js` 中因遷移而不再被使用的 renderer
 
 ---
 
-## 4. 已執行部分的實測數據
+## 6. 風險
 
-```
-$ node scripts/audit-card-fields.mjs --verbose
-掃描 437 個欄位值，其中 129 個經 parseInline 後會改變
-
-=== 依變動原因分類 ===
-  Markdown 連結 ([]())       128 筆（其中 128 筆在「不解析」白名單內，無風險）
-  其他                         1 筆
-
-=== 真正需要處理的（不在白名單內）：1 筆 ===
-[eat.why] 2026-07-16-首爾秋日漫遊手帳.md
-  原始: …可改至斜對面的 O'sulloc 綠茶專專賣店…
-  解析: …可改至斜對面的 O&#39;sulloc 綠茶專專賣店…
-```
-
-```
-$ node scripts/verify-post-render.mjs
-  ✅ 2026-07-13-…md —— 0 diff（21049 字元）
-  ✅ 2026-07-16-…md —— 0 diff（43812 字元）
-  ✅ 2026-07-20-…md —— 0 diff（10287 字元）
-```
-
----
-
-## 5. 風險
-
-1. **白名單漏欄位 = 靜默破版**。漏掉某個 URL 欄位，GFM autolink 會把它變成 `<a>` 塞進
-   `href="…"` 屬性裡，產出壞掉的 HTML。`verify-post-render.mjs` 的 0-diff 檢查是主要防線。
-2. **`eat.diet` 的處理順序**若寫反（先解析再剝 `*`），30 筆美食卡的警示標籤會全部失效，
-   而且不會報錯。
-3. **Phase 3 是人工改寫，最容易出錯**。務必逐篇驗證，不要三篇一起改完才跑。
-4. **`<br>` 沒有乾淨的 Markdown 對應**。不要為了「消滅所有 HTML」這個潔癖硬改，
-   保留 `<br>` 是可接受的結果。
-5. 本階段**不觸碰** report.md 第三節列出的其他遺留問題（class 命名帶內容語意、
-   `style:` 打錯字無警告、`initTOC` 深度啟發式、`template_posts/` 孤兒目錄、
-   `CACHE_NAME` 手動 bump）——那些是各自獨立的題目。
+1. **形狀判斷的誤判**是這個方案的核心風險。目前靠雙重條件與反向測試控制，
+   但每新增一種形狀約定，就多一次與既有 Markdown 語法碰撞的機會。
+2. **作者仍需記住約定**——反引號標籤的槽位順序、網址含空格要加角括號。
+   這比 `key: value` 隱晦，但換來的是「檔案就是一份正常的 Markdown」。
+3. **接線點有三處**（`scripts.js`、`generate-posts-metadata.js`、`verify-post-render.mjs`），
+   漏掉任一處會造成「瀏覽器正常但閱讀時間算錯」或「驗證失真」這類不易察覺的問題。
+4. 本階段**不觸碰** report.md 第三節列出的其他遺留問題。

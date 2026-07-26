@@ -23,6 +23,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { Marked } from 'marked';
 import { registerCardExtensions } from '../assets/markdown-cards.js';
+import { registerSectionExtensions } from '../assets/markdown-sections.js';
 
 const [refArg, filterArg] = process.argv.slice(2);
 const REF = refArg || 'HEAD';
@@ -30,6 +31,7 @@ const POSTS_DIR = 'src/posts';
 
 const marked = new Marked();
 registerCardExtensions(marked);
+registerSectionExtensions(marked);
 
 function stripFrontMatter(raw) {
   if (!raw.startsWith('---')) return raw;
