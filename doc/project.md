@@ -119,6 +119,35 @@ npm run preview
    <div id="footer-placeholder"></div>
    ```
 
+### 3. 維護中文襯線字型（Noto Serif TC）subset
+
+`--font-serif` 堆疊的中文襯線字型是自架的字集子集（見第一部分第 31 點），只涵蓋
+2026-07-26 當下全站文章＋靜態頁標題實際用到的 469 個字，**不是**每次新增文章都要處理的
+待辦——只有下面這個情境才需要重跑：
+
+> 新增／編輯文章時，若標題（`h1`-`h3`）、`subtitle`、美食店名（`.food-item-name`／
+> `.spot-title`）、引言（`blockquote`）等會落在 `font-serif` 情境的文字，用到現有字集
+> **469 字以外**的中文字。
+
+不處理也不會出錯——字集外的字會自動 fallback 到堆疊下一位（`Songti TC`/系統 serif），
+只是該字暫時不是自架字型，跨裝置樣式可能不一致。若要讓新字也吃到自架字型，重跑流程：
+
+1. 用 `assets/create-marked.js` 的 `createMarked()`（與 `scripts/verify-post-render.mjs`
+   同一套渲染管線）把 `src/posts/` 全部文章渲染成 HTML，加上各篇 front matter 的
+   `title`/`subtitle`，以及 `index.html`/`contact.html`/`404.html`/`posts/index.html`
+   等靜態頁的 hero 標題，掃出所有 `font-serif` 標題情境（`h1`-`h3`、`h4.food-name`、
+   `blockquote`、`.spot-title`、`.food-list-title`、`.alert-box-title`、
+   `.fold > summary`）裡的文字，取聯集得到目前實際會用到的全部中文字＋標點。
+2. 呼叫 `https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&text=<上一步的字集，需 URL-encode>`
+   （帶現代瀏覽器 UA 才會拿到 woff2；400/700 兩個 `@font-face` 若指向同一個 `kit=` URL，
+   代表是保留 `wght` 變化軸的可變字重字型，只需下載一份）。
+3. 下載回傳的 woff2，覆蓋 `assets/fonts/noto-serif-tc-var.woff2`。
+4. 用 Google 這次回傳的 `unicode-range` 覆蓋 `assets/tailwind.css` 裡**兩組**
+   `@font-face`（`font-weight: 400` 與 `700`）的 `unicode-range` 值——`--font-serif`
+   堆疊本身（`"Noto Serif TC"` 名稱）不需要改動。
+5. 驗證：`npm run build` 通過、`node scripts/verify-post-render.mjs` 0 diff；依
+   `CLAUDE.md` 規範在下方「更新歷史」補一筆記錄。
+
 ## 功能 → 程式碼速查
 
 給 Agent 快速定位「要改這個功能該碰哪個檔案」：
@@ -664,7 +693,8 @@ posts/
         Google 回傳的 `unicode-range`），`--font-serif` 堆疊本身不需要改動（`"Noto Serif
         TC"` 名稱已經在裡面，先前只是缺對應字型檔生效不了）。字集外字元會自動 fallback
         到堆疊下一位（`Songti TC` / 系統 serif），未來新增文章用到字集外的字才需要重跑
-        一次同樣流程（一次性腳本未進版控，僅記錄流程於此，日後可依此重建）。
+        一次同樣流程（一次性腳本未進版控，操作步驟已整理成可重複執行的維護流程，見
+        「如何新增與編輯內容」第 3 節）。
     *   **PWA 快取**：`sw.js` 的 precache 清單／`CACHE_NAME` 不需要手動改動——新字型檔會被
         Vite 打包進 `dist/assets/` 並帶內容雜湊，`sw.js` 的 `isStaticAsset` 本來就對
         `/assets/`／`/fonts/` 做 cache-first（見 `public/sw.js` fetch handler），而
@@ -702,13 +732,6 @@ posts/
 > **維護規範**：每次修改程式碼後，在下方「更新歷史」新增一筆帶日期的記錄（維持「最新三筆完整記錄，其餘壓縮成一行」的格式——寫入新記錄時，把原本排第三新的那筆壓縮進下方清單，同時保留新記錄的完整說明）。若變更影響檔案結構或設計決策，也一併更新上方「第一部分」對應段落。完整規範見根目錄 `CLAUDE.md`。
 
 ## 待辦事項
-
-- [ ] **Noto Serif TC subset 字集維護**：目前自架的 `assets/fonts/noto-serif-tc-var.woff2`
-      只涵蓋 2026-07-26 當下全站文章＋靜態頁標題實際用到的 469 個字（見第一部分第 31 點／
-      更新歷史）。未來新增文章若標題（`h1`-`h3`／美食店名／引言等 `font-serif` 情境）用到
-      字集外的中文字，該字會自動 fallback 到 `Songti TC`/系統 serif（不會顯示錯誤，只是該
-      字暫時不是自架字型），需要時才重跑同一套 Google Fonts CSS2 `&text=` 流程重新產生字型
-      檔，非每次新增文章都要做
 
 ### 架構審查待辦（2026-07-26 Agent 分析，SEO／可靠性）
 
