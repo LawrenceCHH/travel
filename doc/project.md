@@ -508,13 +508,18 @@ posts/
 
 **現在就做**
 
-- [ ] **S1 補齊 12 個變體專屬 class 的 base 樣式**：`.food-header`／`.food-name`／`.food-tag`／
-      `.food-price`／`.food-why`／`.spot-section`／`.spot-desc` 等 12 個 class 目前只存在
-      `editorial-card.css`，未指定 `style` 的文章會渲染成外框有內容裸露的「半裸卡片」
-      （`doc/archive/suggestion.md` R1/S1）
-- [ ] **S2 修 `stop` 徽章顏色被吃掉的 bug ＋ 定義 `@layer` 順序**：07-16 目前 flat/slope/steps
-      三種地形徽章因 cascade layer 反轉全部渲染成同一顏色；先把 `STOP_LEVEL_CLASS`
-      改語意 class 修 bug，再訂 `@layer components/post-styles/utilities` 順序規則
+- [x] **S1 補齊 13 個變體專屬 class 的 base 樣式**（2026-07-26 完成）：`.food-header`／
+      `.food-name`／`.food-tag`／`.food-price`／`.food-why`／`.spot-section`／`.spot-desc`
+      等 13 個 class 原本只存在 `editorial-card.css`，未指定 `style` 的文章會渲染成外框有
+      內容裸露的「半裸卡片」；已在 `assets/tailwind.css` 補上與 `editorial-card.css` 原值
+      逐字相同的 base 樣式，`editorial-card.css` 同步清掉重複宣告（`doc/archive/suggestion.md`
+      R1/S1，見更新歷史）。
+- [x] **S2 第 1 步：修 `stop` 徽章顏色被吃掉的 bug**（2026-07-26 完成）：`STOP_LEVEL_CLASS`
+      的 `flat`/`slope`/`steps` 已從 Tailwind 任意值 utility 改成 `.food-tag.level-*` 具名
+      class，07-16 三種地形徽章顏色恢復可見差異（`doc/archive/suggestion.md` R2/S2）。
+- [ ] **S2 第 2 步：定義 `@layer components/post-styles/utilities` 順序規則**：尚未做——會
+      改變現有覆寫關係（如 `.toc-fab` 目前靠 unlayered CSS 贏過 `xl:hidden` 的 hack），
+      `suggestion.md` 要求做完必須跑 build 並目視三篇文章，需要有瀏覽器可驗證時再處理
       （`doc/archive/suggestion.md` R2/S2）
 - [ ] **S3 marked.js 改 npm 打包，收斂三處重複註冊為單一模組**：目前瀏覽器端吃 CDN latest、
       建置端鎖 12.0.2，版本可能分裂；離線 PWA 開文章會整個降級成純文字
@@ -548,7 +553,38 @@ posts/
 
 ## 更新歷史
 
-最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
+最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
+
+### 2026-07-26 — S1 補齊 13 個 DSL 元件 base CSS、S2-1 修 stop 徽章顏色被吃掉的 bug
+
+* **範圍**：`doc/archive/suggestion.md` 待辦清單 R1/S1、R2/S2 的落地，目的是讓「未指定
+  `style` front matter 的文章也有一套完整通用 CSS」名符其實，對應使用者要的「預設文章走
+  通用樣式，客製化才透過 `style` front matter 疊加客製 CSS」目標。
+* **`assets/tailwind.css`**：新增 13 個原本只存在 `editorial-card.css` 的變體專屬 class 的
+  中性 base 樣式（`.food-header`/`.food-name`/`.food-meta`/`.food-tag`/`.food-price`/
+  `.food-body`/`.food-why`/`.food-action-link`/`.food-list-title`/`.spot-section`/
+  `.spot-desc`/`.sub-option-list`/`.sub-option-item`），值與 `editorial-card.css` 原本的
+  宣告逐字相同（因此對唯一在用該風格的 07-16 零視覺影響）。同時新增 `.food-tag.level-flat`/
+  `.level-slope`/`.level-steps` 三個具名 class，取代 `stop` fence 徽章原本用的 Tailwind
+  任意值 utility。
+* **`assets/post-styles/editorial-card.css`**：刪除與新 base 完全重複的宣告，只留真正的
+  覆寫差異（`.spot-title`／`.food-item` 的去框線與 ◇ 記號、`.food-actions` 的間距差異等），
+  檔案從 107 行縮到約 55 行。
+* **`assets/markdown-cards.js`**：`STOP_LEVEL_CLASS` 的 `flat`/`slope`/`steps` 從
+  `bg-[...]`/`text-[...]` 任意值 utility 改成 `.food-tag.level-*`。根因：這些 utility 活在
+  Tailwind v4 的 `@layer utilities`，會被本檔未分層的 `.post-style-editorial-card .food-tag`
+  整組壓過（unlayered CSS 優先序恆高於任何 `@layer`，與 specificity 無關），07-16 實測三種
+  地形徽章因此全部被吃成同一色；改用同處未分層空間的具名 class 後回到正常 specificity
+  競爭，顏色差異才實際生效。
+* **刻意不做**：`suggestion.md` S2 第 2 步「把元件層／風格層放進明確的 `@layer`」本次沒
+  做——這步會改變現有的覆寫優先序（例如 `.toc-fab` 目前靠 unlayered 贏過 `xl:hidden` 的
+  hack 屆時可以拿掉），`suggestion.md` 自己也要求「必須跑 build 並目視三篇文章」，本次
+  執行環境沒有瀏覽器可以目視驗證，故暫緩。S8（base/變體改用 CSS 變數）也維持暫緩，等
+  第 2 個風格檔真的出現時再做（只有 1 個變體時做這個抽象化是憑空猜介面）。
+* **驗證**：`npm run build` 通過；`node scripts/verify-post-render.mjs` 全部 3 篇文章
+  0 diff；手動渲染確認 `stop` fence 的 `level: flat` 正確輸出
+  `class="food-tag level-flat ml-3"`，建置後 CSS 確認 flat/slope/steps 三色各自不同
+  （改動前是同一色）。`public/sw.js` 的 `CACHE_NAME` 升至 `clean-blog-v59`。
 
 ### 2026-07-26 — 文件一致性整理：修正失效連結、根目錄歷史文件全部移入 doc/archive/、S1–S13 摺進待辦事項
 
@@ -607,40 +643,11 @@ posts/
 * **後續**：`plan.md` 開頭定義的「作者只用 Markdown 寫內容，風格由 CSS／前端解析套用」目標
   至此執行完畢；`report.md` 第三節列出的其他遺留問題不在本次範圍內，仍待後續評估。
 
-### 2026-07-26 — Phase D：`compare`/`info`/`prep`/`stepper` 決策保留 fence，`apps` 廢 fence 改純 Markdown
-
-* **範圍**：延續同日稍早的 `eat`/`eatarea` 遷移（見下方記錄），對 07-13 使用的剩餘 5 個家族
-  `compare`/`info`/`prep`/`apps`/`stepper` 逐一套用「高重複規則形狀→純 Markdown／無法安全
-  區分→保留 fence」判準（`doc/archive/plan.md` Phase D）。
-* **決策結果**：
-  - `apps`（推薦 App 清單，5 項）→ **轉純 Markdown**：清單每項以單一英數字元粗體開頭
-    （如 `**N** Naver Map：...`），第一個全形冒號前是名稱、之後是說明。全站掃過確認
-    「清單項以單一字母粗體開頭」無其他用法，無誤判風險。
-  - `compare`（8 個）／`info`（6 個）→ **保留 fence**：兩者結構完全相同，唯一差異是
-    `compare` 有左色條＋可選 `stars`、`info` 沒有；這是**兩種 fence 類型間的二元判斷**，
-    不是單一家族內可用形狀規則描述的差異，故不轉換。
-  - `prep`（1 個 block，5 項）→ **保留 fence**：候選形狀「粗體開頭＋『：』直接接說明」
-    測試時在 `src/posts/2026-07-20-韓國自由行支付教學.md:98,100` 撞到兩個完全符合此形狀、
-    且彼此相鄰的**真實一般段落**（07-20 是常見中文寫法，非 pill 語意），無法安全區分，
-    换成形狀判斷反而會把該文既有的正常段落誤判成 pill 卡片。
-  - `stepper`（2 個 block）→ **保留 fence**：`.stepper` 的垂直時間軸連接線
-    （`::before` 橫跨首尾步驟）需要一個群組容器，純 Markdown 沒有天然的「這裡是一組
-    步驟的起訖」邊界標記，容易與一般 `###`/`####` 子標題混淆（類比 `accordion`／
-    `quickjump` 需要容器、無 Markdown 原生對應的既有判準）。
-* **落地**：`assets/markdown-sections.js` 新增 `collapseAppLists()`／`renderAppList()`
-  （沿用既有 `hooks.processAllTokens` 機制，與 `collapseFoodCards()` 共用同一個 hook）；
-  07-13 唯一一個 `apps` fence 已改寫為清單語法。
-* **驗證**：先寫 `scripts/__proto-apps-test.mjs` 用 07-13 真實資料比對兩種寫法渲染結果，
-  逐字等價；反向測試確認「一般粗體開頭清單」「多字粗體」「無粗體」皆不誤判，僅「單一
-  英數字元粗體」才觸發。`node scripts/verify-post-render.mjs` 對全部 3 篇文章顯示 0 diff
-  （含既有的 `eat`/`eatarea` 內容）。`public/sw.js` `CACHE_NAME` 升至 `clean-blog-v57`。
-* **後續**：五個家族決策全部底定，讀法 A（fence 留著、欄位值跑 `parseInline()`）確認
-  不再需要。下一步是 Phase E 收尾——`doc/card_dsl.md` 整份改寫成「Markdown 寫作約定
-  手冊」、刪除已失效的 `scripts/audit-card-fields.mjs`／`scripts/verify-card-dsl.mjs`、
-  刪除原型腳本 `scripts/__proto-*.mjs`。完整 checklist 見 `doc/archive/plan.md` Phase E。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-26：Phase D——`compare`/`info`/`prep`/`stepper` 決策保留 fence（`compare` vs
+  `info` 是二元色條判斷、`prep` 與一般段落撞形狀、`stepper` 需要群組容器），`apps` 廢
+  fence 改純 Markdown（單一英數字元粗體開頭＋全形冒號）；`CACHE_NAME` 升至 v57
 - 2026-07-26：`eat`／`eatarea` 廢 fence 改純 Markdown（新增 `assets/markdown-sections.js`，
   用 marked v12 `hooks.processAllTokens` 依「內容形狀」而非位置順序重組美食卡），
   `stop`／`accordion`／`quickjump` 決策保留 fence；額外發現 `eatarea` 不需要形狀判斷

@@ -331,6 +331,21 @@ CSS 層（機制細節、`style` front matter 用法見 `doc/card_dsl.md`「文�
 - **跨文章共用風格的前提**：風格檔的選擇器會綁定特定 DSL 家族（例如 `editorial-card.css`
   綁定 `quickjump`/`stop`/`eat`/`eatarea`），第二篇文章要套用同一個 `style` 值，必須使用
   同一組 DSL 家族的 class 結構，風格才會生效；新增風格檔時務必在檔頭註明依賴哪些家族。
+- **base 先給中性樣式，風格檔只寫差異（2026-07-26 修正）**：`assets/tailwind.css` 的元件區
+  必須先為 DSL 家族輸出的每個 class 定義一份中性 base 樣式，`assets/post-styles/*.css` 只
+  補「與 base 不同之處」（去框線、換字級、加裝飾記號等）。**不可**讓風格檔是某個 class 唯一
+  的一層——`editorial-card.css` 曾經有 13 個 class（`.food-header`／`.spot-section` 等）只
+  存在風格檔裡，未指定 `style` 的文章一旦用到這些 class 就會渲染成外框有、內容全裸的「半裸
+  卡片」，且 build 全綠、console 全靜，完全無法察覺（`doc/archive/suggestion.md` R1）。這條
+  規則是「文章預設有通用 CSS、少數文章才疊加客製化 CSS」這個設計目標成立的前提，不是可省的
+  細節。
+- **風格檔覆寫用具名 class，不要用 Tailwind 任意值 utility 表達顏色變體**：`editorial-card.css`
+  是未分層（unlayered）CSS，優先序恆高於 Tailwind 產生的 `@layer utilities`，與 specificity
+  無關；若某個 renderer 用 `bg-[#f6eed6]` 這類任意值 utility 表達顏色變體，只要有任何一條
+  未分層的 `.post-style-x .foo` 規則同時命中該元素，utility 會被整組壓過且不報錯。曾在
+  07-16 造成 `stop` fence 的 flat/slope/steps 三種地形徽章全部被吃成同一色（見
+  `assets/tailwind.css` 的 `.food-tag.level-*`）；顏色變體一律改用與風格檔同處未分層空間的
+  具名 class，讓覆寫關係回到可預期的 specificity 競爭（`doc/archive/suggestion.md` R2）。
 
 ---
 

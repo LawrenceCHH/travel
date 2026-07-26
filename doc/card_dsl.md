@@ -201,7 +201,11 @@ sub: 下一站移動 | 直接步行 4 分鐘返回新首爾飯店休息。
   不值得為它發明約定。
 - **`quickjump`**：全站僅一處使用，訂一套形狀約定不划算。
 - **`stop`**：4 種顏色徽章（`level`）沒有 Markdown 原生語法可以表達，歸類為「帶顏色變體」，
-  比照 `accordion` 保留 fence。
+  比照 `accordion` 保留 fence。2026-07-26 修正：`level` 對應的顏色最初用 Tailwind 任意值
+  utility（`bg-[#f6eed6]` 等）表達，會被風格檔未分層的 `.post-style-editorial-card .food-tag`
+  規則整組壓過而全部渲染成同一色（`doc/archive/suggestion.md` R2）；現已改用
+  `.food-tag.level-flat`/`.level-slope`/`.level-steps` 具名 class 承載顏色（見
+  `assets/markdown-cards.js` 的 `STOP_LEVEL_CLASS`），四種地形徽章顏色差異才實際生效。
 
 **已確認的方向**：不追求「消滅所有 fence」。高重複、形狀規則清楚的內容（`eat`/`eatarea`/
 `apps`）改用純 Markdown；帶顏色變體、需要群組容器、或全站只出現一次的家族，保留 fence 是
