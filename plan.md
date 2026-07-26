@@ -2,7 +2,7 @@
 
 > **目標（已與使用者確認）**：
 > **作者只用 Markdown 寫內容；不同頁面要呈現的風格，統一由 CSS 和前端程式解析 Markdown 後套用。**
->
+>   看完這份執行計畫後，有疑問的話就先跟我討論，沒有的話就繼續執行未完成任務。任務完成後要更新plan.md，完成的打勾，需要我決策的列入新的checklist，最後commit
 > 上一階段（文章視覺風格系統重構）已完成並 commit，成果與遺留風險見 [`report.md`](report.md)。
 
 ---
@@ -123,9 +123,14 @@ marked v12 的 `hooks.processAllTokens`，**在 token 陣列上重組**（而非
    `.prose h1 a,h2 a,h3 a,h4 a{color:inherit;text-decoration:none}` 涵蓋（§2.4），
    純屬 HTML 結構差異，視覺與功能都不受影響。
 
-5. **其餘家族仍待決策**：`compare`（含 `stars`）、`info`、`prep`、`apps`、`stepper`
-   （07-13 使用）尚未逐一套用「高重複規則形狀 → 純 Markdown／顏色變體或一次性 → 保留
-   fence」的判準。**留到 Phase D 個別評估時再決策**，不阻塞本階段 `eat`/`eatarea` 遷移。
+5. ~~其餘家族仍待決策：`compare`（含 `stars`）、`info`、`prep`、`apps`、`stepper`~~
+   **✅ 已決策（2026-07-26，Phase D）**：`apps` 轉純 Markdown（清單每項以單一英數字元粗體
+   開頭，全站掃過無誤判風險，07-13 已遷移、`verify-post-render.mjs` 0 diff）；
+   `compare`／`info`／`prep`／`stepper` 維持 fence——`compare` 與 `info` 結構相同、僅
+   差在有無色條＋`stars`，是兩種 fence 類型間的二元判斷而非單一形狀規則；`prep` 的
+   「粗體開頭＋『：』」形狀與 07-20 既有一般段落撞形狀（`2026-07-20-韓國自由行支付教學.md:98,100`
+   為相鄰的真實反例），無法安全區分；`stepper` 的時間軸連接線需要群組容器，純 Markdown
+   沒有天然的起訖邊界標記。詳見 `doc/card_dsl.md` 對應段落。
 
 6. **一般 h4 誤判風險**：目前靠「h4 是單一連結 ＋ 下一段只有 code span」雙重條件擋住。
    反向測試通過，但文章數變多後仍需持續驗證。
@@ -162,9 +167,9 @@ marked v12 的 `hooks.processAllTokens`，**在 token 陣列上重組**（而非
 
 ### Phase C — `eat`／`eatarea` 正式接線與遷移 ✅ 已完成（2026-07-26）
 
-- [ ] `assets/scripts.js` 檔頭接線 `registerSectionExtensions`（比照現有 `registerCardExtensions`）
-- [ ] `scripts/generate-posts-metadata.js` 的閱讀時間計算也要註冊（否則字數會算錯）
-- [ ] `scripts/verify-post-render.mjs` 同步註冊，否則驗證會失真
+- [x] `assets/scripts.js` 檔頭接線 `registerSectionExtensions`（比照現有 `registerCardExtensions`）
+- [x] `scripts/generate-posts-metadata.js` 的閱讀時間計算也要註冊（否則字數會算錯）
+- [x] `scripts/verify-post-render.mjs` 同步註冊，否則驗證會失真
 - [x] 用 `__proto-bulk.mjs` 的轉換函式批次改寫 07-16 的 30 張美食卡
 - [x] 把 07-16 僅剩的 1 個 `eatarea` fence（仁寺洞文藝區美食）改成純 `### [名稱](url)`
       （不需轉換層程式碼，見 §4 第 4 點）
@@ -175,16 +180,23 @@ marked v12 的 `hooks.processAllTokens`，**在 token 陣列上重組**（而非
       無 console error，「仁寺洞文藝區美食」與其餘 5 個區塊標題視覺與 TOC 行為一致）
 - [x] `public/sw.js` bump `CACHE_NAME`（v55 → v56）
 
-### Phase D — 其餘家族 ⬜ 未開始（依 Phase B 決策範圍已縮小）
+### Phase D — 其餘家族 ✅ 已完成（2026-07-26）
 
 > `stop`／`accordion`／`quickjump` 已在 Phase B 決策保留 fence，`eatarea` 已在 §4 第 4 點
 > 確認不需轉換層，三者都**不需要**本 Phase 的工作。Phase D 範圍縮小為僅剩的家族：
 
-- [ ] 07-13 的 `compare`（含 `stars`）：評估是否高重複規則形狀，決定純 Markdown／保留 fence
-- [ ] 07-13 的 `info`：同上
-- [ ] 07-13 的 `prep`：同上
-- [ ] 07-13 的 `apps`：同上
-- [ ] 07-13 的 `stepper`：同上（本身已部分支援遞迴 Markdown body，需確認 `title` 欄位是否也要改）
+- [x] 07-13 的 `compare`（含 `stars`）：評估後**保留 fence**——與 `info` 結構相同，僅差
+      有無色條＋`stars`，是二元 fence 類型判斷，非可安全轉換的單一形狀規則
+- [x] 07-13 的 `info`：**保留 fence**（同上，與 `compare` 一併決策）
+- [x] 07-13 的 `prep`：**保留 fence**——形狀「粗體開頭＋『：』」會與 07-20 既有一般段落
+      撞形狀（`2026-07-20-韓國自由行支付教學.md:98,100` 為相鄰真實反例），無法安全區分
+- [x] 07-13 的 `apps`：**轉純 Markdown**——清單每項以單一英數字元粗體開頭（App 圖示），
+      全站掃過確認此形狀無誤判風險。新增 `assets/markdown-sections.js` 的
+      `collapseAppLists()`／`renderAppList()`，07-13 唯一一處 `apps` fence 已改寫，
+      `verify-post-render.mjs` 驗證 0 diff（含既有的 `foodCard` 反向測試一併通過）
+- [x] 07-13 的 `stepper`：**保留 fence**——`.stepper` 垂直時間軸需要群組容器橫跨多步驟，
+      純 Markdown 沒有天然的起訖邊界標記，容易與一般 `###`/`####` 子標題混淆
+- [x] `public/sw.js` bump `CACHE_NAME`（v56 → v57，`markdown-sections.js` 內容變更）
 
 ### Phase E — 收尾 ⬜ 未開始
 

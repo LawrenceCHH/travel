@@ -35,6 +35,19 @@
  *
  * meta 行的槽位規則：第一個 code span＝餐別、最後一個＝價格、中間＝飲食標籤；
  * 飲食標籤字尾加 `*` 改用警示樣式（沿用既有 `eat` 家族語意，`*` 在 code span 內是字面值）。
+ *
+ * ---- App 推薦清單（.app-card）的 Markdown 約定 --------------------------
+ *
+ *   - **N** Naver Map：韓國在地導航首選。支援繁體中文與中文語音導航。
+ *   - **K** KakaoMap：韓國市佔率極高之地圖。
+ *
+ * 觸發條件：清單「每一項」開頭都是單一英數字元的粗體（如 `**N**`），全站掃過
+ * 沒有其他清單／段落用單一粗體字母開頭，是安全、不會誤判的形狀。名稱與說明以
+ * 「：」分隔（第一個全形冒號之前是名稱，之後是說明，可含行內 HTML 如 `<br>`/`<a>`）。
+ *
+ * 註：`prep`（30 秒速覽的粗體標籤列）沒有納入本檔——它的形狀「粗體開頭＋『：』
+ * 直接接說明文字」跟全站許多一般段落的手寫習慣（如 07-20 支付教學文）撞形狀，
+ * 無法安全區分，因此 `prep` 決策保留 fence（見 `plan.md` Phase D）。
  */
 
 /** 判斷 inline token 陣列是否「只由 code span（與空白）組成」。 */
@@ -131,6 +144,33 @@ function collapseFoodCards(tokens) {
   return out;
 }
 
+/** 判斷 inline token 陣列的第一個有意義 token，是不是「單一英數字元」的粗體（→ App 圖示）。 */
+function startsWithLetterStrong(tokens) {
+  const first = (tokens || []).find(
+    (t) => !((t.type === 'text' || t.type === 'space') && (t.raw ?? '').trim() === '')
+  );
+  if (first?.type !== 'strong') return false;
+  const text = (first.tokens?.[0]?.raw ?? first.text ?? '').trim();
+  return /^[A-Za-z0-9]$/.test(text);
+}
+
+/** 判斷 list token 是否「每一項都以單一字母粗體開頭」（→ App 推薦清單）。 */
+function isAppList(token) {
+  if (!token || token.type !== 'list' || !token.items?.length) return false;
+  return token.items.every((item) => {
+    const inline = item.tokens?.[0];
+    if (!inline || inline.type !== 'text') return false;
+    return startsWithLetterStrong(inline.tokens);
+  });
+}
+
+/**
+ * 掃描 token 陣列，把符合 App 清單形狀的 `list` token 換成單一 `appList` token。
+ */
+function collapseAppLists(tokens) {
+  return tokens.map((tok) => (isAppList(tok) ? { type: 'appList', raw: tok.raw, items: tok.items } : tok));
+}
+
 // ---- 渲染 ---------------------------------------------------------------
 
 function renderFoodCard(token, parser) {
@@ -183,13 +223,28 @@ ${actionsHtml}
 </div>`;
 }
 
+function renderAppList(token, parser) {
+  return token.items
+    .map((item) => {
+      const inline = item.tokens[0].tokens;
+      const strongIdx = inline.findIndex((t) => t.type === 'strong');
+      const icon = parser.parseInline(inline[strongIdx].tokens);
+      const restHtml = parser.parseInline(inline.slice(strongIdx + 1)).trim();
+      const sepIdx = restHtml.indexOf('：');
+      const name = sepIdx === -1 ? restHtml : restHtml.slice(0, sepIdx);
+      const appBody = sepIdx === -1 ? '' : restHtml.slice(sepIdx + '：'.length);
+      return `<div class="app-card"><div class="app-icon-wrapper">${icon}</div><div class="app-info"><h4>${name.trim()}</h4><p>${appBody.trim()}</p></div></div>`;
+    })
+    .join('\n');
+}
+
 // ---- 註冊 ---------------------------------------------------------------
 
 export function registerSectionExtensions(marked) {
   marked.use({
     hooks: {
       processAllTokens(tokens) {
-        return collapseFoodCards(tokens);
+        return collapseAppLists(collapseFoodCards(tokens));
       },
     },
     extensions: [
@@ -202,6 +257,16 @@ export function registerSectionExtensions(marked) {
         },
         renderer(token) {
           return renderFoodCard(token, this.parser);
+        },
+      },
+      {
+        name: 'appList',
+        level: 'block',
+        tokenizer() {
+          return undefined;
+        },
+        renderer(token) {
+          return renderAppList(token, this.parser);
         },
       },
     ],

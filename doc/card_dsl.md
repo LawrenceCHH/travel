@@ -29,9 +29,32 @@ Node 共用。改動 renderer 或遷移文章內容時，用
 > （CSS 早已把純 `<h3>` 設計成與 `.food-list-title` 同款）。07-16 全部 30 張美食卡與 6 個
 > 分區標題已於 2026-07-26 遷移完畢。下方 `eat`/`eatarea` 的 fence 語法**仍受渲染器支援**
 > （`markdown-cards.js` 未刪除對應 renderer，向後相容、不強制既有內容改寫），只是不再是
-> 建議寫法，僅供讀懂舊 commit 歷史或 `assets/markdown-cards.js` 原始碼時參考。完整規劃
-> 見根目錄 `plan.md`；本檔尚未依此改寫成「Markdown 寫作約定手冊」（見 `plan.md` Phase E，
-> 待其餘家族 `compare`/`info`/`prep`/`apps`/`stepper` 決策後一併重寫，避免分批改動）。
+> 建議寫法，僅供讀懂舊 commit 歷史或 `assets/markdown-cards.js` 原始碼時參考。
+
+> **`apps` 新文章請勿再用下方 fence 語法（2026-07-26 起）**：改用清單寫法——每一項以
+> **單一英數字元的粗體**開頭（App 圖示），接著是名稱，第一個全形冒號「：」之後是說明
+> （可含 `<br>`/`<a>` 等行內 HTML）：
+> ```markdown
+> - **N** Naver Map：韓國在地導航首選，支援繁體中文與中文語音導航。
+> - **K** KakaoMap：韓國市佔率極高之地圖，與 Naver Map 互為備用。
+> ```
+> 由 `assets/markdown-sections.js` 的 `collapseAppLists()` 辨識重組。觸發條件「清單每一項
+> 開頭都是單一英數字元粗體」已掃過全站確認無誤判風險。07-13 已於 2026-07-26 遷移完畢，
+> `verify-post-render.mjs` 驗證 0 diff。下方 `apps` fence 語法仍受渲染器支援，僅供參考。
+
+> **`compare`／`info`／`prep`／`stepper` 決策維持 fence（2026-07-26，Phase D）**：
+> 逐一評估「形狀規則能否安全與其他 Markdown 內容區分」後，四者皆**不**轉純 Markdown：
+> - `compare`／`info`：兩者結構完全相同，唯一差異是有無左色條＋`stars`，屬於兩種 fence
+>   類型間的二元判斷，不是單一家族內的形狀規則，決策維持現狀。
+> - `prep`：形狀「粗體開頭＋『：』直接接說明文字」會與全站許多一般段落手寫習慣撞形狀
+>   （例：`src/posts/2026-07-20-韓國自由行支付教學.md:98,100` 就是兩個完全符合此形狀的
+>   一般段落，且彼此相鄰），無法安全區分，換成形狀判斷反而會誤判真實文章內容。
+> - `stepper`：`.stepper` 的垂直時間軸線（`::before`）需要一個**群組容器**橫跨第一到最後
+>   一步，純 Markdown 沒有天然的「這裡是一組步驟的起訖」邊界標記，容易與一般 `###`/`####`
+>   子標題混淆（類比 `accordion`／`quickjump` 需要容器、無 Markdown 原生對應的既有判準）。
+>
+> 完整規劃見根目錄 `plan.md` Phase D／§4。本檔尚未整份改寫成「Markdown 寫作約定手冊」
+> （見 `plan.md` Phase E，待所有家族決策底定後一併重寫，避免分批改動）。
 
 ## 總表
 
