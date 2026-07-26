@@ -227,12 +227,18 @@ function renderQuickjump(body) {
 </div>`;
 }
 
-// level → 07-16 editorial-card 風格既有的「友善度」徽章 utility class 組合（逐字對應手寫版四種變體）。
+// level → 「友善度」徽章 class 組合（四種地形/飲食變體）。
+// 2026-07-26（doc/project.md 待辦 S2）：flat/slope/steps 原本直接用 Tailwind 任意值
+// utility（bg-[#f6eed6] 等），這些 utility 活在 @layer utilities，會被 assets/tailwind.css
+// 裡未分層的 .post-style-editorial-card .food-tag 整組壓過（unlayered CSS 優先序恆高於
+// 任何 @layer，與 specificity 無關）——07-16 實測三種地形徽章因此全部被吃成同一色。改用
+// 與 .food-tag 同處未分層空間的具名 class（見 assets/tailwind.css 的 .food-tag.level-*），
+// 顏色差異才會實際生效。
 const STOP_LEVEL_CLASS = {
   diet: 'food-tag diet ml-3',
-  flat: 'food-tag bg-sand/20 text-primary-dark ml-3',
-  slope: 'food-tag bg-[#f6eed6] text-[#6e4f0a] ml-3',
-  steps: 'food-tag bg-[#f4e6dc] text-[#833411] ml-3',
+  flat: 'food-tag level-flat ml-3',
+  slope: 'food-tag level-slope ml-3',
+  steps: 'food-tag level-steps ml-3',
 };
 
 /**

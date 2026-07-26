@@ -741,16 +741,56 @@
     @apply rounded-md border border-sand/60 bg-surface px-3.5 py-3 text-[14px] font-semibold leading-relaxed text-ink;
   }
 
-  /* --- 景點漫遊：基礎規則（.spot-title／.stars 由 stop 家族輸出，仍在使用） --- */
+  /* --- 景點漫遊：基礎規則 ---
+     2026-07-26（doc/project.md 待辦 S1）：.spot-section／.spot-desc／.sub-option-list／
+     .sub-option-item 原本只存在於 editorial-card.css，未指定 style 的文章用 stop fence
+     會渲染成外框內容裸露的「半裸卡片」。這裡補上與 editorial-card.css 原本完全相同的中性
+     樣式當全站預設，讓 stop fence 不依賴 style front matter 也能正常呈現；.spot-title／
+     .stars 是既有 base（由 stop 家族輸出，仍在使用），未變動。 */
+  .spot-section { @apply mb-10 pb-8 border-b border-sand/20 last:border-b-0; }
   .spot-title { @apply mb-3 font-serif text-[22px] font-bold leading-snug text-ink; }
+  .spot-desc { @apply text-[16px] text-ink leading-relaxed mb-4 pl-6; }
+  .sub-option-list { @apply space-y-3 pl-6 mb-6; }
+  .sub-option-item { @apply text-[15px] text-muted-text leading-relaxed border-l border-sand/40 pl-3; }
+  .sub-option-item strong { @apply text-ink font-semibold block mb-1; }
   .stars { @apply inline-flex items-center gap-0.5 font-bold text-[13px]; color: #b8912e; }
 
-  /* --- 美食推薦：基礎規則（.food-item／.food-actions 由 eat 家族輸出，仍在使用） --- */
+  /* --- 美食推薦：基礎規則 ---
+     2026-07-26（doc/project.md 待辦 S1）：.food-header／.food-name／.food-meta／.food-tag／
+     .food-price／.food-body／.food-why／.food-action-link／.food-list-title 原本只存在於
+     editorial-card.css，未指定 style 的文章照 doc/card_dsl.md §1.1 建議寫法寫美食卡（全站
+     預設寫法，不需要 style front matter）會半裸——外框有、但店名/標籤/價格/理由全無樣式。
+     這裡補上與 editorial-card.css 原本完全相同的中性樣式當全站預設；.food-item／
+     .food-actions 是既有 base，未變動。 */
   .food-item {
     @apply my-4 flex flex-col rounded-lg border border-sand/50 bg-surface p-5 transition-colors;
   }
   .food-item:hover { @apply border-primary/40; }
+  .food-header { @apply flex flex-wrap items-center justify-between gap-2 mb-2; }
+  .food-name { @apply font-serif text-[18px] font-bold text-ink; }
+  .food-meta { @apply flex flex-wrap items-center gap-1.5; }
+  .food-tag {
+    @apply inline-flex items-center rounded bg-sand/10 text-primary-dark px-1.5 py-0.5 text-[11px] font-semibold;
+  }
+  .food-tag.diet { @apply bg-paper border border-sand/40 text-muted-text; }
+  /* level-* 供 stop fence 的地形友善度徽章使用（markdown-cards.js 的 STOP_LEVEL_CLASS）。
+     2026-07-26（doc/project.md 待辦 S2）：原本直接用 Tailwind 任意值 utility（bg-[#f6eed6]
+     等）表達，但這些 utility 活在 @layer utilities，會被本區塊未分層的
+     .post-style-editorial-card .food-tag 整組壓過——unlayered CSS 的優先序恆高於任何
+     @layer，與 specificity 無關，07-16 實測 flat／slope／steps 三種地形徽章因此全部被吃成
+     同一色。改用與 .food-tag 同處未分層空間的具名 class，讓顏色差異回到正常的 specificity
+     競爭，才會實際生效。 */
+  .food-tag.level-flat { background: rgb(148 137 121 / 0.2); color: var(--color-primary-dark); }
+  .food-tag.level-slope { background: #f6eed6; color: #6e4f0a; }
+  .food-tag.level-steps { background: #f4e6dc; color: #833411; }
+  .food-price { @apply text-xs text-muted-text font-semibold ml-2; }
+  .food-body { @apply text-[14.5px] leading-relaxed text-ink mt-2; }
+  .food-why { @apply text-muted-text italic mt-2 pl-3 border-l border-sand/30; }
   .food-actions { @apply order-4 mt-4 flex flex-wrap gap-2; }
+  .food-action-link { @apply text-xs text-primary font-bold hover:underline; }
+  /* 與「Day X」同一階（h2 之下的第一層分節），故刻意與 .prose h3 完全同款：同字級、同留白、
+     同樣不加底線。差別只在它是 <div> 不進 TOC——見 doc/project.md 待辦。 */
+  .food-list-title { @apply font-serif text-[20px] md:text-[21px] font-bold text-ink mt-9 mb-4 pl-0; }
 
   /* --- 機場通關：垂直時間軸 Stepper --- */
   .stepper { @apply relative my-6 pl-6; }
