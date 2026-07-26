@@ -389,6 +389,18 @@
     margin-bottom: 0.75rem; /* mb-3 */
   }
 
+  /* 2026-07-26（doc/archive/suggestion.md S12）：美食卡店名改輸出為 <h4 class="food-name">
+     （原本是 <span>，30 家店名在無障礙樹上不是標題，螢幕閱讀器無法用標題導覽），需同理
+     保護——.food-header 是 flex 容器，.prose h4 的 mt-6/mb-2 margin 會撐開與 .food-meta
+     同排的垂直對齊，故一併歸零。 */
+  .prose h4.food-name {
+    font-family: var(--font-serif);
+    font-size: 1.125rem; /* 18px，逐字對應原 .food-name */
+    font-weight: 700;
+    color: var(--color-ink);
+    margin: 0;
+  }
+
   /* --- Blockquote：拿掉 italic，改 serif pull-quote 質感（不用底色盒子，避免跟
      .alert-note 提示框撞臉） --- */
   .prose blockquote {
@@ -771,18 +783,18 @@
   .stars { @apply inline-flex items-center gap-0.5 font-bold text-[13px]; color: #b8912e; }
 
   /* --- 美食推薦：基礎規則 ---
-     2026-07-26（doc/project.md 待辦 S1）：.food-header／.food-name／.food-meta／.food-tag／
+     2026-07-26（doc/project.md 待辦 S1）：.food-header／.food-meta／.food-tag／
      .food-price／.food-body／.food-why／.food-action-link／.food-list-title 原本只存在於
      editorial-card.css，未指定 style 的文章照 doc/card_dsl.md §1.1 建議寫法寫美食卡（全站
      預設寫法，不需要 style front matter）會半裸——外框有、但店名/標籤/價格/理由全無樣式。
-     這裡補上與 editorial-card.css 原本完全相同的中性樣式當全站預設；.food-item／
+     這裡補上與 editorial-card.css 原本完全相同的中性樣式當全站預設；.food-name 改輸出為
+     <h4>（S12，見下方 .prose h4.food-name）不再放這裡；.food-item／
      .food-actions 是既有 base，未變動。 */
   .food-item {
     @apply my-4 flex flex-col rounded-lg border border-sand/50 bg-surface p-5 transition-colors;
   }
   .food-item:hover { @apply border-primary/40; }
   .food-header { @apply flex flex-wrap items-center justify-between gap-2 mb-2; }
-  .food-name { @apply font-serif text-[18px] font-bold text-ink; }
   .food-meta { @apply flex flex-wrap items-center gap-1.5; }
   .food-tag {
     @apply inline-flex items-center rounded bg-sand/10 text-primary-dark px-1.5 py-0.5 text-[11px] font-semibold;

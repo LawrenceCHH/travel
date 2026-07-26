@@ -1,5 +1,9 @@
 const BASE = '/travel/';
-const CACHE_NAME = 'clean-blog-v60';
+// 2026-07-26（doc/archive/suggestion.md S13）：此處版本號僅為開發模式佔位值——本機
+// localhost 開發時 scripts.js 一律自動 unregister SW（見該檔第 3 節），不會讀到這裡的值。
+// 正式 build 時由 vite.config.js 的 swPrecachePlugin 依打包後 CSS/JS 檔名雜湊自動覆寫，
+// 不再需要手動遞增，避免忘記 bump 導致訪客卡在舊快取（歷史上已出過線上事故）。
+const CACHE_NAME = 'clean-blog-dev';
 
 // 預快取路徑，Vite build 時會被 swPrecachePlugin 自動取代為含有雜湊碼的檔案名
 const PRECACHE_URLS = [

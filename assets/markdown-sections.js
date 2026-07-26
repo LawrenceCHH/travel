@@ -180,12 +180,11 @@ function collapseAppLists(tokens) {
 function renderFoodCard(token, parser) {
   const inline = (t) => (t ? parser.parseInline(t.tokens) : '');
 
-  // 標題：h4 內的單一連結 → .food-name（連結樣式沿用既有 no-underline text-inherit，
-  // 因為它包在 <span> 而非 h1-h4 內，不受 .prose h4 a 規則涵蓋）
+  // 標題：h4 內的單一連結 → 保留輸出為 <h4 class="food-name">（而非 <span>），讓 30 家店名
+  // 在無障礙樹上仍是標題，螢幕閱讀器可用標題導覽；連結樣式交給既有 .prose h4 a 規則
+  // （text-decoration: none; color: inherit），不需再手動疊加 no-underline/text-inherit
   const link = token.head.tokens.find((t) => t.type === 'link');
-  const nameHtml = `<a href="${link.href}" target="_blank" class="no-underline text-inherit">${parser.parseInline(
-    link.tokens
-  )}</a>`;
+  const nameHtml = `<a href="${link.href}" target="_blank">${parser.parseInline(link.tokens)}</a>`;
 
   // meta 行：第一個 code span＝餐別、最後一個＝價格、中間＝飲食標籤
   const spans = (token.meta?.tokens || []).filter((t) => t.type === 'codespan');
@@ -214,7 +213,7 @@ function renderFoodCard(token, parser) {
 
   return `<div class="food-item">
   <div class="food-header">
-    <span class="food-name">${nameHtml}</span>
+    <h4 class="food-name">${nameHtml}</h4>
     <div class="food-meta">
 ${parts.join('\n')}
     </div>

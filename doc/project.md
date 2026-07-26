@@ -67,9 +67,8 @@ npm run preview
 ### 5. 更新網站快取 (Service Worker & PWA)
 當更新靜態資源、樣式、腳本或新增/編輯文章，欲強制訪客瀏覽器更新快取與畫面時：
 1. **生成文章索引元資料檔**：若包含文章增刪改動，先執行 `npm run build:metadata` 產生最新的 `public/data/posts.json`（若直接跑 `npm run build` 會自動觸發）。
-2. **升級 SW 快取名稱**：編輯 [`public/sw.js`](../public/sw.js)，將頂部的 `CACHE_NAME` 遞增版本（如 `'clean-blog-v49'` → `'clean-blog-v50'`），促使瀏覽器下載新 SW 並自動清理舊 Cache Storage。
-3. **建置正式資源與複製文章**：執行 `npm run build`。此步驟會自動執行 `build:metadata`、將文章原檔複製至 `dist/src/posts/`，並透過 `swPrecachePlugin` 將帶雜湊碼的最新 CSS/JS 與預快取清單寫入 `dist/sw.js`。
-4. **客戶端除錯刷新**：開發或測試時，可開啟瀏覽器 DevTools (F12) → Application → Service Workers 勾選 *Update on reload* / 點擊 *Unregister*，或以 `Ctrl+F5` / `Cmd+Shift+R` 強制刷新。
+2. **建置正式資源與複製文章**：執行 `npm run build`。此步驟會自動執行 `build:metadata`、將文章原檔複製至 `dist/src/posts/`，並透過 `swPrecachePlugin` 將帶雜湊碼的最新 CSS/JS 與預快取清單寫入 `dist/sw.js`，同時依打包後的 CSS/JS 內容＋`public/img/` 全部圖片內容自動算出新的 `CACHE_NAME`（2026-07-26 起自動化，不再需要手動編輯 `public/sw.js` 遞增版本號，見第一部分「PWA 靜態資源預快取防刷」與更新歷史 S13）。
+3. **客戶端除錯刷新**：開發或測試時，可開啟瀏覽器 DevTools (F12) → Application → Service Workers 勾選 *Update on reload* / 點擊 *Unregister*，或以 `Ctrl+F5` / `Cmd+Shift+R` 強制刷新。
 
 ## 如何新增與編輯內容
 
@@ -95,7 +94,7 @@ npm run preview
 3. 正文內容置於結尾 `---` 下方，以 Markdown 或 HTML 撰寫。
 4. **關鍵索引與快取更新步驟（若未執行新文章將不會顯示）**：
    - **開發模式**：若 `npm run dev` 運作中會自動監聽更新；否則請執行 `npm run build:metadata` 重新生成 `public/data/posts.json` 索引。
-   - **生產環境與預覽**：新增文章後必須升級 `public/sw.js` 的 `CACHE_NAME`（如 `v50`），並執行 `npm run build` 以同步更新 `dist/data/posts.json` 與 `dist/src/posts/` 文章資源，否則瀏覽器會被 Service Worker 快取的舊索引擋住。
+   - **生產環境與預覽**：新增文章後執行 `npm run build` 以同步更新 `dist/data/posts.json` 與 `dist/src/posts/` 文章資源即可；`data/posts.json` 走 Service Worker 的 network-first 策略（見 `public/sw.js` fetch handler），有網路時一律拿新資料，不需要再手動升級 `CACHE_NAME`（2026-07-26 起自動化，見第一部分「PWA 靜態資源預快取防刷」）。
 
 ### 2. 新增獨立頁面
 如果要在網站中新增一個獨立的 HTML 頁面：
@@ -137,7 +136,7 @@ npm run preview
 | 卡片視覺樣式（`.food-item`／`.spot-card`／`.compare-card`／`.info-card`／`.stepper`／`.app-card`／`.emergency-card`／`.alert-box` 等） | `assets/tailwind.css` 的 `@layer components` |
 | 色彩／字型設計 Token | `assets/tailwind.css` 的 `@theme` |
 | 導覽列／頁尾動態載入 | `assets/scripts.js` 尾端 fetch 邏輯 + `public/components/navbar.html`／`footer.html` |
-| PWA 快取與雜湊防刷 | `public/sw.js`（`CACHE_NAME`，每次改動快取資產需 +1）＋ `vite.config.js` 的 `swPrecachePlugin`（快取更新說明見第一部分 `### 5`） |
+| PWA 快取與雜湊防刷 | `public/sw.js`（`CACHE_NAME`，2026-07-26 起由 `vite.config.js` 的 `swPrecachePlugin` 於 build 時自動衍生，不再手動遞增；快取更新說明見第一部分 `### 5`） |
 | 開發模式文章監聽熱重載 | `vite.config.js` 的 `watchPostsMetadataPlugin` |
 | 建置/部署 CI | `.github/workflows/pages.yml` |
 | 文章連結網址產生（統一由此決定 `posts/<id>.html` 這個網址形狀） | `assets/scripts.js` → `postUrl()`，掛 `window.postUrl` 供 `index.html`／`posts/index.html`／`posts/detail.html` 三處非 module inline script 呼叫 |
@@ -249,6 +248,16 @@ posts/
     *   **視覺細節收斂**：分頁器改用暖色 Token，日期改用 `tabular-nums` 並與標籤合併為單一橫排 Meta 帶以緊湊版面。加入鍵盤 `focus-visible` 焦點樣式，並以內聯 SVG 放大鏡取代 emoji。
 7.  **PWA 靜態資源預快取防刷 (swPrecachePlugin)**：
     由於 Vite 打包後的 CSS/JS 檔名會帶有隨機雜湊碼，自訂 Vite 插件 `swPrecachePlugin`，在建置完成後，動態將帶有雜湊值的資源名稱取代並更新至 `dist/sw.js` 的預快取陣列中。
+    *   **`CACHE_NAME` 自動化（2026-07-26，`doc/archive/suggestion.md` S13）**：`public/sw.js`
+        原始碼裡的 `CACHE_NAME` 只是固定佔位值 `'clean-blog-dev'`（本機開發時 `scripts.js` 一律
+        自動 unregister SW，不會讀到這個值），真正生效的版本號由 `swPrecachePlugin` 在
+        `closeBundle()` 用 `crypto.createHash('md5')` 對「CSS/JS 檔名＋`public/img/` 全部檔案
+        內容」算出的 8 碼短雜湊決定，寫回 `dist/sw.js`。**雜湊來源涵蓋 `public/img/` 而不只是
+        CSS/JS 檔名**：`sw.js` 的 `isStaticAsset` 對 `/img/` 也是 cache-first，但該目錄是原樣
+        複製、不經 Vite 雜湊，圖片內容換版時檔名不變——只雜湊 CSS/JS 防不住這個情境，也正是
+        2026-07-22 那次「換首頁背景圖忘記手動 bump 版本」線上事故的根因。`public/data/
+        posts.json` 未納入雜湊來源，因為它走 network-first（見 `sw.js` fetch handler），有
+        網路時一律拿新資料，不受 `CACHE_NAME` 是否更新影響。
 8.  **文章大綱元件 (TOC)**：
     *   **Runtime 動態生成**：於文章渲染後動態走訪章節標題生成大綱，支援 Markdown 與手寫 HTML 格式。若標題無 `id` 則自動指派繁中安全 slug。**選擇器刻意用 `:scope > h2, :scope > h3`（僅直接子節點）而非 `querySelectorAll('h2, h3')`**：文章由 `marked.parse()` 注入 `#post-content`，Markdown 章節標題是其直接子節點，而卡片元件（`.emergency-card`／`.alert-box` 等）內部自帶的 `<h3>` 標題是巢狀子孫；若不限定直接子，像「緊急應變」這種一節含多張卡片時，救護車/警局/各醫院、WOWPASS 步驟、行李限重提醒等卡片標題會被灌進 TOC（首爾文章實測會多出 12 條雜訊）。
     *   **桌機版（>= 1280px）**：側欄以 `position: absolute` 隨頁面捲動貼在 Banner 下緣（避免初始就以 fixed 蓋住 Banner 文字），在 `assets/scripts.js` 的 `buildDesktopSidebar` 內由 `updatePinnedState()` 監聽 `scroll`/`resize`，一旦捲動超過休息位置即切換 `.is-pinned` class 改為 `position: fixed`（效果等同 `position: sticky`；因側欄掛載於 `document.body` 而非文章內文的 flow 子節點，無法直接套用原生 sticky，故以 JS 手動切換）。側欄本身以 `IntersectionObserver` 搭配捲動幾何計算進行精準的 Scroll Spy 章節高亮，並隱藏內部捲軸（`scrollbar-width: none` / `::-webkit-scrollbar { display: none }`，僅隱藏視覺捲軸，捲動功能不受影響）。
@@ -657,7 +666,6 @@ posts/
 ## 待辦事項
 
 - [ ] **中文襯線字體跨裝置一致性**：目前中文標題襯線僅在有系統內建中文襯線字型（macOS Songti、Windows 新細明體）的裝置上生效，多數 Android 裝置無內建中文襯線會退回無襯線字體。若未來要追求完全一致的跨裝置「編輯雜誌感」，需自行 subset 打包 Noto Serif TC 字型檔（僅收錄實際會用到的標題字元），並更新 `sw.js` 的 precache 清單
-- [ ] **07-20 `## 1.2 WOWPASS 完整介紹` 底下仍有 6 個 `###`**：是全文最密的一節（已依 `doc_style.md` 第 3 節收掉一個標籤型 `### 是什麼`）。若閱讀時仍覺得標題雜，可再依同一判準（讀者會不會拿這個標題來定位）收一輪；注意解法是減少標題，不是給 `###` 加視覺記號（見第一部分第 19 點與 `style.md` A14）
 
 ### 架構審查待辦（2026-07-26 Agent 分析，SEO／可靠性）
 
@@ -694,14 +702,62 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
       時驗證是恆真的，測不出東西（`doc/archive/suggestion.md` R11/S10）
 - [ ] **S11（實際踩到再做）給美食卡收合設一個保守邊界**：目前貪婪收到下一個 heading 為止，
       分區收尾段落可能被誤吸進「推薦理由」欄位（`doc/archive/suggestion.md` R7/S11）
-- [ ] **S12 美食卡店名輸出改回 `<h4>`**：目前是 `<span>`，30 家店名在無障礙樹上不是標題，
-      螢幕閱讀器無法用標題導覽（`doc/archive/suggestion.md` R8/S12）
-- [ ] **S13 `sw.js` 的 `CACHE_NAME` 自動化**：改由 `vite.config.js` 的 `swPrecachePlugin` 從
-      CSS/JS 檔名 hash 衍生，避免忘記手動 bump（歷史上已出過線上事故，`doc/archive/suggestion.md` S13）
 
 ## 更新歷史
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
+
+### 2026-07-26 — 落地 `suggestion.md` S12／S13，並依 `doc_style.md` 第 3 節再收一輪 07-20 標題
+
+* **範圍**：延續架構審查待辦清理，處理 S12（美食卡店名無障礙性）與 S13（`CACHE_NAME`
+  自動化）兩項「觀察區」項目——皆無需等待特定時機，直接落地；另依使用者要求，重新檢視
+  07-20 文章 `## 1.2 WOWPASS 完整介紹` 底下 6 個 `###`，依既有判準（讀者會不會拿這個標題
+  來定位）再收一輪。
+* **S12（美食卡店名 `<span>` → `<h4>`）**：`assets/markdown-sections.js` 的
+  `renderFoodCard()` 把店名容器由 `<span class="food-name">` 改為 `<h4 class="food-name">`，
+  讓 30 家店名進入無障礙樹的標題導覽；內部連結拿掉手動疊加的 `no-underline text-inherit`，
+  改吃既有 `.prose h4 a` 規則（原本用 `<span>` 是因為不受該規則涵蓋，現在已是真正的 `<h4>`
+  不需要再手動疊樣式）。**踩到 cascade layer 陷阱**：`.food-name` 原本的視覺樣式定義在
+  `@layer components`（`assets/tailwind.css`），而 `.prose h4` 定義在後宣告的 `@layer prose`
+  ——CSS layer 優先序由宣告順序決定、與 selector specificity 無關，未分層樣式規則的教訓
+  （見第一部分第 21 點）在這裡以「兩個都分層、但層序不同」的變體重現：`.prose h4` 必贏，
+  若不處理，原本 18px serif bold 的店名會被 `.prose h4` 的 15px sans bold 覆蓋。**解法**：
+  仿照既有 `.prose h3.alert-box-title`／`.prose .editorial-quick-jump h4` 的 2-class 選擇器
+  模式，在 `@layer prose` 內新增 `.prose h4.food-name`（specificity 0,2,1，同層內穩贏
+  `.prose h4` 的 0,1,1）明確恢復原始樣式，並歸零 margin（`.food-header` 是 flex 容器，
+  `.prose h4` 的 `mt-6/mb-2` 會撐開與 `.food-meta` 同排的垂直對齊）；`@layer components`
+  內原本的 `.food-name` 規則整條刪除（已死碼，`.prose h4.food-name` 必定覆蓋它）。
+* **S13（`CACHE_NAME` 自動化）**：`public/sw.js` 的 `CACHE_NAME` 改為固定佔位值
+  `'clean-blog-dev'`（本機 `localhost` 開發時 `scripts.js` 一律自動 unregister SW，不會讀到
+  這個值）；`vite.config.js` 的 `swPrecachePlugin` 新增邏輯，在 `closeBundle()` 階段用
+  `crypto.createHash('md5')` 算出 8 碼短雜湊寫回 `dist/sw.js` 取代 `CACHE_NAME`（如
+  `clean-blog-eea22045`）。**雜湊來源刻意不只用 CSS/JS 檔名**：待辦原描述是「從 CSS/JS 檔名
+  hash 衍生」，但 `sw.js` 的 `isStaticAsset` 對 `/img/` 也是 cache-first，而 `public/img/`
+  是原樣複製、不經 Vite 雜湊，圖片內容換版時檔名不變——這正是待辦引用的線上事故本身（07-22
+  換首頁背景圖忘記手動 bump 版本，訪客看到舊圖），若只雜湊 CSS/JS 檔名，這個自動化完全防不
+  住它原本要防的事故。故改為新增 `hashDirectoryInto()` 遞迴讀取 `public/img/` 全部檔案內容
+  一併餵進同一個 hash，連同 CSS/JS 檔名一起衍生最終雜湊；只要 `assets/` 原始碼或 `public/img/`
+  任一張圖片內容改變，`CACHE_NAME` 就會跟著變，不再需要手動遞增版本號。`public/data/
+  posts.json` 未納入雜湊來源——它走 network-first（見 `sw.js` fetch handler），有網路時本來
+  就一律拿新資料，不受 `CACHE_NAME` 是否更新影響，非本次待處理的風險對象。15MB／21 個檔案
+  的 `public/img/` 全量雜湊實測對 `npm run build` 總時間影響在誤差範圍內（< 1 秒）。
+* **WOWPASS 標題再收一輪**：07-20 `## 1.2 WOWPASS 完整介紹` 底下逐一檢視 6 個 `###`，
+  `申請方式`／`儲值方式比較`／`額度限制`／`適合誰`（已列於 `doc_style.md` 第 4 節）與
+  `兩個獨立錢包，要分開儲值`（標題本身是具體可行動結論，非泛稱）皆有掃描價值保留；只有
+  `其他實用功能` 是「什麼都裝」的泛稱標籤——讀者會找「轉帳」「提領現金」「卡片遺失」等
+  具體項目，不會用這個詞定位，故判定為標籤型小節。**解法**：拿掉該標題，內容併入緊鄰、
+  性質相近的「額度限制」小節（同為卡片機制條列參考資訊），標題改為
+  `### WOWPASS 額度限制與其他功能（2026年規定）` 讓「額度限制」關鍵字仍可搜尋，內容一字
+  未改。該節 `###` 由 6 個收為 5 個。
+* **驗證**：`npm run build`／`npm run lint` 全綠；`node scripts/verify-post-render.mjs` 3 篇
+  文章 0 diff（註：此腳本比對的是「HEAD vs 工作目錄的文章原檔」，S12 只改 renderer 不改
+  文章內容，故此驗證對 S12 是恆真的，不能證明 `<h4>` 有正確輸出——另外手動跑
+  `createMarked()` 渲染 07-16 文章確認美食卡輸出為
+  `<h4 class="food-name"><a ...>店名</a></h4>`，並從 `dist/assets/*.css` 複驗
+  `.prose h4.food-name{font-family:...;font-size:1.125rem;...}` 選擇器與數值正確）；
+  `dist/sw.js` 複驗 `CACHE_NAME` 已寫入雜湊值（`clean-blog-eea22045`）、`PRECACHE_URLS` 維持
+  正確雜湊檔名；連續兩次 `npm run build`（無任何來源變動）確認雜湊值不變，證明可重現、非
+  時間戳/隨機值。
 
 ### 2026-07-26 — 修正 dev server 下 manifest／icon 連結 base path 疊加成 `/travel/travel/...` 的 404
 
@@ -757,27 +813,12 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
   文章 0 diff；playwright-core 對首頁／文章目錄頁／新舊文章連結格式／404 頁共 8 個場景做
   console error 掃描，全數乾淨。
 
-### 2026-07-26 — 待辦清理：`package.json` 元數據更新、移除「關於」頁與漢堡選單死代碼
-
-* **範圍**：與使用者確認後處理三項積壓待辦，皆為刪除/取代已判定不需要的內容，非新增功能。
-* **`package.json`／`package-lock.json` 元數據**：`name`/`description`/`author`/`repository`
-  仍是原 Jekyll 主題 `startbootstrap-clean-blog-jekyll` 的殘留值，改為專案實際值
-  （`name: travel`、`author: LawrenceCHH`、`repository`/`homepage` 對應
-  `github.com/LawrenceCHH/travel` 與 `lawrencechh.github.io/travel`）；移除非標準的
-  `title` 欄位（未被任何程式碼讀取）。`package-lock.json` 僅手動同步 `name`/`version`
-  兩處，未跑 `npm install` 重新產生——該指令會連帶引入不相關的 `@tailwindcss/oxide-*`
-  平台專屬 optional dependency 雜訊，已驗證並捨棄。
-* **移除「關於」頁面**：`about.html` 打開後內容全是未填寫的 Lorem ipsum 佔位文字、Navbar／
-  Footer 皆無連結指向它，判定為未完成且不需要的孤兒頁面，非「補入口」而是整頁刪除：
-  刪除 `about.html`、`vite.config.js` 的 `about` 建置進入點、`public/img/bg-about.jpg`
-  與 `public/img/original/bg-about.jpg`。
-* **移除漢堡選單死程式碼**：`assets/scripts.js` 的 `toggleNav()`（對應 `#navbarResponsive`）
-  已無任何觸發來源——`navbar.html` 現行的兩項式極簡導覽本來就沒有漢堡按鈕標記，純屬 Jekyll
-  舊主題遺留——整段函式與 `window.toggleNav = toggleNav` 一併刪除。
-* **驗證**：`npm run build` 通過，`dist/` 輸出不再含 `about.html`／`about` 相關資源；
-  `CACHE_NAME` 升至 `clean-blog-v60`（`scripts.js` bundle 內容改變）。
-
 ### 更早的更新（壓縮摘要，新到舊）
+
+- **2026-07-26（待辦清理）**：`package.json`／`package-lock.json` 元數據改為專案實際值
+  （取代 Jekyll 主題殘留值）；移除未完成的孤兒頁面 `about.html` 及其建置進入點/圖片；移除
+  `assets/scripts.js` 已無觸發來源的漢堡選單死程式碼 `toggleNav()`（`CACHE_NAME` 升至
+  `clean-blog-v60`）。
 
 - **2026-07-26**：修正 cascade layer 重構（S2 第 2 步，`a63d5a0`）的回歸——`.prose` 自訂覆寫
   規則誤收進 `@layer components`，被排序在後的 `@tailwindcss/typography` 外掛預設樣式蓋過，

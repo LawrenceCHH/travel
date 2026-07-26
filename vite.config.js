@@ -4,6 +4,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { exec } from 'child_process';
+import crypto from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -42,19 +43,37 @@ function swPrecachePlugin() {
     closeBundle() {
       const distDir = resolve(__dirname, 'dist');
       const assetsDir = resolve(distDir, 'assets');
-      
-      // 1. 更新 sw.js 預快取清單
+
+      // 1. 更新 sw.js 預快取清單與 CACHE_NAME
       if (fs.existsSync(assetsDir)) {
         const files = fs.readdirSync(assetsDir);
         const cssFile = files.find(f => f.endsWith('.css'));
         const jsFile = files.find(f => f.startsWith('scripts') && f.endsWith('.js'));
-        
+
         const cssPath = cssFile ? `assets/${cssFile}` : 'assets/tailwind.css';
         const jsPath = jsFile ? `assets/${jsFile}` : 'assets/scripts.js';
-        
+
+        // 2026-07-26（doc/archive/suggestion.md S13）：CACHE_NAME 不再手動遞增版本號，改由
+        // 打包產出實際衍生出短雜湊當版本後綴。單靠 CSS/JS 檔名（本身已含 Vite 內容雜湊）不夠
+        // ——sw.js 的 isStaticAsset 對 /img/ 也是 cache-first，但 public/img/ 是原樣複製、
+        // 不經 Vite 雜湊，圖片內容換版時檔名不變，只靠 CSS/JS 雜湊偵測不到（這正是 S13 待辦
+        // 引用的線上事故：07-22 換首頁背景圖忘記手動 bump 版本，訪客看到舊圖）。故額外把
+        // public/img/ 全部檔案內容一併餵進同一個 hash，涵蓋圖片內容變動；public/data/
+        // posts.json 走 network-first（見下方 fetch handler），非本次要處理的風險對象，
+        // 不需要納入雜湊來源。
+        const hash = crypto.createHash('md5');
+        hash.update(`${cssFile || ''}|${jsFile || ''}`);
+        hashDirectoryInto(hash, resolve(__dirname, 'public/img'));
+        const cacheHash = hash.digest('hex').slice(0, 8);
+        const cacheName = `clean-blog-${cacheHash}`;
+
         const swPath = resolve(distDir, 'sw.js');
         if (fs.existsSync(swPath)) {
           let swContent = fs.readFileSync(swPath, 'utf8');
+          swContent = swContent.replace(
+            /const CACHE_NAME = '[^']*';/,
+            `const CACHE_NAME = '${cacheName}';`
+          );
           swContent = swContent.replace(
             /const PRECACHE_URLS = \[[\s\S]*?\];/,
             `const PRECACHE_URLS = [
@@ -68,7 +87,7 @@ function swPrecachePlugin() {
 ];`
           );
           fs.writeFileSync(swPath, swContent, 'utf8');
-          console.log(`[swPrecachePlugin] sw.js precache list updated successfully.`);
+          console.log(`[swPrecachePlugin] sw.js precache list and CACHE_NAME (${cacheName}) updated successfully.`);
         }
       }
 
@@ -84,6 +103,22 @@ function swPrecachePlugin() {
       }
     }
   };
+}
+
+/**
+ * 遞迴讀取目錄下所有檔案內容，餵進同一個 hash 物件（依檔名排序，確保結果穩定可重現）。
+ */
+function hashDirectoryInto(hash, dir) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    const entryPath = resolve(dir, entry.name);
+    if (entry.isDirectory()) {
+      hashDirectoryInto(hash, entryPath);
+    } else {
+      hash.update(entry.name);
+      hash.update(fs.readFileSync(entryPath));
+    }
+  }
 }
 
 function escapeHtml(str) {
