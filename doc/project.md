@@ -479,7 +479,7 @@ posts/
 
 # 第二部分：更新歷史與待辦事項
 
-> **維護規範**：每次修改程式碼後，在下方「更新歷史」新增一筆帶日期的記錄（維持「最新兩筆完整記錄，其餘壓縮成一行」的格式——寫入新記錄時，把原本排第二新的那筆壓縮進下方清單，同時保留新記錄的完整說明）。若變更影響檔案結構或設計決策，也一併更新上方「第一部分」對應段落。完整規範見根目錄 `CLAUDE.md`。
+> **維護規範**：每次修改程式碼後，在下方「更新歷史」新增一筆帶日期的記錄（維持「最新三筆完整記錄，其餘壓縮成一行」的格式——寫入新記錄時，把原本排第三新的那筆壓縮進下方清單，同時保留新記錄的完整說明）。若變更影響檔案結構或設計決策，也一併更新上方「第一部分」對應段落。完整規範見根目錄 `CLAUDE.md`。
 
 ## 待辦事項
 
@@ -501,9 +501,84 @@ posts/
 - [ ] **本次 UI 調整待目視確認（2026-07-21）**：三項改動都只做到 `npm run build` 與 CSS 輸出複驗，未實際在瀏覽器目視。待確認 (a) TOC 側欄新密度是否仍嫌擠——若是，下一步是把 `.toc-sidebar` 寬度改成 `clamp(11rem, calc(50vw - 26rem), 14rem)` 讓大螢幕自動加寬（**不是再縮字**），代價是動到側欄與文章的 2rem 間隙；(b) `.post-nav-title` 在行動版 375px 下是否普遍撞到 `line-clamp: 3` 上限——若是，解法是收窄 `.post-nav` 的 `gap` 換欄寬
 - [x] **07-16 `.food-list-title` 改為 `<h3 class="food-list-title">` 進 TOC**：已改為 `<h3 class="food-list-title">`，讓 6 個美食分區成功加入 TOC Drawer / 側欄供快速跳轉，視覺樣式 0 Diff 完全不變。
 
+### 2026-07-26 架構審查（`doc/archive/suggestion.md`）待辦，尚未動工
+
+以下 13 項摘自 `doc/archive/suggestion.md` 的 S1–S13，只是登記追蹤，尚未實作；完整風險分析、
+程式碼位置與驗證方式見該檔對應的 R／S 編號。
+
+**現在就做**
+
+- [ ] **S1 補齊 12 個變體專屬 class 的 base 樣式**：`.food-header`／`.food-name`／`.food-tag`／
+      `.food-price`／`.food-why`／`.spot-section`／`.spot-desc` 等 12 個 class 目前只存在
+      `editorial-card.css`，未指定 `style` 的文章會渲染成外框有內容裸露的「半裸卡片」
+      （`doc/archive/suggestion.md` R1/S1）
+- [ ] **S2 修 `stop` 徽章顏色被吃掉的 bug ＋ 定義 `@layer` 順序**：07-16 目前 flat/slope/steps
+      三種地形徽章因 cascade layer 反轉全部渲染成同一顏色；先把 `STOP_LEVEL_CLASS`
+      改語意 class 修 bug，再訂 `@layer components/post-styles/utilities` 順序規則
+      （`doc/archive/suggestion.md` R2/S2）
+- [ ] **S3 marked.js 改 npm 打包，收斂三處重複註冊為單一模組**：目前瀏覽器端吃 CDN latest、
+      建置端鎖 12.0.2，版本可能分裂；離線 PWA 開文章會整個降級成純文字
+      （`doc/archive/suggestion.md` R10,R13/S3）
+- [ ] **S4 `style` front matter 值加驗證**：build 時檢查對應 CSS 是否存在、`@import` 是否已加，
+      執行時避免含空白的值讓 `classList.add()` 拋例外導致整篇文章消失
+      （`doc/archive/suggestion.md` R4,R5/S4）
+- [ ] **S5 CI 補 `fetch-depth: 0` ＋ 加一道 `verify-post-render.mjs` 驗證步驟**：目前 shallow
+      clone 導致線上每篇文章「更新時間」都跳成部署日，且每次部署集體跳動
+      （`doc/archive/suggestion.md` R12/S5）
+- [ ] **S6 收緊 `appList` 觸發形狀**：拿掉數字、要求該項含全形冒號「：」，避免手寫編號清單
+      （`**1** 下載 App`）被誤判成 App 卡片（`doc/archive/suggestion.md` R6/S6）
+- [ ] **S7 修 `doc/style.md` 三處與程式碼不符的敘述**：不存在的 `build:css` 指令、blockquote
+      樣式、TOC 側欄定位方式（`doc/archive/suggestion.md` R15/S7）
+
+**觀察區，等特定時機再做**
+
+- [ ] **S8（等第 2 個風格檔出現時）base／變體改用 CSS 變數**，取代目前「先歸零 base 再重畫」
+      的寫法（`doc/archive/suggestion.md` R3/S8）
+- [ ] **S9（等新增第 8 個 fence 家族／文章數 > 6／有第二位作者時）用單一容器語法**
+      `:::name{key=value}` 收斂 7 個 fence 家族目前 4 種不同的內部語法
+      （`doc/archive/suggestion.md` R9/S9）
+- [ ] **S10 `verify-post-render.mjs` 改成 golden snapshot**：目前「只改 renderer 不改文章內容」
+      時驗證是恆真的，測不出東西（`doc/archive/suggestion.md` R11/S10）
+- [ ] **S11（實際踩到再做）給美食卡收合設一個保守邊界**：目前貪婪收到下一個 heading 為止，
+      分區收尾段落可能被誤吸進「推薦理由」欄位（`doc/archive/suggestion.md` R7/S11）
+- [ ] **S12 美食卡店名輸出改回 `<h4>`**：目前是 `<span>`，30 家店名在無障礙樹上不是標題，
+      螢幕閱讀器無法用標題導覽（`doc/archive/suggestion.md` R8/S12）
+- [ ] **S13 `sw.js` 的 `CACHE_NAME` 自動化**：改由 `vite.config.js` 的 `swPrecachePlugin` 從
+      CSS/JS 檔名 hash 衍生，避免忘記手動 bump（歷史上已出過線上事故，`doc/archive/suggestion.md` S13）
+
 ## 更新歷史
 
 最新兩筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
+
+### 2026-07-26 — 文件一致性整理：修正失效連結、根目錄歷史文件全部移入 doc/archive/、S1–S13 摺進待辦事項
+
+* **範圍**：修正根目錄散落文件（`plan.md`／`report.md`／新產生的架構審查 `suggestion.md`）與
+  `doc/`／`README.md` 之間的實際失效連結與過期敘述；把三份歷史文件連同一份孤兒草稿全部移進
+  新增的 `doc/archive/`，讓「`doc/project.md` 是唯一需要常態查閱的文件」這件事對 agent 可強制
+  查得到，而不是靠檔案排列位置猜測；並把 `suggestion.md` 的全部 13 條建議摺成待辦事項清單。
+* **`CLAUDE.md`**：開頭「This is a Jekyll + Tailwind CSS blog」已過期（專案已於 2026-07-11
+  遷移至 Vite + Tailwind CSS v4 純前端架構，見本檔第一行），改為正確敘述；新增「Doc map」小節，
+  列出 `doc/project.md` 為現況權威、`README.md` 管安裝建置、`style.md`／`card_dsl.md`／
+  `doc_style.md` 為現行範圍參考、`doc/archive/` 為**凍結歷史紀錄與孤兒檔案**（只能被引註，
+  不可被當成現況讀取或編輯內容，`doc/project.md` 本身已足夠應付日常工作）。「更新歷史」維護
+  規範由「最新兩筆完整記錄」改為「**最新三筆**完整記錄」（見下方本節開頭）。`manifest.json`／
+  `sw.js` 需要保留空 Jekyll front matter 那條說明不受影響，仍然成立，未改動。
+* **`README.md`**：修正「開發文件說明」一節連到 `doc/jekyll_migration_design.md` 的失效連結
+  （該檔已在先前重構中刪除，`doc/archive/report.md` 曾修過 `project.md` 裡的同一個死連結，
+  但漏了 `README.md` 這一處）；補上 `doc/style.md`／`card_dsl.md`／`doc_style.md` 三個現存
+  文件的連結。「專案目錄結構」區塊過期，缺 `assets/markdown-cards.js`／`markdown-sections.js`／
+  `post-styles/`／`scripts/verify-post-render.mjs`／`doc/`／`template_posts/`，一併補齊。
+* **`doc/archive/`（新增資料夾）**：`plan.md`、`report.md`（原根目錄，已定案的重構計畫與完成
+  報告）、`suggestion.md`（原未追蹤的新檔，2026-07-26 架構審查）、
+  `travel_韓國首爾_edited_v2.md`（67KB，07-16 文章的原始草稿，無任何文件／程式碼引用）
+  四份檔案全部移入。前三份各自在檔頭已有「⛔ 凍結紀錄」提示。`plan.md`／`report.md` 移動後
+  彼此的相對連結（`[report.md](report.md)` 等）仍在同一層目錄下，未失效；程式碼裡唯一的路徑
+  引用 `assets/markdown-sections.js:50` 已同步改成 `doc/archive/plan.md`。
+* **`suggestion.md` S1–S13 摺入待辦事項**：13 條建議（S1–S7「現在就做」／S8–S13「觀察後再做」）
+  全部以未勾選 checklist 形式加進下方「待辦事項」，逐項引註 `doc/archive/suggestion.md` 的
+  R／S 編號以供查完整理由；本次只做追蹤登記，尚未動任何程式碼。
+* **驗證**：純文件變更，無程式碼行為／建置產物受影響，未跑 `verify-post-render.mjs`，
+  `CACHE_NAME` 未變動。
 
 ### 2026-07-26 — Phase E：收尾。`doc/card_dsl.md` 改寫為寫作手冊、刪除失效稽核工具、移除孤兒 renderer
 
@@ -536,7 +611,7 @@ posts/
 
 * **範圍**：延續同日稍早的 `eat`/`eatarea` 遷移（見下方記錄），對 07-13 使用的剩餘 5 個家族
   `compare`/`info`/`prep`/`apps`/`stepper` 逐一套用「高重複規則形狀→純 Markdown／無法安全
-  區分→保留 fence」判準（`plan.md` Phase D）。
+  區分→保留 fence」判準（`doc/archive/plan.md` Phase D）。
 * **決策結果**：
   - `apps`（推薦 App 清單，5 項）→ **轉純 Markdown**：清單每項以單一英數字元粗體開頭
     （如 `**N** Naver Map：...`），第一個全形冒號前是名稱、之後是說明。全站掃過確認
@@ -562,7 +637,7 @@ posts/
 * **後續**：五個家族決策全部底定，讀法 A（fence 留著、欄位值跑 `parseInline()`）確認
   不再需要。下一步是 Phase E 收尾——`doc/card_dsl.md` 整份改寫成「Markdown 寫作約定
   手冊」、刪除已失效的 `scripts/audit-card-fields.mjs`／`scripts/verify-card-dsl.mjs`、
-  刪除原型腳本 `scripts/__proto-*.mjs`。完整 checklist 見 `plan.md` Phase E。
+  刪除原型腳本 `scripts/__proto-*.mjs`。完整 checklist 見 `doc/archive/plan.md` Phase E。
 
 ### 更早的更新（壓縮摘要，新到舊）
 

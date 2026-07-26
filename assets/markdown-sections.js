@@ -47,7 +47,7 @@
  *
  * 註：`prep`（30 秒速覽的粗體標籤列）沒有納入本檔——它的形狀「粗體開頭＋『：』
  * 直接接說明文字」跟全站許多一般段落的手寫習慣（如 07-20 支付教學文）撞形狀，
- * 無法安全區分，因此 `prep` 決策保留 fence（見 `plan.md` Phase D）。
+ * 無法安全區分，因此 `prep` 決策保留 fence（見 `doc/archive/plan.md` Phase D）。
  */
 
 /** 判斷 inline token 陣列是否「只由 code span（與空白）組成」。 */

@@ -1,8 +1,24 @@
 # CLAUDE.md — project rules for AI agents
 
-This is a Jekyll + Tailwind CSS blog. Before exploring the repo, read
-[`doc/project.md`](doc/project.md) for the current architecture snapshot and known gaps —
-it exists so you don't have to re-derive that from scratch.
+This is a Vite + Tailwind CSS v4 pure-frontend MPA static blog (migrated off Jekyll on
+2026-07-11). Before exploring the repo, read [`doc/project.md`](doc/project.md) for the
+current architecture snapshot and known gaps — it exists so you don't have to re-derive
+that from scratch.
+
+## Doc map
+
+- `doc/project.md` — canonical architecture reference + changelog/TODO. If in doubt, this
+  file wins.
+- `README.md` — install/build/deploy steps.
+- `doc/style.md`, `doc/card_dsl.md`, `doc/doc_style.md` — scoped current reference (visual
+  system, card-writing DSL, article authoring rules). Kept in sync with the code.
+- `doc/archive/` — frozen historical records and orphaned files, kept for citation only:
+  `plan.md` / `report.md` (completed refactor's plan + report, cited by `doc/project.md`'s
+  changelog and one code comment for decision rationale), `suggestion.md` (a past
+  architecture review — every accepted item is already tracked in `doc/project.md`'s
+  待辦事項, so you don't need to open this to know what's outstanding), and superseded
+  drafts. Never treat anything here as describing current state; never edit it except to
+  append a frozen-record banner. `doc/project.md` alone is enough for routine work.
 
 ## Mandatory after every code change
 
@@ -10,8 +26,8 @@ it exists so you don't have to re-derive that from scratch.
 its "第二部分：更新歷史與待辦事項" section) — there is no separate `update.md`. If you
 changed code, config, build steps, or architecture, before you finish:
 
-1. Add a dated entry to **更新歷史** in `doc/project.md`: keep the two most recent
-   entries in full detail, and compress the entry that now becomes third-newest down
+1. Add a dated entry to **更新歷史** in `doc/project.md`: keep the three most recent
+   entries in full detail, and compress the entry that now becomes fourth-newest down
    into the one-line summary list below them. Update the **待辦事項** list — check off
    or remove finished items, add any new follow-up work the change created.
 2. If the change affects file structure, the 功能 → 程式碼 lookup table, or a key

@@ -74,6 +74,9 @@ npm run preview
 assets/
   tailwind.css                 Tailwind v4 樣式進入點與主題 Token、自訂組件定義
   scripts.js                   通用 JS，含動態 Layout 元件載入、分頁 (initPagination) 與 SW 註冊
+  markdown-cards.js            Card fence DSL renderer（compare/prep/info/stepper/accordion/quickjump/stop）
+  markdown-sections.js         純 Markdown 結構轉換層（美食卡、App 清單等形狀辨識）
+  post-styles/                 文章專屬視覺風格 CSS（front matter `style:` 指定，逐一 @import 進 tailwind.css）
 public/
   components/                  共用頁面元件 (navbar.html, footer.html)
   data/
@@ -84,6 +87,9 @@ src/
   posts/                       存放所有文章 Markdown/HTML 原始檔的目錄
 scripts/
   generate-posts-metadata.js   Node.js 文章元資料與索引產生器
+  verify-post-render.mjs       渲染回歸驗證腳本（比對 git ref 與工作目錄的文章渲染輸出）
+doc/                           架構參考、視覺風格、卡片 DSL、文章排版守則等開發文件（見下節）
+template_posts/                文章寫作格式範例（不參與建置）
 vite.config.js                 Vite 整合與多入口 (MPA) 設定檔，包含 swPrecachePlugin 插件
 index.html                     首頁入口
 about.html                     關於我們頁面入口
@@ -100,4 +106,6 @@ posts/
 ## 開發文件說明
 
 *   [`doc/project.md`](doc/project.md) — 專案完整架構、多頁面 (MPA) 進入點、關鍵設計決策，以及更新歷史與待辦目標。
-*   [`doc/jekyll_migration_design.md`](doc/jekyll_migration_design.md) — 從 Jekyll 遷移至 Vite + Tailwind CSS v4 的原始設計理念說明。
+*   [`doc/style.md`](doc/style.md) — 全站視覺與互動風格系統化分析（設計準則＋元件規格）。
+*   [`doc/card_dsl.md`](doc/card_dsl.md) — 文章卡片寫作手冊（純 Markdown 形狀約定＋剩餘 fence DSL）。
+*   [`doc/doc_style.md`](doc/doc_style.md) — 新增/編輯文章時的標題階層與排版守則。
