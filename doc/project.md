@@ -145,9 +145,13 @@ npm run preview
 .github/workflows/pages.yml   CI/CD 部署設定，使用 Node/Vite 環境建置，部署 dist 到 Pages
 assets/
   tailwind.css                 Tailwind v4 CSS 原始碼（定義主題 Tokens 與自訂組件）；檔首宣告
-                                @layer theme, base, components, utilities, post-styles，元件區在
-                                @layer components 內，post-styles 由檔尾 @import ... layer(post-styles)
-                                掛入，覆寫關係由宣告順序決定，不再依賴「誰沒分層誰贏」
+                                @layer theme, base, components, utilities, prose, post-styles，
+                                真正的元件（.toc-fab 等）在 @layer components 內（utilities 之前，
+                                讓 JS 掛的 xl:hidden 等能正常覆寫）；.prose 系列覆寫（標題/連結/
+                                blockquote/表格樣式）獨立在 @layer prose（utilities 之後，才能贏過
+                                @tailwindcss/typography 外掛自己在 utilities 裡的預設值）；post-styles
+                                由檔尾 @import ... layer(post-styles) 掛入，全部覆寫關係由宣告順序
+                                決定，不再依賴「誰沒分層誰贏」
   scripts.js                   通用 JS，含雙頁面分頁 (initPagination)、文章大綱 (initTOC)、元件動態載入與 PWA 註冊
   create-marked.js             建立單一 Marked 實例並註冊 registerCardExtensions／
                                 registerSectionExtensions 的工廠函式 createMarked()，供
@@ -475,13 +479,13 @@ posts/
     `@layer`」問題，原本只在 `.toc-fab` 單點用 `@media` 手動關閉解決，未推廣成通則——
     `doc/archive/suggestion.md` 指出第 2 個風格檔遲早會再踩一次同樣的坑。
     *   **做法**：`assets/tailwind.css` 檔案最頂（`@import "tailwindcss"` 之前）新增
-        `@layer theme, base, components, utilities, post-styles;` 明確宣告全站層順序——
-        CSS 規範裡「哪個 `@layer` 名稱先被提及」決定層優先序，不是宣告語句寫在檔案哪個
-        位置，故必須搶在 Tailwind 自己內部的 `@layer theme, base, components, utilities;`
-        之前出現，才能讓 `post-styles` 排在其後而非被忽略。原本大段未分層的「UI Components」
-        區塊（約 758 行）整段包進 `@layer components { … }`；`assets/post-styles/
-        editorial-card.css` 的 `@import` 改為 `@import "..." layer(post-styles);`（細節見
-        第一部分第 25 點該小節的更新）。
+        `@layer theme, base, components, utilities, prose, post-styles;` 明確宣告全站層
+        順序——CSS 規範裡「哪個 `@layer` 名稱先被提及」決定層優先序，不是宣告語句寫在
+        檔案哪個位置，故必須搶在 Tailwind 自己內部的 `@layer theme, base, components,
+        utilities;` 之前出現，才能讓 `prose`／`post-styles` 排在其後而非被忽略。原本大段
+        未分層的「UI Components」區塊（約 758 行）整段包進 `@layer components { … }`；
+        `assets/post-styles/editorial-card.css` 的 `@import` 改為
+        `@import "..." layer(post-styles);`（細節見第一部分第 25 點該小節的更新）。
     *   **`.toc-fab` hack 移除**：`.toc-fab` 現在屬於 `@layer components`，排在
         `@layer utilities` 之前，`scripts.js` 掛的 `xl:hidden` utility 能正常靠層順序覆寫，
         不再需要額外寫 `@media (min-width: 80rem) { .toc-fab { display: none } }`——原本
@@ -492,8 +496,29 @@ posts/
         分別為 `none`／`flex`，確認拿掉手動 hack 後行為不變；07-16 三種地形徽章
         （`.food-tag.level-flat/slope/steps`）底色仍各自不同，未被此次重構重新吃掉；
         對首頁／文章目錄／關於／聯絡／三篇文章共 6 個頁面做 console error 掃描與
-        `.btn-primary` 顏色抽查，全數正常、零 console error。**此變更未提交（commit）**，
-        依使用者要求留待其本人在瀏覽器目視確認後再自行 commit。
+        `.btn-primary` 顏色抽查，全數正常、零 console error。使用者本人瀏覽器確認無誤後，
+        已於 commit `a63d5a0` 提交。
+    *   **後續發現的回歸與修法（同日稍後）**：使用者回報 07-16「### [聖水潮流區美食]」這種
+        「純連結標題」重新出現底線＋超連結藍字樣式，這是本點重構漏考慮的真實 bug，不是
+        誤報。根因：`assets/tailwind.css` 裡「07-21 雜誌感基礎排版」那段自訂的 `.prose`
+        覆寫規則（`.prose h1 a`~`h4 a { text-decoration: none }`、`.prose blockquote`
+        拿掉斜體、表格邊框等，見第一部分第 17 點）連同「UI Components」一起被包進
+        `@layer components`；但 `@tailwindcss/typography` 外掛自己的 `.prose` 預設樣式
+        （連結底線、blockquote 斜體等）是 Tailwind 產生的 utility，也落在 `@layer
+        utilities` 裡——`components` 排在 `utilities` 之前，於是外掛自己的預設值反而
+        贏過這批客製覆寫，且不報錯，用 `dist/assets/*.css` 的 `@layer` byte offset 複驗
+        確認（`.prose h3 a` 的自訂覆寫在 offset 16980，屬 `components`；外掛的
+        `.prose :where(a){text-decoration:underline}` 在 offset 38201，屬 `utilities`，
+        後者順序在後故贏）。**修法**：新增第 5 個層 `prose`，排在 `utilities` 之後、
+        `post-styles` 之前；把 `.prose { … }` 到 `.prose hr { … }` 這整段（原本
+        「07-21 雜誌感基礎排版」＋後續累加的所有 `.prose` 覆寫）從 `@layer components`
+        移到獨立的 `@layer prose { … }`，讓它們對外掛預設值保持「一定贏」，同時
+        `.toc-fab` 等真正的元件仍留在 `@layer components`（在 `utilities` 之前，讓
+        `xl:hidden` 等 JS 掛的 utility 能正常覆寫它們，不受影響）。修復後複驗：
+        `.prose h3 a` 的 `text-decoration` 為 `none`、顏色與標題本文相同（不再是連結藍），
+        `.prose h2` 底線仍在（2px solid），`.prose blockquote` 仍是 `font-style: normal`
+        的 pull-quote，`node scripts/verify-post-render.mjs` 3 篇文章 0 diff，對 6 個頁面
+        重新掃描 console error 與 `.toc-fab` 顯示/隱藏，全數正常。
 28. **`marked` 改由 npm 打包，收斂三處重複註冊為 `assets/create-marked.js`（
     `doc/archive/suggestion.md` R10/R13/S3，2026-07-26）**：`posts/detail.html` 原本用
     `<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">` 載入瀏覽器端
@@ -574,6 +599,28 @@ posts/
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-26 — 修正 cascade layer 重構的回歸：新增 `@layer prose`
+
+* **範圍**：S2 第 2 步 commit（`a63d5a0`）後，使用者回報 07-16「### [聖水潮流區美食]」這種
+  「純連結標題」重新出現底線＋超連結藍字樣式。完整根因與修法見第一部分第 27 點「後續發現
+  的回歸與修法」。此處只記重點：`.prose h1 a`~`h4 a`／`.prose blockquote`／`.prose` 表格等
+  「07-21 雜誌感基礎排版」的自訂覆寫規則，被誤跟其他真正的元件一起收進 `@layer
+  components`，但 `@tailwindcss/typography` 外掛自己的 `.prose` 預設樣式也落在
+  `@layer utilities` 裡且排在 `components` 之後，導致外掛預設值反而贏過客製覆寫。
+* **做法**：`assets/tailwind.css` 檔首層順序宣告新增第 5 層
+  `@layer theme, base, components, utilities, prose, post-styles;`；把原本 `.prose {
+  … }` 到 `.prose hr { … }` 整段從 `@layer components` 移到獨立的 `@layer prose { … }`
+  （排在 `utilities` 之後、`post-styles` 之前），`.toc-fab` 等真正元件留在
+  `@layer components` 不受影響。
+* **驗證**：`npm run build` 通過；用 `dist/assets/*.css` 的 `@layer` byte offset 複驗新
+  的層順序（`components` 9450 < `utilities` 34127 < `prose` 67141 < `post-styles`
+  70060）；playwright-core headless Chromium 對「聖水潮流區美食」標題實測
+  `text-decoration: none`、顏色與標題本文相同（`rgb(34,40,49)`，非連結藍），`.prose h2`
+  底線仍在（2px solid）未被連帶動到，`.prose blockquote` 仍是 `font-style: normal` 的
+  pull-quote；`node scripts/verify-post-render.mjs` 3 篇文章 0 diff；對首頁／關於／聯絡／
+  07-13／07-20 五頁重新掃描 console error（全數 none），`.toc-fab` 桌機/手機顯示狀態複驗
+  仍正確（`none`／`flex`）。
+
 ### 2026-07-26 — S2 第 2 步：Cascade layer 重構，`.toc-fab` 的 `@media` hack 移除
 
 * **範圍**：`doc/archive/suggestion.md` R2/S2 第 2 步的落地。完整內容見第一部分第 27 點，
@@ -586,8 +633,9 @@ posts/
   playwright-core headless Chromium 對 `.toc-fab` 在 1400px／390px 兩種寬度量測
   `getComputedStyle` 的 `display`，分別為 `none`／`flex`，確認移除 hack 後行為不變；
   07-16 三種地形徽章底色仍各自不同；對 6 個頁面（首頁／文章目錄／關於／聯絡／三篇文章）
-  做 console error 掃描與 `.btn-primary` 顏色抽查，全數正常。**此變更未提交（commit）**，
-  依使用者要求留待其本人在瀏覽器目視確認後自行 commit。
+  做 console error 掃描與 `.btn-primary` 顏色抽查，全數正常。使用者本人瀏覽器確認後，
+  已於 commit `a63d5a0` 提交（該 commit 同時包含 S3 與 07-16 摘要去重兩項）；提交後使用者
+  在真實文章裡發現本點未覆蓋到的回歸，修法見上方最新一筆記錄。
 * **`doc/style.md` B8 對應更新**：`@import` 位置陷阱一節的描述同步更新為「已解除」（見下方
   「更早的更新」條目與 `doc/style.md` 本身的變更）。
 
@@ -606,25 +654,11 @@ posts/
   3 篇文章 0 diff；playwright-core 開實際頁面確認 `window.marked.parse` 可用、內容正常
   渲染、無 console error。
 
-### 2026-07-26 — 07-16 行動版開頭重複摘要區塊去重
-
-* **範圍**：待辦事項裡「`editorial-card` 風格行動版開頭出現兩個重複摘要／導覽區塊」的落地。
-  `buildMobileOutlineAndSheet()`（`assets/scripts.js`）產生的自動大綱框「本文章節」與
-  07-16「總覽」小節裡 `quickjump` DSL 輸出的「7 大主題景點快速導覽」格狀清單功能重疊，
-  行動版一開頭連續出現兩個摘要區塊。使用者選定的去重方式：讓自動大綱偵測到頁面已有等價
-  導覽時跳過渲染（而非拿掉 `quickjump` 或合併兩者）。
-* **`assets/scripts.js`**：`buildMobileOutlineAndSheet()` 新增
-  `hasEquivalentNav = !!contentContainer.querySelector('.editorial-quick-jump')`，
-  靜態大綱只在 `topLevelItems.length > 0 && !hasEquivalentNav` 時才建立並插入；
-  FAB／Bottom Sheet 不受影響（`fabSentinel = outline || toc[0].el` 既有的 null 分支
-  已經處理「沒有靜態大綱」的情況，無需額外改動）。只影響用了 `quickjump` 的文章
-  （目前僅 07-16），07-13／07-20 行為不變。
-* **驗證**：`npm run build` 通過；playwright-core headless Chromium 檢查 07-16
-  `.toc-outline` 數量為 0（`.editorial-quick-jump` 數量為 1），07-13 `.toc-outline`
-  數量為 1（`.editorial-quick-jump` 數量為 0），確認只有已具備等價導覽的文章才跳過；
-  截圖複驗 07-16「總覽」小節下方僅剩 `quickjump` 格狀清單一個摘要區塊。
-
 ### 更早的更新（壓縮摘要，新到舊）
+
+- 2026-07-26：07-16 行動版開頭重複摘要區塊去重——`buildMobileOutlineAndSheet()` 偵測到
+  頁面已有 `.editorial-quick-jump` 等價導覽時跳過自動大綱渲染，只影響用了 `quickjump`
+  的文章（目前僅 07-16）
 
 - 2026-07-26：待辦清單整理——移除待辦事項裡已完成的 `[x]` 項目（07-16 `.food-list-title`
   改 h3、S1、S2 第 1 步、S4、S5、S6、S7），修正已過期的「架構審查…尚未動工」章節標題；

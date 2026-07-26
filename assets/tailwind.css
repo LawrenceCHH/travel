@@ -1,8 +1,15 @@
-/* Cascade layer 順序宣告：必須在 @import "tailwindcss" 之前，才能讓 post-styles 排在
-   utilities 之後（CSS 規範裡「哪個 @layer 名稱先被提及」決定層順序，不是宣告位置）。
-   之後 base／components／post-styles／utilities 的覆寫關係就是可預測的，不再依賴
-   「誰沒分層誰贏」（doc/project.md 待辦事項 S2 第 2 步，見第一部分第 21 點的背景）。 */
-@layer theme, base, components, utilities, post-styles;
+/* Cascade layer 順序宣告：必須在 @import "tailwindcss" 之前，才能讓 prose／post-styles
+   排在 utilities 之後（CSS 規範裡「哪個 @layer 名稱先被提及」決定層順序，不是宣告位置）。
+   之後 base／components／utilities／prose／post-styles 的覆寫關係就是可預測的，不再依賴
+   「誰沒分層誰贏」（doc/project.md 待辦事項 S2 第 2 步，見第一部分第 21 點的背景）。
+   `prose` 獨立成一層、排在 utilities 之後：@tailwindcss/typography 外掛自己的 `.prose`
+   預設樣式（連結底線、blockquote 斜體、表格邊框等）也是由 Tailwind 產生、同樣落在
+   @layer utilities 裡，若把 assets/tailwind.css 這裡客製的 `.prose h1 a`／`.prose
+   blockquote` 等覆寫規則放進 @layer components（排在 utilities 之前），會被外掛自己的
+   預設值蓋掉且不報錯——這正是 2026-07-26 當天稍後發現的一個真實回歸（07-16 `###`
+   標題連結重新變回有底線的超連結樣式），修法是讓這些覆寫規則自成一層、排在 utilities
+   之後，回到「一定贏過外掛預設值」的效果。 */
+@layer theme, base, components, utilities, prose, post-styles;
 
 @import "tailwindcss";
 @source "./**/*.js";
@@ -215,7 +222,11 @@
     @apply text-muted-text;
   }
 
-  /* Article body typography — colors delegated to official --tw-prose-* variables */
+  /* Article body typography — colors delegated to official --tw-prose-* variables.
+     獨立成 @layer prose（見檔首 @layer 順序宣告），確保能覆寫 @tailwindcss/typography
+     外掛自己在 @layer utilities 裡的預設樣式。 */
+}
+@layer prose {
   .prose {
     --tw-prose-body: var(--color-ink);
     --tw-prose-headings: var(--color-ink);
@@ -424,7 +435,8 @@
   .prose hr {
     margin: 3rem 0;
   }
-
+}
+@layer components {
   /* 文章大綱 (TOC) —— 桌機側欄：預設隨頁面捲動貼在 Banner 下緣（避免文字蓋住 Banner），
      捲動超過該位置後由 JS 切換 .is-pinned 改為 fixed 固定於左側（詳見 scripts.js
      buildDesktopSidebar 的 updatePinnedState） */
