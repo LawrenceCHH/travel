@@ -172,9 +172,20 @@
         }
 
         // 8a. 文章專屬視覺風格：front matter 的 style 欄位掛上 .post-style-<name> class，
-        // 與渲染在同一個 tick 內套用，不會有 FOUC。
+        // 與渲染在同一個 tick 內套用，不會有 FOUC。build 時已驗證合法值，但這裡仍自成一個
+        // try：萬一資料源頭出現未預期字元（如含空白），classList.add 會丟例外，若不隔離
+        // 會被外層 catch 接住並把整篇文章內容換成錯誤訊息——寧可靜默跳過套用風格。
         if (post.style) {
-          contentContainer.classList.add(`post-style-${post.style}`);
+          try {
+            const styleName = String(post.style).trim();
+            if (/^[a-z0-9-]+$/.test(styleName)) {
+              contentContainer.classList.add(`post-style-${styleName}`);
+            } else {
+              console.warn(`文章 style 欄位格式不合法，略過套用風格: "${post.style}"`);
+            }
+          } catch (styleErr) {
+            console.warn('套用文章風格 class 失敗，略過:', styleErr);
+          }
         }
 
         // 8b. 表格橫向捲動修正：避免窄螢幕被撐破版

@@ -14,6 +14,29 @@ registerSectionExtensions(cardMarked);
 
 const POSTS_DIR = path.join(__dirname, '../src/posts');
 const OUTPUT_JSON = path.join(__dirname, '../public/data/posts.json');
+const TAILWIND_CSS_PATH = path.join(__dirname, '../assets/tailwind.css');
+const POST_STYLES_DIR = path.join(__dirname, '../assets/post-styles');
+const tailwindCssContent = fs.existsSync(TAILWIND_CSS_PATH) ? fs.readFileSync(TAILWIND_CSS_PATH, 'utf8') : '';
+
+// style front matter 是開放輸入，但可用的風格是封閉集合（CSS 檔 + @import 都要存在）；
+// 打錯字或漏 @import 只會讓樣式靜默不生效，build log 全綠看不出來，故在此擋成硬錯誤。
+function validateStyle(styleName, sourceFile) {
+  if (!styleName) return;
+  if (!/^[a-z0-9-]+$/.test(styleName)) {
+    console.error(`[build:metadata] 錯誤：${sourceFile} 的 style front matter 值 "${styleName}" 格式不合法（只允許小寫英數字與連字號）。`);
+    process.exit(1);
+  }
+  const cssPath = path.join(POST_STYLES_DIR, `${styleName}.css`);
+  if (!fs.existsSync(cssPath)) {
+    console.error(`[build:metadata] 錯誤：${sourceFile} 指定的 style "${styleName}" 找不到對應的 assets/post-styles/${styleName}.css。`);
+    process.exit(1);
+  }
+  const importPattern = new RegExp(`@import\\s+["']\\./post-styles/${styleName}\\.css["']`);
+  if (!importPattern.test(tailwindCssContent)) {
+    console.error(`[build:metadata] 錯誤：${sourceFile} 指定的 style "${styleName}" 的 CSS 檔存在，但 assets/tailwind.css 尚未 @import 該檔案，樣式不會生效。`);
+    process.exit(1);
+  }
+}
 
 // 確保目標資料夾與輸出 JSON 資料夾存在
 if (!fs.existsSync(POSTS_DIR)) {
@@ -118,6 +141,8 @@ files.forEach(file => {
 
   // 自動抓取最後編輯時間
   const updatedDate = getFileUpdatedDate(filePath);
+
+  validateStyle(metadata.style, file);
 
   posts.push({
     id,

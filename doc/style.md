@@ -271,9 +271,13 @@ touch 事件），不引入 Google Fonts CDN、圖示套件或 npm UI 元件庫�
 
 ## B5. 文章大綱（TOC）
 
-- **桌機（`xl:`≥1280）**：`position: fixed` 側欄浮於卡片左側留白，定位
-  `left: max(1.5rem, calc(50vw - 37rem))`，寬 `11rem`。`.toc-link` 左側 2px 色條，
-  active 態 `text-primary` + `font-weight:500` + `border-left-color: primary`。
+- **桌機（`xl:`≥1280）**：`.toc-sidebar` 預設 `position: absolute`（隨頁面捲動貼在
+  Banner 下緣，避免初始就以 fixed 蓋住 Banner 文字），捲動超過休息位置後由 `scripts.js`
+  的 `buildDesktopSidebar`／`updatePinnedState()` 切換 `.is-pinned` class 改為
+  `position: fixed`（效果等同 sticky；因側欄掛載於 `document.body` 而非文章內文的 flow
+  子節點，無法直接套用原生 `position: sticky`）。定位 `left: max(1.5rem, calc(50vw -
+  37rem))`，寬 `11rem`。`.toc-link` 左側 2px 色條，active 態 `text-primary` +
+  `font-weight:500` + `border-left-color: primary`。
 - **手機／平板（<1280）**：文章開頭靜態速覽（僅 h2）；捲離後右下浮動圓鈕 `.toc-fab`
   （`3.25rem` 圓、`bg-primary`）淡入；點擊開啟底部抽屜 `.toc-sheet`（`border-radius:
   1rem 1rem 0 0`、`max-height:80vh`、隨內容撐高）。scrim `rgba(0,0,0,0.5) + blur(4px)`。
@@ -306,8 +310,11 @@ touch 事件），不引入 Google Fonts CDN、圖示套件或 npm UI 元件庫�
 ## B7. 全域互動與狀態
 
 - 連結：預設 `text-ink`；`p a` 加底線；hover/focus 全站轉 `text-primary`。
-- 引言 `blockquote`：`italic` + `text-muted-text`（此處斜體用於西式引言排版，與 CJK meta
-  去斜體是不同語境）。
+- 引言 `blockquote`：`.prose blockquote` 全權接管，`font-style: normal`（**不**斜體）＋
+  `font-family: var(--font-serif)` 襯線 pull-quote，左側 3px sand 色條，文字色
+  `text-ink`（2026-07-21 拿掉了原本西式引言慣用的斜體＋muted，改走與標題階層一致的
+  雜誌感樣式，全站 blockquote 樣式已不再殘留斜體，見 `assets/tailwind.css` `.prose
+  blockquote`）。
 - 文字選取 `::selection`：`color: paper`（白字）/ `background: primary`（暖褐底）。
 - 過場統一 `transition-colors duration-150`（微互動）～ `0.25–0.3s`（抽屜／浮鈕）。
 
@@ -374,8 +381,9 @@ CSS 層（機制細節、`style` front matter 用法見 `doc/card_dsl.md`「文�
 設計理念看懂了還不夠——動手時務必照這條鏈，否則改了不生效或讀者看不到（完整規範見
 根目錄 [`../CLAUDE.md`](../CLAUDE.md)）：
 
-1. 樣式只改 `assets/tailwind.css`，跑 `npm run build:css` 產出 `assets/main.css`。
-   **`assets/main.css` 是 gitignored、會被覆蓋，絕不可直接編輯。**
+1. 樣式只改 `assets/tailwind.css`——沒有獨立的 `build:css` 指令，`@tailwindcss/vite`
+   外掛會在 `npm run dev`／`npm run build` 時即時編譯。**`assets/main.css` 是
+   gitignored、未被引用的舊檔殘留，絕不可編輯，驗證樣式變更請直接跑 `npm run build`。**
 2. 顏色一律改 `@theme` 的語意 Token，不在元件寫裸 HEX（見 A4）。
 3. 動到會被快取的資產（CSS/JS/元件）時，**bump `public/sw.js` 的 `CACHE_NAME`**
    （目前 `clean-blog-vNN`，每次 +1），否則舊 PWA 快取不會失效。
@@ -385,7 +393,8 @@ CSS 層（機制細節、`style` front matter 用法見 `doc/card_dsl.md`「文�
 # E. ❌ 反模式與已否決方向
 
 **別做這些（會破壞一致性或對比）：**
-- ❌ 直接編輯 `assets/main.css`（gitignored，會被 build 覆蓋）。
+- ❌ 直接編輯 `assets/main.css`（gitignored 的無用殘留，不在建置流程內，編輯了也不會有
+  任何效果）。
 - ❌ 忘了 bump `sw.js` 的 `CACHE_NAME`（讀者停在舊樣式）。
 - ❌ 把 Hero 遮罩 `.overlay` 綁 `bg-paper`（paper 現為白色，會蓋掉深色封面圖上的淺字，
   摧毀對比）——必須固定 `bg-ink`（見 B1）。

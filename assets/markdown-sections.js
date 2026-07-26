@@ -144,23 +144,27 @@ function collapseFoodCards(tokens) {
   return out;
 }
 
-/** 判斷 inline token 陣列的第一個有意義 token，是不是「單一英數字元」的粗體（→ App 圖示）。 */
+/** 判斷 inline token 陣列的第一個有意義 token，是不是「單一英文字母」的粗體（→ App 圖示）。
+ *  刻意不含數字：App 圖示取的是名稱首字母，不會是數字，若含數字會誤判手寫的粗體編號清單
+ *  （如「- **1** 下載 App」）。 */
 function startsWithLetterStrong(tokens) {
   const first = (tokens || []).find(
     (t) => !((t.type === 'text' || t.type === 'space') && (t.raw ?? '').trim() === '')
   );
   if (first?.type !== 'strong') return false;
   const text = (first.tokens?.[0]?.raw ?? first.text ?? '').trim();
-  return /^[A-Za-z0-9]$/.test(text);
+  return /^[A-Za-z]$/.test(text);
 }
 
-/** 判斷 list token 是否「每一項都以單一字母粗體開頭」（→ App 推薦清單）。 */
+/** 判斷 list token 是否「每一項都以單一字母粗體開頭，且含全形冒號『：』」（→ App 推薦清單）。
+ *  冒號條件對應 renderAppList 用第一個「：」切名稱／說明的實際渲染邏輯——沒有冒號的清單
+ *  一樣會被誤判成 App 卡，只是說明區塊留空，故一併收進觸發條件。 */
 function isAppList(token) {
   if (!token || token.type !== 'list' || !token.items?.length) return false;
   return token.items.every((item) => {
     const inline = item.tokens?.[0];
     if (!inline || inline.type !== 'text') return false;
-    return startsWithLetterStrong(inline.tokens);
+    return startsWithLetterStrong(inline.tokens) && inline.raw.includes('：');
   });
 }
 

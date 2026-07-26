@@ -524,16 +524,18 @@ posts/
 - [ ] **S3 marked.js 改 npm 打包，收斂三處重複註冊為單一模組**：目前瀏覽器端吃 CDN latest、
       建置端鎖 12.0.2，版本可能分裂；離線 PWA 開文章會整個降級成純文字
       （`doc/archive/suggestion.md` R10,R13/S3）
-- [ ] **S4 `style` front matter 值加驗證**：build 時檢查對應 CSS 是否存在、`@import` 是否已加，
-      執行時避免含空白的值讓 `classList.add()` 拋例外導致整篇文章消失
-      （`doc/archive/suggestion.md` R4,R5/S4）
-- [ ] **S5 CI 補 `fetch-depth: 0` ＋ 加一道 `verify-post-render.mjs` 驗證步驟**：目前 shallow
-      clone 導致線上每篇文章「更新時間」都跳成部署日，且每次部署集體跳動
-      （`doc/archive/suggestion.md` R12/S5）
-- [ ] **S6 收緊 `appList` 觸發形狀**：拿掉數字、要求該項含全形冒號「：」，避免手寫編號清單
-      （`**1** 下載 App`）被誤判成 App 卡片（`doc/archive/suggestion.md` R6/S6）
-- [ ] **S7 修 `doc/style.md` 三處與程式碼不符的敘述**：不存在的 `build:css` 指令、blockquote
-      樣式、TOC 側欄定位方式（`doc/archive/suggestion.md` R15/S7）
+- [x] **S4 `style` front matter 值加驗證**（2026-07-26 完成）：build 時檢查對應 CSS 是否
+      存在、`@import` 是否已加；執行時避免含空白的值讓 `classList.add()` 拋例外導致整篇
+      文章消失（`doc/archive/suggestion.md` R4,R5/S4，見更新歷史）
+- [x] **S5 CI 補 `fetch-depth: 0` ＋ 加一道 `verify-post-render.mjs` 驗證步驟**
+      （2026-07-26 完成）：目前 shallow clone 導致線上每篇文章「更新時間」都跳成部署日，
+      且每次部署集體跳動（`doc/archive/suggestion.md` R12/S5，見更新歷史）
+- [x] **S6 收緊 `appList` 觸發形狀**（2026-07-26 完成）：拿掉數字、要求該項含全形冒號
+      「：」，避免手寫編號清單（`**1** 下載 App`）被誤判成 App 卡片
+      （`doc/archive/suggestion.md` R6/S6，見更新歷史）
+- [x] **S7 修 `doc/style.md` 三處與程式碼不符的敘述**（2026-07-26 完成）：不存在的
+      `build:css` 指令、blockquote 樣式、TOC 側欄定位方式
+      （`doc/archive/suggestion.md` R15/S7，見更新歷史）
 
 **觀察區，等特定時機再做**
 
@@ -555,96 +557,88 @@ posts/
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
-### 2026-07-26 — S1 補齊 13 個 DSL 元件 base CSS、S2-1 修 stop 徽章顏色被吃掉的 bug
+### 2026-07-26 — S7：修 `doc/style.md` 三處與程式碼不符的敘述
 
-* **範圍**：`doc/archive/suggestion.md` 待辦清單 R1/S1、R2/S2 的落地，目的是讓「未指定
-  `style` front matter 的文章也有一套完整通用 CSS」名符其實，對應使用者要的「預設文章走
-  通用樣式，客製化才透過 `style` front matter 疊加客製 CSS」目標。
-* **`assets/tailwind.css`**：新增 13 個原本只存在 `editorial-card.css` 的變體專屬 class 的
-  中性 base 樣式（`.food-header`/`.food-name`/`.food-meta`/`.food-tag`/`.food-price`/
-  `.food-body`/`.food-why`/`.food-action-link`/`.food-list-title`/`.spot-section`/
-  `.spot-desc`/`.sub-option-list`/`.sub-option-item`），值與 `editorial-card.css` 原本的
-  宣告逐字相同（因此對唯一在用該風格的 07-16 零視覺影響）。同時新增 `.food-tag.level-flat`/
-  `.level-slope`/`.level-steps` 三個具名 class，取代 `stop` fence 徽章原本用的 Tailwind
-  任意值 utility。
-* **`assets/post-styles/editorial-card.css`**：刪除與新 base 完全重複的宣告，只留真正的
-  覆寫差異（`.spot-title`／`.food-item` 的去框線與 ◇ 記號、`.food-actions` 的間距差異等），
-  檔案從 107 行縮到約 55 行。
-* **`assets/markdown-cards.js`**：`STOP_LEVEL_CLASS` 的 `flat`/`slope`/`steps` 從
-  `bg-[...]`/`text-[...]` 任意值 utility 改成 `.food-tag.level-*`。根因：這些 utility 活在
-  Tailwind v4 的 `@layer utilities`，會被本檔未分層的 `.post-style-editorial-card .food-tag`
-  整組壓過（unlayered CSS 優先序恆高於任何 `@layer`，與 specificity 無關），07-16 實測三種
-  地形徽章因此全部被吃成同一色；改用同處未分層空間的具名 class 後回到正常 specificity
-  競爭，顏色差異才實際生效。
-* **刻意不做**：`suggestion.md` S2 第 2 步「把元件層／風格層放進明確的 `@layer`」本次沒
-  做——這步會改變現有的覆寫優先序（例如 `.toc-fab` 目前靠 unlayered 贏過 `xl:hidden` 的
-  hack 屆時可以拿掉），`suggestion.md` 自己也要求「必須跑 build 並目視三篇文章」，本次
-  執行環境沒有瀏覽器可以目視驗證，故暫緩。S8（base/變體改用 CSS 變數）也維持暫緩，等
-  第 2 個風格檔真的出現時再做（只有 1 個變體時做這個抽象化是憑空猜介面）。
-* **驗證**：`npm run build` 通過；`node scripts/verify-post-render.mjs` 全部 3 篇文章
-  0 diff；手動渲染確認 `stop` fence 的 `level: flat` 正確輸出
-  `class="food-tag level-flat ml-3"`，建置後 CSS 確認 flat/slope/steps 三色各自不同
-  （改動前是同一色）。`public/sw.js` 的 `CACHE_NAME` 升至 `clean-blog-v59`。
+* **範圍**：`doc/archive/suggestion.md` R15/S7 的落地。`doc/style.md` 是全站唯一一份「新增
+  元件時照抄」的規格書，核對後發現 3 處文件與程式碼實際行為已經漂移，其中 D 節（操作鏈）
+  的漂移影響最大——照著做會去找一個不存在的指令。本次是純文件修正，不涉及任何程式碼、
+  CSS 或建置行為變更。
+* **`doc/style.md` D 節第 1 點**：原文宣稱「跑 `npm run build:css` 產出 `assets/main.css`」
+  ——`package.json` 根本沒有這個 script（`CLAUDE.md`／`doc/project.md` 都已明確否定），
+  改為「樣式只改 `assets/tailwind.css`，沒有獨立的 `build:css` 指令，由 `@tailwindcss/vite`
+  在 `npm run dev`／`npm run build` 時即時編譯，驗證請直接跑 `npm run build`」。
+* **`doc/style.md` E 節反模式清單**：`assets/main.css` 那條原本寫「會被 build 覆蓋」，
+  暗示它仍在建置流程內，改為「gitignored 的無用殘留，不在建置流程內，編輯了也不會有任何
+  效果」，與 `CLAUDE.md`／`doc/project.md` 的敘述對齊。
+* **`doc/style.md` B7 引言 `blockquote`**：原文寫「`italic` + `text-muted-text`」，但
+  `assets/tailwind.css` 的 `.prose blockquote` 早在 2026-07-21（見第一部分第 17 點）就已
+  改為 `font-style: normal` + 襯線 pull-quote + `text-ink`，全站已無殘留斜體樣式；改為
+  如實描述目前的 pull-quote 規則。
+* **`doc/style.md` B5 桌機 TOC 側欄**：原文寫死「`position: fixed`」，但實際是 `.toc-sidebar`
+  預設 `position: absolute`（隨頁面捲動貼在 Banner 下緣，避免初始蓋住 Banner 文字），捲動
+  超過休息位置後才由 `updatePinnedState()` 切換 `.is-pinned` 改為 `fixed`（見第一部分第 8
+  點的完整設計說明）；改為如實描述這個兩階段定位機制。
+* **驗證**：純文件變更，`npm run build` 通過（用以確認未誤動任何程式碼檔案），
+  `CACHE_NAME` 未變動。S1–S7「現在就做」清單至此全數完成。
 
-### 2026-07-26 — 文件一致性整理：修正失效連結、根目錄歷史文件全部移入 doc/archive/、S1–S13 摺進待辦事項
+### 2026-07-26 — S6：收緊 `appList` 觸發形狀，避免誤判手寫粗體編號清單
 
-* **範圍**：修正根目錄散落文件（`plan.md`／`report.md`／新產生的架構審查 `suggestion.md`）與
-  `doc/`／`README.md` 之間的實際失效連結與過期敘述；把三份歷史文件連同一份孤兒草稿全部移進
-  新增的 `doc/archive/`，讓「`doc/project.md` 是唯一需要常態查閱的文件」這件事對 agent 可強制
-  查得到，而不是靠檔案排列位置猜測；並把 `suggestion.md` 的全部 13 條建議摺成待辦事項清單。
-* **`CLAUDE.md`**：開頭「This is a Jekyll + Tailwind CSS blog」已過期（專案已於 2026-07-11
-  遷移至 Vite + Tailwind CSS v4 純前端架構，見本檔第一行），改為正確敘述；新增「Doc map」小節，
-  列出 `doc/project.md` 為現況權威、`README.md` 管安裝建置、`style.md`／`card_dsl.md`／
-  `doc_style.md` 為現行範圍參考、`doc/archive/` 為**凍結歷史紀錄與孤兒檔案**（只能被引註，
-  不可被當成現況讀取或編輯內容，`doc/project.md` 本身已足夠應付日常工作）。「更新歷史」維護
-  規範由「最新兩筆完整記錄」改為「**最新三筆**完整記錄」（見下方本節開頭）。`manifest.json`／
-  `sw.js` 需要保留空 Jekyll front matter 那條說明不受影響，仍然成立，未改動。
-* **`README.md`**：修正「開發文件說明」一節連到 `doc/jekyll_migration_design.md` 的失效連結
-  （該檔已在先前重構中刪除，`doc/archive/report.md` 曾修過 `project.md` 裡的同一個死連結，
-  但漏了 `README.md` 這一處）；補上 `doc/style.md`／`card_dsl.md`／`doc_style.md` 三個現存
-  文件的連結。「專案目錄結構」區塊過期，缺 `assets/markdown-cards.js`／`markdown-sections.js`／
-  `post-styles/`／`scripts/verify-post-render.mjs`／`doc/`／`template_posts/`，一併補齊。
-* **`doc/archive/`（新增資料夾）**：`plan.md`、`report.md`（原根目錄，已定案的重構計畫與完成
-  報告）、`suggestion.md`（原未追蹤的新檔，2026-07-26 架構審查）、
-  `travel_韓國首爾_edited_v2.md`（67KB，07-16 文章的原始草稿，無任何文件／程式碼引用）
-  四份檔案全部移入。前三份各自在檔頭已有「⛔ 凍結紀錄」提示。`plan.md`／`report.md` 移動後
-  彼此的相對連結（`[report.md](report.md)` 等）仍在同一層目錄下，未失效；程式碼裡唯一的路徑
-  引用 `assets/markdown-sections.js:50` 已同步改成 `doc/archive/plan.md`。
-* **`suggestion.md` S1–S13 摺入待辦事項**：13 條建議（S1–S7「現在就做」／S8–S13「觀察後再做」）
-  全部以未勾選 checklist 形式加進下方「待辦事項」，逐項引註 `doc/archive/suggestion.md` 的
-  R／S 編號以供查完整理由；本次只做追蹤登記，尚未動任何程式碼。
-* **驗證**：純文件變更，無程式碼行為／建置產物受影響，未跑 `verify-post-render.mjs`，
-  `CACHE_NAME` 未變動。
+* **範圍**：`doc/archive/suggestion.md` R6/S6 的落地。`assets/markdown-sections.js` 的
+  App 推薦清單形狀判斷原本用 `/^[A-Za-z0-9]$/` 判定「單一英數字元的粗體」開頭，且不檢查
+  是否含分隔用的全形冒號「：」。`card_dsl.md` 原本宣稱「全站掃過確認沒有其他清單/段落用
+  單一粗體字母開頭，是安全的形狀」，但「掃過現有 3 篇沒撞到」不等於長期安全——這個形狀
+  剛好涵蓋一個常見手寫慣例（`- **1** 下載 App，選擇「韓國地區」`這種粗體編號步驟清單），
+  作者哪天改成粗體編號寫法就會被靜默誤判成 App 卡片；另外沒有冒號的清單一樣會觸發，只是
+  說明區塊留空。
+* **`assets/markdown-sections.js`**：`startsWithLetterStrong()` 的正則從
+  `/^[A-Za-z0-9]$/` 改成 `/^[A-Za-z]$/`（拿掉數字——App 圖示取名稱首字母，不會是數字）；
+  `isAppList()` 追加條件，要求該項 `inline.raw` 含全形冒號「：」（對應 `renderAppList`
+  實際用第一個「：」切「名稱／說明」的渲染邏輯）。兩條件皆須成立才觸發，任一項不符即整份
+  清單維持原樣輸出（普通 `<ul><li>`）。
+* **`doc/card_dsl.md` §1.2／`doc/doc_style.md` §5**：同步更新觸發條件敘述為「單一英文
+  字母的粗體＋全形冒號」雙條件，移除「掃過現有文章沒撞到＝安全」這個站不住腳的理由。
+* **驗證**：現有 5 張 App 卡（`2026-07-13-...md:256-260`，`**N**`/`**K**`/`**T**`/
+  `**P**`/`**W**` 皆含「：」）經 `node scripts/verify-post-render.mjs` 確認 3 篇文章
+  0 diff；額外寫兩組反向測試腳本確認：(1) `- **1** 下載 Toss App` 這類粗體編號清單改動
+  前會、改動後不會被誤判成 App 卡；(2) 單一字母粗體但缺「：」的清單同樣不再誤判。
+  `npm run build` 通過，未改動 CSS，`CACHE_NAME` 未變動。
 
-### 2026-07-26 — Phase E：收尾。`doc/card_dsl.md` 改寫為寫作手冊、刪除失效稽核工具、移除孤兒 renderer
+### 2026-07-26 — S5：CI 補 `fetch-depth: 0` ＋ 加一道 `verify-post-render.mjs` 驗證步驟
 
-* **範圍**：`eat`/`eatarea`/`apps` 三個家族改純 Markdown（見下方壓縮記錄）、`compare`/`info`/
-  `prep`/`stepper` 決策保留 fence（見更下方 Phase D 記錄）之後的收尾工作（`plan.md` Phase E）。
-* **`assets/markdown-cards.js`**：移除 `renderEat`／`renderEatarea`／`renderApps` 三個
-  renderer（全站已無任何文章使用這三個 fence，`grep` 確認 0 筆），`CARD_LANGS` 正則與
-  `RENDERERS` 對照表同步收斂為 `compare|prep|info|stepper|accordion|quickjump|stop` 7 個
-  家族。移除後若文章仍殘留 `` ```eat ``/`` ```eatarea ``/`` ```apps `` fence，會被當成純
-  程式碼區塊原樣輸出、不再渲染成卡片——這是刻意行為，非 bug。
-* **`doc/card_dsl.md` 整份改寫**：從純粹的「fence 語法手冊」改成「文章卡片寫作手冊」，
-  §1 是純 Markdown 形狀約定（美食卡／App 清單／`eatarea` 小標題，含觸發條件與 URL 含空格的
-  角括號寫法），§2 是仍需要 fence 的 7 個家族總表與範例，§3 收斂 Phase B/D 的保留理由，
-  §4 是文章視覺風格系統（原內容平移）。
-* **`doc/doc_style.md`**：新增第 5 節「卡片寫作幾個容易忘記的細節」，把反引號標籤、角括號
-  網址、App 圖示單字元粗體、`eatarea` 免轉換層等最容易漏寫的形狀規則收斂成一份寫作前速查
-  清單，並更新檔頭指向新版 `card_dsl.md`。
-* **刪除失效／原型工具**：`scripts/verify-card-dsl.mjs`（讀法 A 時代的舊驗證腳本，已被
-  `verify-post-render.mjs` 取代）、`scripts/audit-card-fields.mjs`（讀法 A 的一次性欄位稽核，
-  讀法 B 定案後不再需要）、`scripts/__proto-test.mjs`／`scripts/__proto-bulk.mjs`／
-  `scripts/__proto-apps-test.mjs`（Phase A／Phase D 原型驗證用，功能已併入正式的
-  `markdown-sections.js`＋`verify-post-render.mjs`）。
-* **驗證**：刪除 renderer 前後皆跑 `node scripts/verify-post-render.mjs`，全部 3 篇文章
-  0 diff（移除的是全站已 0 使用的 dead code，不影響任何現有輸出）。`public/sw.js`
-  `CACHE_NAME` 升至 `clean-blog-v58`。
-* **後續**：`plan.md` 開頭定義的「作者只用 Markdown 寫內容，風格由 CSS／前端解析套用」目標
-  至此執行完畢；`report.md` 第三節列出的其他遺留問題不在本次範圍內，仍待後續評估。
+* **範圍**：`doc/archive/suggestion.md` R12/S5 的落地。`.github/workflows/pages.yml` 的
+  `actions/checkout@v4` 原本用預設 shallow clone（`fetch-depth: 1`），但
+  `generate-posts-metadata.js` 的 `getFileUpdatedDate()` 靠 `git log -1 --format=%ad` 取
+  每篇文章的「更新時間」——shallow clone 下每個檔案的 git 歷史都被截斷成只剩最新一個
+  commit，導致線上每篇文章的「更新時間」全部跳成部署當天日期，且每次重新部署會集體再跳
+  一次，讀者看不出文章實際的修訂新舊。
+* **`.github/workflows/pages.yml`**：`Checkout` 步驟加 `with: fetch-depth: 0`，取得完整
+  git 歷史，讓 `getFileUpdatedDate()` 在 CI 環境也能正確算出每篇文章各自最後一次修改的
+  commit 日期。新增一道 `Verify post render (regression smoke test)` 步驟，在
+  `build:metadata` 之後、`Build site (Vite)` 之前跑 `node scripts/verify-post-render.mjs`
+  （不帶參數，即 `HEAD` vs 工作目錄、全部文章）。
+* **這道驗證步驟在 CI 裡的實際效果**：由於 CI 的工作目錄本來就是 checkout 出來的 `HEAD`，
+  「`HEAD` vs 工作目錄」的內容比對永遠是 0 diff，不會抓到「這次改動改變了渲染輸出」這種
+  語意差異（那需要指定上一個 ref 才有意義，是 S10 golden snapshot 要解決的範圍）；它真正
+  擋住的是`doc/archive/suggestion.md` 講的「改了文章內容導致渲染爆炸」——只要任何一篇
+  文章的內容讓 `markdown-cards.js`／`markdown-sections.js` 在解析時丟出例外，這一步就會
+  以非 0 exit code 讓 CI 失敗，在部署前攔下語法炸裂的文章，成本是一次全綠的 Node 腳本
+  執行，不影響建置時間。
+* **驗證**：本機模擬 CI 情境執行 `node scripts/verify-post-render.mjs`（`src/posts/`
+  無未提交變更），3 篇文章皆 0 diff、exit code 0；`npm run build` 通過。未改動任何
+  CSS／JS 執行邏輯，`CACHE_NAME` 未變動。
 
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-26：S4 `style` front matter 值加驗證——build 時檢查 CSS 檔與 `@import` 皆存在，
+  不符即 `process.exit(1)`；`detail.html` 的 `classList.add` 加 trim/正則守衛與獨立
+  `try`，避免含空白的值讓整篇文章消失
+- 2026-07-26：S1 補齊 13 個 DSL 元件 base CSS、S2-1 修 `stop` 徽章顏色被
+  `.post-style-editorial-card .food-tag` 未分層規則吃掉的 bug（`CACHE_NAME` 升至 v59）
+- 2026-07-26：文件一致性整理——修正 `CLAUDE.md`／`README.md` 失效連結與過期敘述，根目錄
+  `plan.md`／`report.md`／新增的 `suggestion.md` 與一份孤兒草稿全部移入新增的
+  `doc/archive/`，並把 `suggestion.md` 的 S1–S13 摺成待辦事項清單（純文件變更，未動程式碼）
+- 2026-07-26：Phase E——收尾，`doc/card_dsl.md` 改寫為寫作手冊、移除 `renderEat`／
+  `renderEatarea`／`renderApps` 孤兒 renderer 與失效稽核工具（`CACHE_NAME` 升至 v58）
 - 2026-07-26：Phase D——`compare`/`info`/`prep`/`stepper` 決策保留 fence（`compare` vs
   `info` 是二元色條判斷、`prep` 與一般段落撞形狀、`stepper` 需要群組容器），`apps` 廢
   fence 改純 Markdown（單一英數字元粗體開頭＋全形冒號）；`CACHE_NAME` 升至 v57
