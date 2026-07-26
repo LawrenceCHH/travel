@@ -65,9 +65,11 @@
     document.addEventListener("DOMContentLoaded", async function() {
       const base = '/travel/';
       const params = new URLSearchParams(window.location.search);
-      const postId = params.get('id');
+      // 舊連結相容 detail.html?id=xxx；新的 posts/<id>.html 靜態頁由建置時注入
+      // window.__PRESET_POST_ID__（見 vite.config.js 的 generatePostPagesPlugin）。
+      const postId = params.get('id') || window.__PRESET_POST_ID__;
       if (!postId) {
-        document.getElementById('post-content').innerHTML = '<p class="text-red-500 text-center py-8">未指定文章識別碼。</p>';
+        window.location.replace(`${base}404.html`);
         return;
       }
 
@@ -76,10 +78,10 @@
         const res = await fetch(`${base}data/posts.json`);
         if (!res.ok) throw new Error("Metadata fetch failed");
         const posts = await res.json();
-        
+
         const index = posts.findIndex(p => p.id === postId);
         if (index === -1) {
-          document.getElementById('post-content').innerHTML = '<p class="text-red-500 text-center py-8">找不到該文章。</p>';
+          window.location.replace(`${base}404.html`);
           return;
         }
 
@@ -209,7 +211,7 @@
         function buildPostNavLink(post, dir) {
           const a = document.createElement('a');
           a.className = 'post-nav-link';
-          a.href = `${base}posts/detail.html?id=${post.id}${post.background ? `&bg=${encodeURIComponent(post.background)}` : ''}`;
+          a.href = window.postUrl(post, base);
           a.rel = dir === 'prev' ? 'prev' : 'next';
 
           const label = document.createElement('span');

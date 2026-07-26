@@ -7,19 +7,23 @@ import { exec } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const SITE_URL = 'https://lawrencechh.github.io/travel/';
+
 export default defineConfig({
   base: '/travel/',
   plugins: [
     tailwindcss(),
     swPrecachePlugin(),
-    watchPostsMetadataPlugin()
+    watchPostsMetadataPlugin(),
+    generatePostPagesPlugin(),
+    generateSeoFilesPlugin()
   ],
   build: {
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        about: resolve(__dirname, 'about.html'),
         contact: resolve(__dirname, 'contact.html'),
+        notFound: resolve(__dirname, '404.html'),
         posts: resolve(__dirname, 'posts/index.html'),
         detail: resolve(__dirname, 'posts/detail.html')
       }
@@ -78,6 +82,113 @@ function swPrecachePlugin() {
         });
         console.log(`[swPrecachePlugin] Copied static posts to ${distPostsDir}`);
       }
+    }
+  };
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+/**
+ * 自訂 Vite 插件：建置完成後，為每篇文章多產生一份靜態頁 dist/posts/<id>.html，
+ * 複製自已打包完成的 dist/posts/detail.html（已含正確雜湊化 CSS/JS 連結），並注入該篇文章
+ * 真實的 <title>/description/OG/Twitter meta 與已知封面圖。社群爬蟲（LINE/FB/Twitter）不
+ * 執行 JS，讀不到原本要等 posts.json fetch 完成才動態寫入的內容，見 doc/project.md 第一部分
+ * 「SEO／社群分享中繼資料」一節。真人訪客走的仍是與 detail.html 完全相同的 client-side
+ * 渲染邏輯，只是文章 id 改由注入的 window.__PRESET_POST_ID__ 提供，不必依賴 ?id= 查詢字串；
+ * 舊的 detail.html?id=xxx 連結格式不受影響，繼續正常運作。
+ */
+function generatePostPagesPlugin() {
+  return {
+    name: 'generate-post-pages',
+    closeBundle() {
+      const distDir = resolve(__dirname, 'dist');
+      const detailPath = resolve(distDir, 'posts/detail.html');
+      const postsJsonPath = resolve(distDir, 'data/posts.json');
+      if (!fs.existsSync(detailPath) || !fs.existsSync(postsJsonPath)) return;
+
+      const template = fs.readFileSync(detailPath, 'utf8');
+      const posts = JSON.parse(fs.readFileSync(postsJsonPath, 'utf8'));
+
+      posts.forEach((post) => {
+        const title = escapeHtml(post.title);
+        const description = escapeHtml(post.subtitle || `${post.title} — 旅遊指南文章`);
+        const pageUrl = `${SITE_URL}posts/${encodeURIComponent(post.id)}.html`;
+        // 逐段 encode 路徑（保留 /），避免中文檔名（如 img/posts/三清洞.jpg）在社群爬蟲的
+        // HTTP client 端被當成非法字元；瀏覽器對 CSS url() 較寬容，但爬蟲多半用嚴格的 URL parser。
+        const imageUrl = post.background
+          ? `${SITE_URL}${post.background.replace(/^\//, '').split('/').map(encodeURIComponent).join('/')}`
+          : '';
+
+        let html = template.replace(
+          '<title>文章載入中... - 旅遊指南</title>',
+          [
+            `<title>${title} - 旅遊指南</title>`,
+            `<meta name="description" content="${description}">`,
+            `<link rel="canonical" href="${pageUrl}">`,
+            '<meta property="og:type" content="article">',
+            `<meta property="og:title" content="${title}">`,
+            `<meta property="og:description" content="${description}">`,
+            `<meta property="og:url" content="${pageUrl}">`,
+            imageUrl ? `<meta property="og:image" content="${imageUrl}">` : '',
+            `<meta name="twitter:card" content="${imageUrl ? 'summary_large_image' : 'summary'}">`
+          ].filter(Boolean).join('\n  ')
+        );
+
+        // 已知封面圖，直接寫死 header 背景，取代原本要等 fetch 完成才套用的邏輯，
+        // 順便讓這個頁面不再需要 detail.html 開頭那段搶跑用的 bg query string inline script。
+        if (imageUrl) {
+          html = html.replace("url('/travel/img/bg-post.jpg')", `url('${imageUrl}')`);
+        }
+
+        // 注意：此時讀的是「Vite build 完成後」的 detail.html，<script type="module"
+        // src="/assets/scripts.js"> 早已被改寫成帶雜湊檔名與 crossorigin 屬性的實際標籤
+        // （如 <script type="module" crossorigin src="/travel/assets/scripts-XXXX.js">），
+        // 逐字比對會找不到而靜默失敗、注入不到 preset id；改成插在 <body> 開頭，不依賴
+        // Vite 產生的確切標籤字串。
+        html = html.replace(
+          '<body>',
+          `<body>\n  <script>window.__PRESET_POST_ID__ = ${JSON.stringify(post.id)};</script>`
+        );
+
+        fs.writeFileSync(resolve(distDir, 'posts', `${post.id}.html`), html, 'utf8');
+      });
+
+      console.log(`[generatePostPagesPlugin] Generated ${posts.length} static post pages with OG meta.`);
+    }
+  };
+}
+
+/**
+ * 自訂 Vite 插件：建置完成後產生 dist/sitemap.xml（列出首頁／文章目錄／聯絡頁／每篇文章的
+ * posts/<id>.html 專屬網址）與 dist/robots.txt（允許全站爬取＋指向 sitemap）。
+ */
+function generateSeoFilesPlugin() {
+  return {
+    name: 'generate-seo-files',
+    closeBundle() {
+      const distDir = resolve(__dirname, 'dist');
+      const postsJsonPath = resolve(distDir, 'data/posts.json');
+      if (!fs.existsSync(postsJsonPath)) return;
+
+      const posts = JSON.parse(fs.readFileSync(postsJsonPath, 'utf8'));
+
+      const staticUrls = [SITE_URL, `${SITE_URL}posts/`, `${SITE_URL}contact.html`];
+      const postUrls = posts.map((post) => `${SITE_URL}posts/${encodeURIComponent(post.id)}.html`);
+      const urlEntries = [...staticUrls, ...postUrls]
+        .map((url) => `  <url><loc>${escapeHtml(url)}</loc></url>`)
+        .join('\n');
+
+      const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlEntries}\n</urlset>\n`;
+      fs.writeFileSync(resolve(distDir, 'sitemap.xml'), sitemap, 'utf8');
+
+      const robots = `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}sitemap.xml\n`;
+      fs.writeFileSync(resolve(distDir, 'robots.txt'), robots, 'utf8');
+
+      console.log(`[generateSeoFilesPlugin] Generated sitemap.xml (${postUrls.length} posts) and robots.txt.`);
     }
   };
 }

@@ -6,7 +6,8 @@
 
 *   **建置打包**：Vite (v5) + Rollup (MPA 多入口配置)
 *   **CSS 樣式**：Tailwind CSS v4（使用 `@tailwindcss/vite` 插件）
-*   **Markdown 解析**：用戶端使用 `marked.js` CDN 解譯
+*   **Markdown 解析**：`marked` 改由 npm 打包（`assets/create-marked.js` 建立單一實例，Node／瀏覽器共用），不再依賴 CDN
+*   **SEO**：build 時自動產生 `dist/sitemap.xml`／`dist/robots.txt`，並為每篇文章多產生一份帶正確 OG／Twitter meta 的靜態頁 `dist/posts/<id>.html`（供 LINE/FB/Twitter 等社群爬蟲讀取，不需執行 JS）
 *   **PWA 離線支援**：`public/manifest.json` 與 `public/sw.js`（含自訂隨機雜湊資源快取防刷機制）
 *   **部署**：GitHub Actions → GitHub Pages (發布 `dist/` 目錄，監聽 `main` 分支)
 
@@ -43,6 +44,15 @@ npm run build
 ```bash
 npm run preview
 ```
+
+### 4. 程式碼檢查與格式化
+```bash
+npm run lint      # eslint（assets/*.js、scripts/*.js、vite.config.js；不含 src/posts/ 與 doc/archive/）
+npm run format    # prettier --write .（依 .prettierignore 排除 dist/、src/posts/、doc/archive/ 等）
+```
+> [!NOTE]
+> 這兩個指令目前只用來檢查/格式化「新增或修改的檔案」，尚未對既有程式碼跑過一次全庫格式化
+> （既有檔案風格不一致是已知現象，非本次新增工具造成）。
 
 ---
 
@@ -90,13 +100,19 @@ scripts/
   verify-post-render.mjs       渲染回歸驗證腳本（比對 git ref 與工作目錄的文章渲染輸出）
 doc/                           架構參考、視覺風格、卡片 DSL、文章排版守則等開發文件（見下節）
 template_posts/                文章寫作格式範例（不參與建置）
-vite.config.js                 Vite 整合與多入口 (MPA) 設定檔，包含 swPrecachePlugin 插件
+vite.config.js                 Vite 整合與多入口 (MPA) 設定檔，含 swPrecachePlugin／
+                                generatePostPagesPlugin（每篇文章產生帶 OG meta 的 posts/<id>.html）／
+                                generateSeoFilesPlugin（產生 sitemap.xml／robots.txt）
+eslint.config.js                ESLint flat config
+.prettierrc.json／.prettierignore  Prettier 設定與排除清單
 index.html                     首頁入口
-about.html                     關於我們頁面入口
 contact.html                   建議與聯絡表單入口
+404.html                       自訂 404 頁（GitHub Pages 根目錄慣例路徑）
 posts/
   index.html                   文章目錄頁面入口 (橫線表格，每頁分頁為 100 筆)
   detail.html                  通用文章內頁入口 (Fetch 文章原始檔、剝離 Front matter 並用 marked 解析)
+  <id>.html                    build 時為每篇文章產生的靜態頁（複製自 detail.html 並注入該篇真實
+                                OG meta，僅存在於 dist/，不進 git）
 ```
 
 詳細的設計決策與檔案對照表，請參閱 [`doc/project.md`](doc/project.md)。

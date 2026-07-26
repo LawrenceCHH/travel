@@ -138,6 +138,12 @@ npm run preview
 | PWA 快取與雜湊防刷 | `public/sw.js`（`CACHE_NAME`，每次改動快取資產需 +1）＋ `vite.config.js` 的 `swPrecachePlugin`（快取更新說明見第一部分 `### 5`） |
 | 開發模式文章監聽熱重載 | `vite.config.js` 的 `watchPostsMetadataPlugin` |
 | 建置/部署 CI | `.github/workflows/pages.yml` |
+| 文章連結網址產生（統一由此決定 `posts/<id>.html` 這個網址形狀） | `assets/scripts.js` → `postUrl()`，掛 `window.postUrl` 供 `index.html`／`posts/index.html`／`posts/detail.html` 三處非 module inline script 呼叫 |
+| 每篇文章的 OG／Twitter meta 靜態頁（`posts/<id>.html`，供社群爬蟲讀取） | `vite.config.js` → `generatePostPagesPlugin()`（build 後複製 `dist/posts/detail.html` 並注入該篇 meta／封面圖／`window.__PRESET_POST_ID__`） |
+| `sitemap.xml`／`robots.txt` 產生 | `vite.config.js` → `generateSeoFilesPlugin()` |
+| 自訂 404 頁（GitHub Pages 找不到路徑時的 fallback；文章 id 查無資料/缺 id 時也會前端導向此頁） | `404.html`（build 進入點）／`posts/detail.html` 的 `window.location.replace(base + '404.html')` |
+| lint／格式化 | `eslint.config.js`（flat config）／`.prettierrc.json`／`.prettierignore`；`npm run lint`／`npm run format` |
+| 前端錯誤監控（預設關閉） | `assets/scripts.js` 頂部 `ERROR_WEBHOOK_URL` 常數＋ `reportError()`，掛 `window.addEventListener('error'/'unhandledrejection', ...)` |
 
 ## 專案目錄結構對照表
 
@@ -176,7 +182,8 @@ public/
     navbar.html                動態載入的導覽列（文字 wordmark Logo + 目錄連結）
     footer.html                動態載入的頁尾
   data/
-    posts.json                 由 scripts 自動生成的文章索引元資料檔（已被 gitignore）
+    posts.json                 由 scripts 自動生成的文章索引元資料檔（每次 build 皆會重新產生；目前
+                                為方便本機直接開發預覽而納入版控，內容不需手動維護）
   img/                         圖片資源（首頁背景、文章背景、PWA 圖示等）
   manifest.json                PWA 應用設定檔，設定 Base URL 為 /travel/
   sw.js                        PWA Service Worker 快取腳本，打包時由 Vite 插件填入雜湊資源檔名
@@ -188,15 +195,24 @@ scripts/
                                 markdown-sections.js」渲染，比對指定 git ref 與工作目錄的文章 HTML
                                 是否 0 diff。適用 renderer 重構／DSL 欄位語意調整／文章內容遷移等
                                 所有情境。用法：node scripts/verify-post-render.mjs [ref] [檔名過濾字串]
-vite.config.js                 Vite 整合與多入口 (MPA) 設定檔，包含自訂 swPrecachePlugin 打包插件
+vite.config.js                 Vite 整合與多入口 (MPA) 設定檔，含 swPrecachePlugin／
+                                generatePostPagesPlugin／generateSeoFilesPlugin 三個自訂打包插件
+                                （見第一部分第 29 點）
+eslint.config.js               ESLint flat config（assets/*.js 用 browser globals，scripts/*.js／
+                                vite.config.js 用 node globals，public/sw.js 用 serviceworker globals）
+.prettierrc.json                Prettier 設定（singleQuote、printWidth 120）
+.prettierignore                 排除 dist/、src/posts/、doc/archive/、assets/main.css 等不應被格式化的內容
 index.html                     首頁
-about.html                     關於我們頁面
 contact.html                   聯絡建議頁面，包含 Formspree 表單提交
+404.html                       自訂 404 頁（build 進入點，輸出至 dist/404.html，符合 GitHub Pages 404
+                                頁的慣例路徑）
 posts/
   index.html                   文章目錄頁面（橫線列表，每列標題在上、日期+膠囊標籤同排 meta 帶在下，
                                 分頁大小為 100；篩選列左側即時結果計數、右側標籤篩選+搜尋；
                                 過濾為 0 筆時顯示空狀態提示列）
   detail.html                  通用文章內頁（動態 Fetch 文章、剔除 Front matter、利用 marked 渲染、桌機/手機文章大綱 TOC）
+  <id>.html                    build 後由 generatePostPagesPlugin 為每篇文章產生的靜態頁，只存在於
+                                dist/，不進版控（見第一部分第 29 點）
 ```
 
 ## 關鍵架構與設計決策
@@ -204,7 +220,7 @@ posts/
 1.  **資料與視圖分離 (Metadata Generation)**：
     由於沒有後端編譯器在伺服器端將文章組裝成 HTML，因此在本地/CI 建置時，透過 Node.js 腳本將所有文章的 metadata（如標題、標籤、日期、預估閱讀時間）全部抽離並整合至一個小巧的 `posts.json` 檔案中。前端載入首頁與目錄時，只需請求此 JSON 檔案，即可完成渲染與分頁，不需要一次下載全部的文章內容，大幅減少頻寬與載入時間。
 2.  **多入口多頁面打包 (Vite MPA)**：
-    利用 Vite (Rollup) 的多入口編譯設定，將 `index.html`、`about.html`、`contact.html`、`posts/index.html` 與 `posts/detail.html` 定義為獨立的進入點，確保 Vite 能夠將 CSS/JS 最佳化拆分與打包。
+    利用 Vite (Rollup) 的多入口編譯設定，將 `index.html`、`contact.html`、`posts/index.html` 與 `posts/detail.html` 定義為獨立的進入點，確保 Vite 能夠將 CSS/JS 最佳化拆分與打包。
 3.  **前端動態佈局加載 (Dynamic Layout Loading)**：
     為了避免在每個獨立 HTML 頁面中複製重複的導覽列與頁尾，透過 `assets/scripts.js` 在網頁載入時動態 `fetch()` 共用的元件 HTML 並置換 placeholder，同時透過 URL 比對來動態將目前頁面選單項目標記為啟用狀態。
 4.  **Markdown 動態編譯與 Front Matter 剝離**：
@@ -539,6 +555,80 @@ posts/
         0 diff；playwright-core headless Chromium 開 `posts/detail.html` 實際頁面確認
         `window.marked.parse` 可用、文章內容正常渲染、無 console error。
 
+29. **OG meta／sitemap／robots.txt／自訂 404 頁：靜態爬蟲可見中繼資料方案（2026-07-26）**：
+    延續架構審查待辦（見更新歷史），解決「社群分享看不到標題摘要封面圖」的問題。核心限制是
+    GitHub Pages 只能靜態發檔，同一個 `detail.html` 不可能對不同 `?id=` query string 回傳不同
+    `<head>`——爬蟲（LINE/FB/Twitter 不執行 JS）永遠只看到同一份預設空白值。
+    *   **做法**：`vite.config.js` 新增 `generatePostPagesPlugin()`，在 build 的 `closeBundle`
+        階段（此時 `dist/posts/detail.html` 已含 Vite 產生的雜湊化 CSS/JS 標籤）為每篇文章複製
+        一份 `dist/posts/<id>.html`，並：(1) 注入該篇真實的 `<title>`／`<meta
+        name="description">`／`og:*`／`twitter:card`／`<link rel="canonical">`；(2) 已知封面圖時
+        直接改寫 header 的 `background-image` inline style（不必再等 `posts.json` fetch 完成）；
+        (3) 在 `<body>` 開頭插入 `window.__PRESET_POST_ID__ = "<id>"`。`posts/detail.html` 原本
+        讀 `?id=` 的邏輯改為 `params.get('id') || window.__PRESET_POST_ID__`，兩種入口共用完全
+        相同的 client-side 渲染程式碼，行為零差異。
+    *   **舊連結相容**：`detail.html?id=xxx` 完全沒被移除或改變行為，只是不再是「首選」連結格式
+        （新增/內部連結一律改指向 `posts/<id>.html`，見下方 `postUrl()`）。
+    *   **踩坑：字串比對目標抓錯建置後的產物**：第一版實作把 preset id 腳本插在
+        `'<script type="module" src="/assets/scripts.js"></script>'` 這個「原始碼」字串後面，
+        但 `generatePostPagesPlugin` 讀的是 **build 完成後** 的 `detail.html`，該標籤早被 Vite
+        改寫成 `<script type="module" crossorigin src="/travel/assets/scripts-HASH.js">`，
+        `String.replace` 找不到目標會靜默失敗（不報錯，只是什麼都沒插入）——實測結果是
+        preset id 從未被寫入，`postId` 一律 `undefined`，文章頁 100% 導向 404。改成插在
+        `<body>` 開頭（不依賴 Vite 產生的確切標籤字串）解決；`<title>` 與 header 的
+        `background-image` 因為是純文字/內嵌樣式、不受 Vite 資產轉換影響，兩處字串比對本身沒問題。
+    *   **文章連結網址統一收斂**：新增 `assets/scripts.js` → `postUrl(post, base)`，掛
+        `window.postUrl` 供 `index.html`／`posts/index.html`／`posts/detail.html`（上下一篇導覽）
+        三處原本各自手刻 `posts/detail.html?id=${post.id}&bg=...` 字串的地方改呼叫同一個函式，
+        避免三處分別維護網址格式。
+    *   **404**：新增根目錄 `404.html`（build 進入點，輸出至 `dist/404.html`，符合 GitHub Pages
+        對自訂 404 頁的慣例路徑），套用現有 navbar/footer 與 `.btn-primary` 樣式。`detail.html`
+        原本「缺 id／查無文章」時只在頁面內顯示紅字（HTTP 仍是 200）的行為，改為
+        `window.location.replace(base + '404.html')`——**注意這仍是 client-side 導向，
+        伺服器實際回應碼還是 200**，純靜態託管環境下無法做到真正的 HTTP 404 狀態碼，只能做到
+        「使用者體感一致」。
+    *   **sitemap／robots**：新增 `generateSeoFilesPlugin()`，build 後從 `dist/data/posts.json`
+        讀取文章清單，產生 `dist/sitemap.xml`（首頁／文章目錄／聯絡頁＋每篇 `posts/<id>.html`）
+        與 `dist/robots.txt`（`Allow: /` ＋指向 sitemap）。網域寫死為
+        `https://lawrencechh.github.io/travel/`（兩個插件共用同一個 `SITE_URL` 常數）。
+    *   **中文檔名／路徑需逐段 encode**：文章 id 與封面圖路徑常含中文（如
+        `img/posts/三清洞.jpg`），`og:image` 等會被外部爬蟲的 HTTP client 讀取的 URL 一律逐段
+        `encodeURIComponent`（保留 `/`）——瀏覽器對 CSS `url()` 內的未編碼中文較寬容，但不能
+        假設所有爬蟲的 URL parser 一樣寬容。
+    *   **驗證**：`npm run build` 通過；`node scripts/verify-post-render.mjs` 3 篇 0 diff；
+        playwright-core 對 5 種情境（新版 `posts/<id>.html`、舊版
+        `detail.html?id=`、缺 id、查無文章、直接開 `404.html`）逐一開真實頁面確認最終網址、
+        `<title>`、`#post-title` 內容與 console error，首版因上述踩坑在「新版網址」情境誤導向
+        404，修正後 5 種情境全數正確、零 console error；另外對首頁／文章目錄頁做過一次連結
+        href 走查，確認清單連結已改指向新網址格式。
+
+30. **lint／格式化工具與前端錯誤監控，兩者皆刻意做成低侵入（2026-07-26）**：
+    *   **ESLint**：新增 `eslint.config.js`（flat config），`assets/**/*.js` 用
+        `globals.browser`、`scripts/**/*.js` 與 `vite.config.js` 用 `globals.node`、
+        `public/sw.js` 用 `globals.serviceworker`（Service Worker 全域變數 `self`/`caches`/
+        `fetch` 與一般瀏覽器不同，需獨立宣告），並用 `eslint-config-prettier` 關掉會與
+        Prettier 衝突的排版類規則。`.agents/`（gitignored 的工具目錄）與 `src/posts/`／
+        `template_posts/`（文章內容非程式碼）排除在檢查範圍外。跑過一輪後修掉兩個真實的
+        `no-unused-vars`（`generate-posts-metadata.js` 兩個 `catch (e)` 未使用 `e`，改用
+        ES2019 optional catch binding `catch {}`），其餘全綠。
+    *   **Prettier**：新增 `.prettierrc.json`（`singleQuote`／`printWidth: 120`）與
+        `.prettierignore`。**刻意沒有對既有程式碼跑一次 `npm run format` 全庫格式化**——
+        `prettier --check .` 顯示全站 25 個檔案風格不一致（含所有 `doc/` 文件與
+        `doc/archive/`），一次性格式化改動面過大、且會直接違反 `CLAUDE.md` 對
+        `doc/archive/` 的「凍結記錄、不可編輯」規則，故只加工具本身，全庫格式化留給日後
+        自然發生（新增/編輯檔案時漸進套用）或使用者主動要求時再做。`.prettierignore` 已
+        排除 `doc/archive/`／`assets/main.css`（未被引用的舊檔，`CLAUDE.md` 明列不應編輯）／
+        `src/posts/`／`public/data`／`package-lock.json`。
+    *   **前端錯誤監控**：`assets/scripts.js` 新增 `ERROR_WEBHOOK_URL` 常數（**預設空字串，
+        不會發出任何網路請求**）與 `reportError()`，掛上 `window.addEventListener('error', …)`／
+        `('unhandledrejection', …)`。留空的原因是 Sentry／自架 webhook 兩個選項都需要使用者
+        自己申請帳號或準備接收端點（如仿照 `contact.html` 既有的 Google Apps Script 表單模式
+        自建一個），無法在這次改動裡代為決定或建立；程式碼已就緒，之後只需把常數換成實際
+        URL 即可啟用，格式為 POST 一個 JSON body（`type`／`message`／`source`／`lineno`／
+        `colno`／`stack`／`url`／`ua`／`ts`）。
+    *   **驗證**：`npm run lint` 全綠；`npm run build`／`node scripts/verify-post-render.mjs`
+        3 篇 0 diff（僅新增程式碼路徑，未變更既有渲染邏輯）。
+
 ## GitHub Pages 部署設定指引
 
 由於本專案採用自訂的 GitHub Actions 工作流（監聽 `main` 工作分支）來建置並部署至 GitHub Pages，若遇到 `Branch "main" is not allowed to deploy to github-pages due to environment protection rules` 錯誤，請前往 GitHub 儲存庫網頁端進行以下兩項設定：
@@ -564,13 +654,25 @@ posts/
 
 ## 待辦事項
 
-- [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前仍保留原 Jekyll 主題
-      `startbootstrap-clean-blog-jekyll` 的 `name`／`description`／`author`／`repository`
-      欄位，需要使用者提供這個專案實際要用的名稱、描述與 repo URL 才能填入真實值）
 - [ ] **中文襯線字體跨裝置一致性**：目前中文標題襯線僅在有系統內建中文襯線字型（macOS Songti、Windows 新細明體）的裝置上生效，多數 Android 裝置無內建中文襯線會退回無襯線字體。若未來要追求完全一致的跨裝置「編輯雜誌感」，需自行 subset 打包 Noto Serif TC 字型檔（僅收錄實際會用到的標題字元），並更新 `sw.js` 的 precache 清單
-- [ ] **「關於」頁面目前沒有任何入口**：`about.html` 存在且已套用新樣式，但 Navbar 與 Footer 都沒有連結指向它。若要恢復這個入口，建議與「Navbar 手機版漢堡選單」一併評估
-- [ ] **Navbar 手機版漢堡選單死程式碼**：`assets/scripts.js` 裡仍保留舊 Jekyll 主題遺留的 `toggleNav()` 漢堡選單邏輯（對應 `#navbarResponsive` 元素），但目前 `navbar.html` 只有 2 個導覽項目、單排橫向排列在小螢幕也不會擠壓，因此沒有實際啟用。若未來導覽項目增加需重新評估是否啟用，或直接移除死程式碼
 - [ ] **07-20 `## 1.2 WOWPASS 完整介紹` 底下仍有 6 個 `###`**：是全文最密的一節（已依 `doc_style.md` 第 3 節收掉一個標籤型 `### 是什麼`）。若閱讀時仍覺得標題雜，可再依同一判準（讀者會不會拿這個標題來定位）收一輪；注意解法是減少標題，不是給 `###` 加視覺記號（見第一部分第 19 點與 `style.md` A14）
+
+### 架構審查待辦（2026-07-26 Agent 分析，SEO／可靠性）
+
+以下是針對現有 Vite MPA 架構做的一次審查，非 `suggestion.md` 既有項目；不需要換框架，
+皆可在現有架構內解決。SEO／社群分享中繼資料、`sitemap.xml`／`robots.txt`、自訂 404 頁、
+lint/format 工具五項已完成（見第一部分第 29／30 點與下方更新歷史），以下只保留尚未動工的：
+
+- [ ] **`innerHTML` 直接注入文章內容，未做 sanitize**（`posts/detail.html` 的
+      `marked.parse()`／HTML 文章原樣注入）：目前內容皆為本人撰寫，風險為 0；但若未來
+      任何非本人來源的內容（協作者、CMS、留言）要走同一條渲染路徑，需要先補
+      `DOMPurify` 之類 sanitizer 再開放
+- [ ] **無自動化單元測試**：`eslint`／`prettier` 已補上（見第一部分第 30 點），但仍只有
+      `scripts/verify-post-render.mjs` 渲染回歸腳本（保護「渲染輸出沒有意外改變」，不保護
+      一般邏輯正確性），無針對函式邏輯的單元測試。這個規模暫不需要上重量級測試框架
+- [ ] **前端錯誤監控已埋點但預設關閉**：`assets/scripts.js` 的 `ERROR_WEBHOOK_URL` 常數留空，
+      需要使用者自行決定並提供接收端點（Sentry DSN、Slack/Discord webhook，或仿
+      `contact.html` 自建 Google Apps Script）才能真正啟用，見第一部分第 30 點
 
 ### `doc/archive/suggestion.md` 架構審查待辦（S1–S13）
 
@@ -599,6 +701,58 @@ posts/
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-26 — SEO 架構審查落地：OG meta／sitemap／robots.txt／404 頁 ＋ lint/format 工具 ＋ 前端錯誤監控埋點
+
+* **範圍**：落地 07-26 稍早新增的「SEO／可靠性架構審查」待辦清單五項（OG meta、sitemap.xml／
+  robots.txt、自訂 404 頁、lint/format 工具、前端錯誤監控），完整設計決策見第一部分第
+  29／30 點。`innerHTML` sanitize 與自動化單元測試兩項評估後維持不做（前者現無實際風險，
+  後者規模不需要）。
+* **OG meta／sitemap／404**：新增 `vite.config.js` 的 `generatePostPagesPlugin()`（build 後
+  為每篇文章產生帶真實 OG／Twitter meta 的 `dist/posts/<id>.html`，供社群爬蟲讀取，不執行 JS
+  也看得到）與 `generateSeoFilesPlugin()`（產生 `sitemap.xml`／`robots.txt`）；新增
+  `assets/scripts.js` → `postUrl()` 統一產生文章連結網址，取代三處各自手刻的
+  `detail.html?id=...&bg=...` 字串；`posts/detail.html` 缺 id／查無文章時改為
+  `window.location.replace()` 導向新增的根目錄 `404.html`（client-side 導向，非真正 HTTP
+  404 狀態碼，靜態託管環境的已知限制）。舊版 `detail.html?id=xxx` 連結格式完全不受影響。
+  過程中踩到一個實質 bug：第一版用字串比對插入 `window.__PRESET_POST_ID__`，比對目標抓的是
+  「原始碼」而非「build 完成後已被 Vite 改寫成雜湊檔名的 `detail.html`」，導致比對永遠失敗、
+  preset id 從未寫入，文章頁 100% 誤導向 404；改成插在 `<body>` 開頭解決，並用
+  playwright-core 對 5 種情境（新網址／舊 `?id=`／缺 id／查無文章／直接開 404.html）逐一開
+  真實頁面驗證後才確認修復。
+* **lint/format**：新增 `eslint.config.js`（flat config，按目錄分派 browser／node／
+  serviceworker globals）、`.prettierrc.json`／`.prettierignore`，`package.json` 新增
+  `lint`／`format` script。跑出的兩個真實 `no-unused-vars` 已修（`generate-posts-metadata.js`
+  改用 optional catch binding）。**刻意不做**：對既有程式碼跑一次全庫 `npm run format`——
+  `prettier --check .` 顯示 25 個檔案風格不一致，一次性格式化會直接觸犯 `CLAUDE.md` 對
+  `doc/archive/` 的「凍結記錄不可編輯」規則，且改動面過大，故只加工具本身、不強制套用。
+* **前端錯誤監控**：`assets/scripts.js` 新增 `ERROR_WEBHOOK_URL` 常數（**預設空字串，關閉
+  狀態，不發任何請求**）＋ `reportError()`，掛 `window.onerror`／`unhandledrejection`。留白
+  原因：Sentry／自架 webhook 兩個方案都需要使用者自己申請帳號或準備接收端點，這次改動只能
+  把管線接好，實際啟用留給使用者日後決定要用哪個服務。
+* **驗證**：`npm run build`／`npm run lint` 全綠；`node scripts/verify-post-render.mjs` 3 篇
+  文章 0 diff；playwright-core 對首頁／文章目錄頁／新舊文章連結格式／404 頁共 8 個場景做
+  console error 掃描，全數乾淨。
+
+### 2026-07-26 — 待辦清理：`package.json` 元數據更新、移除「關於」頁與漢堡選單死代碼
+
+* **範圍**：與使用者確認後處理三項積壓待辦，皆為刪除/取代已判定不需要的內容，非新增功能。
+* **`package.json`／`package-lock.json` 元數據**：`name`/`description`/`author`/`repository`
+  仍是原 Jekyll 主題 `startbootstrap-clean-blog-jekyll` 的殘留值，改為專案實際值
+  （`name: travel`、`author: LawrenceCHH`、`repository`/`homepage` 對應
+  `github.com/LawrenceCHH/travel` 與 `lawrencechh.github.io/travel`）；移除非標準的
+  `title` 欄位（未被任何程式碼讀取）。`package-lock.json` 僅手動同步 `name`/`version`
+  兩處，未跑 `npm install` 重新產生——該指令會連帶引入不相關的 `@tailwindcss/oxide-*`
+  平台專屬 optional dependency 雜訊，已驗證並捨棄。
+* **移除「關於」頁面**：`about.html` 打開後內容全是未填寫的 Lorem ipsum 佔位文字、Navbar／
+  Footer 皆無連結指向它，判定為未完成且不需要的孤兒頁面，非「補入口」而是整頁刪除：
+  刪除 `about.html`、`vite.config.js` 的 `about` 建置進入點、`public/img/bg-about.jpg`
+  與 `public/img/original/bg-about.jpg`。
+* **移除漢堡選單死程式碼**：`assets/scripts.js` 的 `toggleNav()`（對應 `#navbarResponsive`）
+  已無任何觸發來源——`navbar.html` 現行的兩項式極簡導覽本來就沒有漢堡按鈕標記，純屬 Jekyll
+  舊主題遺留——整段函式與 `window.toggleNav = toggleNav` 一併刪除。
+* **驗證**：`npm run build` 通過，`dist/` 輸出不再含 `about.html`／`about` 相關資源；
+  `CACHE_NAME` 升至 `clean-blog-v60`（`scripts.js` bundle 內容改變）。
+
 ### 2026-07-26 — 修正 cascade layer 重構的回歸：新增 `@layer prose`
 
 * **範圍**：S2 第 2 步 commit（`a63d5a0`）後，使用者回報 07-16「### [聖水潮流區美食]」這種
@@ -621,41 +775,18 @@ posts/
   07-13／07-20 五頁重新掃描 console error（全數 none），`.toc-fab` 桌機/手機顯示狀態複驗
   仍正確（`none`／`flex`）。
 
-### 2026-07-26 — S2 第 2 步：Cascade layer 重構，`.toc-fab` 的 `@media` hack 移除
-
-* **範圍**：`doc/archive/suggestion.md` R2/S2 第 2 步的落地。完整內容見第一部分第 27 點，
-  此處只記重點：`assets/tailwind.css` 檔首新增 `@layer theme, base, components, utilities,
-  post-styles;`，原本大段未分層的「UI Components」區塊（約 758 行）包進
-  `@layer components { … }`，`assets/post-styles/editorial-card.css` 的 `@import` 改為
-  `@import "..." layer(post-styles);`。連帶效果：`.toc-fab` 不再需要手動
-  `@media (min-width: 80rem) { display: none }` 才能贏過 `xl:hidden`，該 hack 已移除。
-* **驗證**：`npm run build` 通過；`node scripts/verify-post-render.mjs` 3 篇文章 0 diff；
-  playwright-core headless Chromium 對 `.toc-fab` 在 1400px／390px 兩種寬度量測
-  `getComputedStyle` 的 `display`，分別為 `none`／`flex`，確認移除 hack 後行為不變；
-  07-16 三種地形徽章底色仍各自不同；對 6 個頁面（首頁／文章目錄／關於／聯絡／三篇文章）
-  做 console error 掃描與 `.btn-primary` 顏色抽查，全數正常。使用者本人瀏覽器確認後，
-  已於 commit `a63d5a0` 提交（該 commit 同時包含 S3 與 07-16 摘要去重兩項）；提交後使用者
-  在真實文章裡發現本點未覆蓋到的回歸，修法見上方最新一筆記錄。
-* **`doc/style.md` B8 對應更新**：`@import` 位置陷阱一節的描述同步更新為「已解除」（見下方
-  「更早的更新」條目與 `doc/style.md` 本身的變更）。
-
-### 2026-07-26 — S3：`marked` 改由 npm 打包，收斂三處重複註冊為 `assets/create-marked.js`
-
-* **範圍**：`doc/archive/suggestion.md` R10/R13/S3 的落地。完整內容見第一部分第 28 點。
-  `posts/detail.html` 原本用 CDN `<script src="https://cdn.jsdelivr.net/npm/marked/
-  marked.min.js">` 載入瀏覽器端 `marked`（吃 latest，版本不受控，離線 PWA 若 CDN 請求
-  失敗文章會整個降級成純文字），與 Node 端建置腳本鎖定的 `marked@^12.0.0` 可能分裂。
-* **做法**：刪除該 CDN `<script>`；新增 `assets/create-marked.js` 匯出 `createMarked()`
-  （`new Marked()` ＋ 兩個 DSL 擴充註冊），取代 `assets/scripts.js`／
-  `scripts/generate-posts-metadata.js`／`scripts/verify-post-render.mjs` 三處原本各自
-  重複的樣板。`assets/scripts.js` 把實例掛回 `window.marked`，供 `posts/detail.html`
-  內非 module 的 inline `<script>` 讀取（時序理由見第一部分第 28 點）。
-* **驗證**：`npm run build` 通過（`marked` 現隨 bundle 一起打包）；`verify-post-render.mjs`
-  3 篇文章 0 diff；playwright-core 開實際頁面確認 `window.marked.parse` 可用、內容正常
-  渲染、無 console error。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-26：S2 第 2 步 Cascade layer 重構——`assets/tailwind.css` 檔首宣告
+  `@layer theme, base, components, utilities, post-styles`，未分層的「UI Components」
+  區塊包進 `@layer components`，`.toc-fab` 的 `@media` hack 移除；commit `a63d5a0`
+  提交後發現的回歸修法見上方完整記錄
+
+- 2026-07-26：S3 `marked` 改由 npm 打包，收斂三處重複註冊為 `assets/create-marked.js`，取代
+  CDN `<script>`（避免離線 PWA 因 CDN 失效降級成純文字，且與 Node 端鎖定版本可能分裂）
+- 2026-07-26：待辦清單新增「SEO／可靠性架構審查」一節（6 項，SEO/OG meta 缺失、無
+  sitemap/robots.txt、無 404 頁、`innerHTML` 未 sanitize、無 lint/測試工具、無前端錯誤
+  監控），源自與使用者討論現有架構缺口，純文件變更，未動程式碼
 - 2026-07-26：07-16 行動版開頭重複摘要區塊去重——`buildMobileOutlineAndSheet()` 偵測到
   頁面已有 `.editorial-quick-jump` 等價導覽時跳過自動大綱渲染，只影響用了 `quickjump`
   的文章（目前僅 07-16）

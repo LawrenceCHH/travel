@@ -7,24 +7,58 @@ if (typeof window !== 'undefined') {
   window.marked = marked;
 }
 
-function toggleNav() {
-  var nav = document.getElementById('navbarResponsive');
-  var button = document.querySelector('[aria-controls="navbarResponsive"]');
-  var isHidden = nav.classList.contains('hidden');
+// 文章連結網址：每篇文章對應建置時產生的專屬靜態頁 posts/<id>.html（帶正確 OG meta 供爬蟲讀取，
+// 見 vite.config.js 的 generatePostPagesPlugin），取代原本 posts/detail.html?id=<id> 查詢字串連結。
+// 背景圖已內嵌在該靜態頁裡，不再需要 &bg= 參數搶跑。
+function postUrl(post, base) {
+  return `${base}posts/${encodeURIComponent(post.id)}.html`;
+}
+if (typeof window !== 'undefined') {
+  window.postUrl = postUrl;
+}
 
-  if (isHidden) {
-    nav.classList.remove('hidden');
-    nav.classList.add('flex');
-  } else {
-    nav.classList.add('hidden');
-    nav.classList.remove('flex');
-  }
+// 前端錯誤監控：預設關閉（ERROR_WEBHOOK_URL 留空字串），不會發出任何網路請求。要啟用時，
+// 換成你自己的接收端點——可仿照 contact.html 現有的 Google Apps Script 表單提交模式自建一個，
+// 或直接貼 Slack／Discord 的 Incoming Webhook URL。會收到 JSON POST，格式見 reportError()。
+const ERROR_WEBHOOK_URL = '';
 
-  if (button) {
-    button.setAttribute('aria-expanded', String(isHidden));
+function reportError(payload) {
+  if (!ERROR_WEBHOOK_URL || typeof fetch !== 'function') return;
+  try {
+    fetch(ERROR_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        url: location.href,
+        ua: navigator.userAgent,
+        ts: new Date().toISOString()
+      }),
+      keepalive: true
+    }).catch(() => {});
+  } catch {
+    // 監控本身失敗不該影響網站其餘功能
   }
 }
-window.toggleNav = toggleNav;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    reportError({
+      type: 'error',
+      message: event.message,
+      source: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      stack: event.error && event.error.stack
+    });
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    reportError({
+      type: 'unhandledrejection',
+      message: String((event.reason && event.reason.message) || event.reason)
+    });
+  });
+}
 
 function initPagination({ containerId, paginationId, tagContainerId, searchContainerId, pageSize, itemSelector, forceShow = false }) {
   console.log("initPagination invoked:", { containerId, paginationId, tagContainerId, searchContainerId, pageSize, itemSelector, forceShow });

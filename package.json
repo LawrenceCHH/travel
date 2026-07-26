@@ -1,27 +1,34 @@
 {
-  "title": "Clean Blog Jekyll",
-  "name": "startbootstrap-clean-blog-jekyll",
-  "version": "4.0.12",
+  "name": "travel",
+  "version": "1.0.0",
   "type": "module",
-  "description": "Clean Blog is a Medium inspired blog theme for Bootstrap.",
+  "description": "旅遊文章分享部落格，Vite + Tailwind CSS v4 純前端 MPA 靜態架構",
   "license": "MIT",
-  "author": "Start Bootstrap",
+  "author": "LawrenceCHH",
   "repository": {
     "type": "git",
-    "url": "https://github.com/StartBootstrap/startbootstrap-clean-blog-jekyll.git"
+    "url": "https://github.com/LawrenceCHH/travel.git"
   },
+  "homepage": "https://lawrencechh.github.io/travel/",
   "scripts": {
     "dev": "npm run build:metadata && vite",
     "build:metadata": "node scripts/generate-posts-metadata.js",
     "build": "npm run build:metadata && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "marked": "^12.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.2",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^9.1.2",
+    "globals": "^15.15.0",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4.3.2",
     "vite": "^5.1.0"
   }

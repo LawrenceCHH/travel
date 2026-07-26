@@ -46,7 +46,7 @@ function getFileUpdatedDate(filePath) {
   try {
     const gitDate = execSync(`git log -1 --format="%ad" --date=format:"%Y-%m-%d" -- "${filePath}"`, { encoding: 'utf8' }).trim();
     if (gitDate) return gitDate;
-  } catch (e) {
+  } catch {
     // Ignore git errors
   }
   try {
@@ -54,7 +54,7 @@ function getFileUpdatedDate(filePath) {
     const d = new Date(stats.mtime);
     const pad = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  } catch (e) {
+  } catch {
     return '';
   }
 }

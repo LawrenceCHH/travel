@@ -1,0 +1,8 @@
+dist
+node_modules
+src/posts
+template_posts
+package-lock.json
+public/data
+doc/archive
+assets/main.css
