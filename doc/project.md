@@ -1,3 +1,5 @@
+<!-- 啟動專案看結果  npm run build && npm run preview -->
+
 # 專案快照 (Vite + Tailwind CSS v4 純前端架構)
 
 此專案已於 2026-07-11 從 Jekyll 遷移至基於 **Vite** 與 **Tailwind CSS v4** 的純前端 MPA（多頁面應用）靜態架構。所有頁面的共用 Layout 載入、文章目錄搜尋與篩選、以及 Markdown 文章解析渲染，皆直接於瀏覽器端完成，徹底擺脫了對 Ruby、Jekyll 與 Gem 的依賴。
@@ -701,6 +703,28 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-07-26 — 修正 dev server 下 manifest／icon 連結 base path 疊加成 `/travel/travel/...` 的 404
+
+* **範圍**：使用者反映 `npm run dev` 主控台跳出 manifest 相關的「Syntax error」噪音；追查後
+  確認是 `index.html`／`posts/index.html`／`posts/detail.html`／`404.html`／`contact.html`
+  五個檔案的 `<link rel="manifest">`／`icon`／`apple-touch-icon` 寫死帶 base 前綴的
+  `/travel/manifest.json`、`/travel/img/icons/icon.svg`、`/travel/img/icons/icon-192.png`。
+  這幾個檔案放在 `public/` 目錄，依 Vite 慣例本該用「相對於 public 根目錄」的路徑
+  （`/manifest.json`）讓 Vite 自動套用 `base` 設定；因為原始碼已經手動帶了一次 `/travel/`
+  前綴，dev server 的 html transform 又再疊加一次 `base`，變成
+  `/travel/travel/manifest.json`（404），瀏覽器把這個 404 錯誤頁當 manifest 解析就跳出
+  Syntax error。以 `curl` 直接請求 dev server 輸出的 HTML 驗證重現。production build 不受
+  影響——build 階段的資產解析對「原始碼已含 base 前綴、且該路徑在 `publicDir` 內找不到對應
+  檔案」的情況不會再疊加，`dist/index.html` 一直都只有單一 `/travel/manifest.json`，純粹是
+  開發時主控台噪音。
+* **修法**：五個檔案的三個 tag 全部改回不含 base 前綴的 `/manifest.json`、
+  `/img/icons/icon.svg`、`/img/icons/icon-192.png`，讓 Vite 在 dev 與 build 兩種模式都自動
+  套用同一份 `base: '/travel/'` 設定，不再手動疊加。
+* **驗證**：`npm run dev` 起服務後用 `curl` 逐一確認 `index.html`／`posts/index.html`／
+  `posts/detail.html`／`404.html`／`contact.html` 五頁輸出的三個連結皆為單一 `/travel/`
+  前綴（改前重現為雙重 `/travel/travel/`）；`npm run build` 後 `dist/` 五頁輸出不變，仍是
+  正確的單一前綴，`public/data/posts.json` 未被意外改動。
+
 ### 2026-07-26 — SEO 架構審查落地：OG meta／sitemap／robots.txt／404 頁 ＋ lint/format 工具 ＋ 前端錯誤監控埋點
 
 * **範圍**：落地 07-26 稍早新增的「SEO／可靠性架構審查」待辦清單五項（OG meta、sitemap.xml／
@@ -753,139 +777,46 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 * **驗證**：`npm run build` 通過，`dist/` 輸出不再含 `about.html`／`about` 相關資源；
   `CACHE_NAME` 升至 `clean-blog-v60`（`scripts.js` bundle 內容改變）。
 
-### 2026-07-26 — 修正 cascade layer 重構的回歸：新增 `@layer prose`
-
-* **範圍**：S2 第 2 步 commit（`a63d5a0`）後，使用者回報 07-16「### [聖水潮流區美食]」這種
-  「純連結標題」重新出現底線＋超連結藍字樣式。完整根因與修法見第一部分第 27 點「後續發現
-  的回歸與修法」。此處只記重點：`.prose h1 a`~`h4 a`／`.prose blockquote`／`.prose` 表格等
-  「07-21 雜誌感基礎排版」的自訂覆寫規則，被誤跟其他真正的元件一起收進 `@layer
-  components`，但 `@tailwindcss/typography` 外掛自己的 `.prose` 預設樣式也落在
-  `@layer utilities` 裡且排在 `components` 之後，導致外掛預設值反而贏過客製覆寫。
-* **做法**：`assets/tailwind.css` 檔首層順序宣告新增第 5 層
-  `@layer theme, base, components, utilities, prose, post-styles;`；把原本 `.prose {
-  … }` 到 `.prose hr { … }` 整段從 `@layer components` 移到獨立的 `@layer prose { … }`
-  （排在 `utilities` 之後、`post-styles` 之前），`.toc-fab` 等真正元件留在
-  `@layer components` 不受影響。
-* **驗證**：`npm run build` 通過；用 `dist/assets/*.css` 的 `@layer` byte offset 複驗新
-  的層順序（`components` 9450 < `utilities` 34127 < `prose` 67141 < `post-styles`
-  70060）；playwright-core headless Chromium 對「聖水潮流區美食」標題實測
-  `text-decoration: none`、顏色與標題本文相同（`rgb(34,40,49)`，非連結藍），`.prose h2`
-  底線仍在（2px solid）未被連帶動到，`.prose blockquote` 仍是 `font-style: normal` 的
-  pull-quote；`node scripts/verify-post-render.mjs` 3 篇文章 0 diff；對首頁／關於／聯絡／
-  07-13／07-20 五頁重新掃描 console error（全數 none），`.toc-fab` 桌機/手機顯示狀態複驗
-  仍正確（`none`／`flex`）。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
-- 2026-07-26：S2 第 2 步 Cascade layer 重構——`assets/tailwind.css` 檔首宣告
-  `@layer theme, base, components, utilities, post-styles`，未分層的「UI Components」
-  區塊包進 `@layer components`，`.toc-fab` 的 `@media` hack 移除；commit `a63d5a0`
-  提交後發現的回歸修法見上方完整記錄
-
-- 2026-07-26：S3 `marked` 改由 npm 打包，收斂三處重複註冊為 `assets/create-marked.js`，取代
-  CDN `<script>`（避免離線 PWA 因 CDN 失效降級成純文字，且與 Node 端鎖定版本可能分裂）
-- 2026-07-26：待辦清單新增「SEO／可靠性架構審查」一節（6 項，SEO/OG meta 缺失、無
-  sitemap/robots.txt、無 404 頁、`innerHTML` 未 sanitize、無 lint/測試工具、無前端錯誤
-  監控），源自與使用者討論現有架構缺口，純文件變更，未動程式碼
-- 2026-07-26：07-16 行動版開頭重複摘要區塊去重——`buildMobileOutlineAndSheet()` 偵測到
-  頁面已有 `.editorial-quick-jump` 等價導覽時跳過自動大綱渲染，只影響用了 `quickjump`
-  的文章（目前僅 07-16）
-
-- 2026-07-26：待辦清單整理——移除待辦事項裡已完成的 `[x]` 項目（07-16 `.food-list-title`
-  改 h3、S1、S2 第 1 步、S4、S5、S6、S7），修正已過期的「架構審查…尚未動工」章節標題；
-  同日稍後移除「本次 UI 調整待目視確認（2026-07-21）」（使用者本人已在瀏覽器確認完成）與
-  「07-16 行動版重複摘要區塊」（已修正，見上方完整記錄）兩項；另外發現 Formspree 表單 ID
-  與 `manifest.json` email 佔位字串兩項待辦已經是舊 code 的痕跡——`contact.html` 目前實際
-  用 Google Apps Script `fetch()` 送出表單，早就不是 Formspree，且全 repo 搜尋不到
-  `your-email@example.com`/`YOUR_FORM_ID` 任何殘留，兩項一併移除，只留下確實仍是佔位資料的
-  `package.json` 元數據一項
-- 2026-07-26：S7 修 `doc/style.md` 三處與程式碼不符的敘述——不存在的 `build:css` 指令、
-  blockquote 樣式、TOC 側欄定位方式（純文件修正）
-- 2026-07-26：S6 收緊 `appList` 觸發形狀，避免誤判手寫粗體編號清單——正則拿掉數字、
-  追加要求含全形冒號「：」雙條件
-- 2026-07-26：S5 CI 補 `fetch-depth: 0`（修正 shallow clone 導致線上文章「更新時間」全部
-  跳成部署日）＋ 加一道 `verify-post-render.mjs` 渲染回歸驗證步驟，部署前攔下語法炸裂的文章
-- 2026-07-26：S4 `style` front matter 值加驗證——build 時檢查 CSS 檔與 `@import` 皆存在，
-  不符即 `process.exit(1)`；`detail.html` 的 `classList.add` 加 trim/正則守衛與獨立
-  `try`，避免含空白的值讓整篇文章消失
-- 2026-07-26：S1 補齊 13 個 DSL 元件 base CSS、S2-1 修 `stop` 徽章顏色被
-  `.post-style-editorial-card .food-tag` 未分層規則吃掉的 bug（`CACHE_NAME` 升至 v59）
-- 2026-07-26：文件一致性整理——修正 `CLAUDE.md`／`README.md` 失效連結與過期敘述，根目錄
-  `plan.md`／`report.md`／新增的 `suggestion.md` 與一份孤兒草稿全部移入新增的
-  `doc/archive/`，並把 `suggestion.md` 的 S1–S13 摺成待辦事項清單（純文件變更，未動程式碼）
-- 2026-07-26：Phase E——收尾，`doc/card_dsl.md` 改寫為寫作手冊、移除 `renderEat`／
-  `renderEatarea`／`renderApps` 孤兒 renderer 與失效稽核工具（`CACHE_NAME` 升至 v58）
-- 2026-07-26：Phase D——`compare`/`info`/`prep`/`stepper` 決策保留 fence（`compare` vs
-  `info` 是二元色條判斷、`prep` 與一般段落撞形狀、`stepper` 需要群組容器），`apps` 廢
-  fence 改純 Markdown（單一英數字元粗體開頭＋全形冒號）；`CACHE_NAME` 升至 v57
-- 2026-07-26：`eat`／`eatarea` 廢 fence 改純 Markdown（新增 `assets/markdown-sections.js`，
-  用 marked v12 `hooks.processAllTokens` 依「內容形狀」而非位置順序重組美食卡），
-  `stop`／`accordion`／`quickjump` 決策保留 fence；額外發現 `eatarea` 不需要形狀判斷
-  程式碼，直接寫 `### [名稱](url)` 即可（CACHE_NAME 升至 v56）
-- 2026-07-25：卡片 DSL 欄位 Markdown 化 Phase 0–1——新增 `scripts/verify-post-render.mjs`
-  取代已失效的 `scripts/verify-card-dsl.mjs`，新增一次性稽核工具
-  `scripts/audit-card-fields.mjs`（437 個欄位值僅 1 筆會因 `parseInline` 改變）；此路線
-  （讀法 A：fence 留著，欄位值跑 Markdown 解析）後續被讀法 B（廢 fence 改純 Markdown，見
-  上方兩筆記錄）取代，`audit-card-fields.mjs` 已確認不再需要
-- 2026-07-25：文章視覺風格系統重構——`style` front matter＋`assets/post-styles/` 取代手寫
-  `<div class="style-a-post">` wrapper，刪除 5 個從未使用的舊 DSL 家族（`food`/`spot`/
-  `gallery`/`triage`/`emergency`）與約 65 處孤兒 CSS，07-16 遷移為 `style: editorial-card`
-  （CACHE_NAME 升至 v55）
-- 2026-07-25：07-16 文章卡片化——新增 `quickjump`/`stop`/`eat`/`eatarea` 四個 DSL 家族取代
-  重複手寫 HTML（既有 `food`/`spot`/`gallery` 家族的 class 結構與 `.style-a-post` 不相容，
-  故另立平行家族；該三家族已於同日「文章視覺風格系統」重構中整組刪除）。同時修正閱讀時間
-  虛增：`generate-posts-metadata.js` 改為先渲染成 HTML 再剝標籤計數，避免 DSL 的 raw URL
-  欄位被當成可讀字數（07-16 回到 35 分鐘、07-13 由 37 修正為 28、07-20 由 23 微調為 20）
-- 2026-07-22：修正首頁/聯絡頁背景圖換版後瀏覽器仍顯示舊圖（`bg-index.jpg`/`bg-contact.jpg`
-  內容已換版但漏 bump `CACHE_NAME`，導致 SW cache-first 策略卡住舊圖），升級至 `clean-blog-v54`
-- 2026-07-21：文章 banner 改用連結傳遞 `&bg=` query string＋同步 inline script 搶跑，修正切換
-  文章時先閃錯誤圖片再跳正確圖片的 lag（設計理由見第一部分第 23 點；未改 CSS，未 bump
-  `CACHE_NAME`）
-- 2026-07-21：文章頁三處 UI/UX 調整——TOC 側欄改行距/padding 而非縮字、桌機 FAB 外洩改用 `@media` 直接關閉（cascade layers 優先序問題）、上/下一篇按鈕改為顯示標題的 `.post-nav-*` 連結對，順手修掉 `title` 屬性未跳脫的 bug (CACHE_NAME 升至 v53)
-- 2026-07-21：`contact.html` 套用其他版面既有的容器／卡片／輸入框樣式，修正三處與全站不一致的風格漂移（外層 `max-w-xl`→`max-w-3xl`、補齊卡片包裝、成功/失敗訊息改回裸文字），對齊 `style.md` B3
-- 2026-07-21：修正 07-16 標題階層忽大忽小（`Day 1` 比母標題 `景點漫遊` 還大），`.style-a-post` 那組自成一格的音階（26/22/20/18）整組併回 `.prose`，`.style-a-post h3` 覆寫整條刪除、`.spot-title` 22→18px，底線依 A13 只留給 `h2`；外溢範圍僅 07-16 一篇，`.prose` 未動（設計決策見第一部分第 20 點）
-- 2026-07-21：否決 `h3` 視覺記號（字符與左側色條皆試過後推翻），改以「收掉緊接 h2 後、內文
-  三四行的標籤型 `###`」處理標題過密，`doc_style.md` 新增第 3 節、`style.md` 新增 A14
-- 2026-07-21：推翻標題底線 `:has()` 規則（07-20 的 6 個 `##` 有 4 個底線忽有忽無、讀者猜不到規律），改為「只有 `h2` 固定有底線、無條件套用」，`h1` 底線一併移除；抽象準則寫入 `doc/style.md` A13
-
-- 2026-07-21：新增 `doc/doc_style.md` 文章排版守則——標題階層與結構深度固定對應（`#`＝分卷／`##`＝小節／`###`＝細項／`####`＝元件標籤），且 `---` 只能出現在 `#` 前、絕不用於 `##`/`###`（標題自帶底線已負責分隔）
-- 2026-07-21：執行 `doc_style.md` 規則清理 07-20 多餘 `---`；同日新增又推翻標題底線 `:has()` 規則（最終定案見上方完整記錄）
-- 2026-07-21：把 07-16 首爾文章的雜誌感標題/表格/blockquote 樣式內化為 `.prose` 基礎預設值，讓 07-13/07-20 純 Markdown 文章免改內容自動套用（`.prose h1`~`h4`/blockquote/表格新規則，含 2-class cascade 覆寫保護既有卡片標題）
-- 2026-07-21：修正 `2026-07-20-韓國自由行支付教學.md` 裸網址撐破手機版面、TOC 圓點跑出畫面外的問題（改寫為連結＋`.prose` 新增 `overflow-wrap` 防護網）
-- 2026-07-20：於 doc/project.md 補充 `dist/` 打包清空警告與文章消失問題說明
-- 2026-07-20：補充「新增文章未顯示」對應之索引與快取更新步驟 (clean-blog-v50)
-- 2026-07-20：升級 PWA Service Worker 快取版本至 clean-blog-v49 並重新打包
-- 2026-07-20：於 doc/project.md 新增網站快取 (Service Worker & PWA) 更新操作指引
-- 2026-07-17：修正 style-a/b/c 版型 TOC 圓球未渲染問題與文章 Naver/Kakao 空格網址 (CACHE_NAME 升至 v48)
-- 2026-07-17：style-a 美食項目分隔線經歷多輪評審最終定案為滿版極輕髮絲線 (CACHE_NAME 升至 v47)
-
-- 2026-07-16：重構景點快速跳轉為極簡行事曆流線時間軸面板，按 `(Day N)` 動態分組 (CACHE_NAME 升至 v46)
-- 2026-07-16：新增 Markdown 裝飾元件設計分析與語意命名指引（`doc/markdown_decorations_design.md`）
-- 2026-07-16：修正 .app-card 尾端多餘分隔線，改用相鄰選擇器 (CACHE_NAME 升至 v34)
-
-- 2026-07-16：stepper 納入卡片 DSL，以 ```stepper fence 取代手寫 HTML 鷹架，並實作 re-entrant 安全遞迴解析 (v33)
-- 2026-07-15：WOWPASS 升級為獨立 `### WOWPASS 開卡與儲值` 小節，內容結構對齊機場通關步驟規格（v32）
-- 2026-07-15：提示框收斂為 warning/note 兩級，移除語意模糊的 `.alert-important`（v31）
-- 2026-07-15：統一「依序流程」皆用 `.stepper` 呈現，WOWPASS 步驟由巢狀清單改為時間軸（v30）
-- 2026-07-15：新增 `.info-card`／`info` DSL 家族，與 `.compare-card` 語意分工（擇一比較 vs 純參考資訊）（v29）
-- 2026-07-15：全站停用行動版頂部常駐章節分頁列（`buildChapterBar`），改用 `ENABLE_CHAPTER_BAR` 旗標，程式碼保留可隨時恢復（v28）
-- 2026-07-15：首爾旅遊文章拆分為《首爾秋日漫遊手帳》與《首爾行前準備與安全應變手冊》兩篇，建立雙向引流連結
-- 2026-07-15：行動版分頁列新增 H2 > 6 字門檻、Bottom Sheet 開啟自動置中捲動（v27）
-- 2026-07-15：新增 `assets/markdown-cards.js` 卡片 DSL，8 家族約 81 個實例由手寫 HTML 改為 fenced block（v26，含 `scripts/verify-card-dsl.mjs` 0-diff 驗證）
-- 2026-07-15：首爾文章「簡潔高雅」視覺重整——美食/景點雜誌感卡片、出發前準備欄位化、緊急應變 5 色分類色碼
-- 2026-07-15：首爾文章「出發前準備」附錄重排，併入推薦 App／在地習俗與避雷小節
-- 2026-07-14：首爾文章重構為「行程優先」結構，景點漫遊上移、作業性內容降級為附錄
-- 2026-07-14：修正 TOC 誤收卡片內部標題（heading 選擇器改為 `:scope > h2, h3`）
-- 2026-07-14：緊急應變改為情境速查導向，TOC 子索引由約 11 條收斂為 0
-- 2026-07-14：新增行動版章節分頁列（chapter tab bar），並修正高亮半拍延遲（抽出共用 `stickyOffset()`）
-- 2026-07-14：修正桌機版 TOC 側欄自動滾動聚焦與頁尾防破版遮擋機制
-- 2026-07-14：首爾文章手機閱讀體驗優化（機場接駁卡片化、美食長輩友善晶片、`<details class="fold">` 摺疊、術語統一）
-- 2026-07-14：首爾文章改版，移植 `travel_guide/index.html` 卡片式排版體驗（`feature/travel-guide-style-match` 分支起點）
-- 2026-07-13：修正桌機版 TOC 側欄初始蓋住 Banner 的問題，並隱藏側欄捲軸
-- 2026-07-12：新增開發模式文章自動監聽更新插件（`watchPostsMetadataPlugin`）
-- 2026-07-12：視覺與字型排版演進——白底配色定案、升級 Inter 字型、優化中英文 Meta 排版
-- 2026-07-12：文章大綱 (TOC) 元件初版開發（桌機側欄＋手機 Bottom Sheet，Scroll Spy 高亮）
-- 2026-07-12：目錄頁視覺與 RWD 重構、下拉選單破版修復
-- 2026-07-11：遷移至 Vite + Tailwind CSS v4 純前端 MPA 架構（自 Jekyll，方案 A）
-- 2026-07-11：介面中文化、中文字型比例最佳化、導覽列簡化、雙頁面 JS 前端分頁實作
+- **2026-07-26**：修正 cascade layer 重構（S2 第 2 步，`a63d5a0`）的回歸——`.prose` 自訂覆寫
+  規則誤收進 `@layer components`，被排序在後的 `@tailwindcss/typography` 外掛預設樣式蓋過，
+  導致 07-16「純連結標題」重新出現底線＋藍字；新增獨立的 `@layer prose`（層順序
+  `theme, base, components, utilities, prose, post-styles`）修復，完整根因見第一部分第 27
+  點「後續發現的回歸與修法」。
+- **2026-07-26（架構審查待辦 S1–S7 落地）**：S1 補齊 DSL base CSS＋S2-1 修 `stop` 徽章顏色
+  bug、S2 cascade layer 重構（`@layer theme, base, components, utilities, post-styles`，
+  移除 `.toc-fab` 的 `@media` hack；commit `a63d5a0` 後發現的回歸修法見上方完整記錄）、S3
+  `marked` 改由 npm 打包取代 CDN、S4 `style` front matter 值加驗證、S5 CI 補
+  `fetch-depth: 0`＋渲染回歸驗證步驟、S6 收緊 `appList` 觸發形狀、S7 修正 `style.md` 三處
+  過期敘述；另外做了 07-16 行動版重複摘要區塊去重（非 S 編號）。同批也完成文件一致性整理
+  （`plan.md`／`report.md`／`suggestion.md` 移入新增的 `doc/archive/`，S1–S13 摺成待辦
+  清單）、待辦清單清理（移除已完成項目、發現 Formspree／manifest email 佔位字串兩項待辦
+  其實是 `contact.html` 早改用 Google Apps Script 後的舊 code 殘留，一併移除）、新增 SEO／
+  可靠性架構審查待辦清單（後於同日稍晚的完整記錄中落地五項）。
+- **2026-07-25～07-26（卡片 DSL 全面 Markdown 化，CACHE_NAME v55→v59）**：`style` front
+  matter＋`assets/post-styles/` 取代手寫 `.style-a-post` wrapper，刪除 5 個孤兒 DSL 家族
+  （`food`/`spot`/`gallery`/`triage`/`emergency`）；`quickjump`/`stop`/`eat`/`eatarea` 四
+  家族改用 fenced block 取代手寫 HTML，其中 `eat`/`eatarea`/`apps` 進一步廢除 fence、改依
+  內容形狀用純 Markdown 判斷渲染（新增 `assets/markdown-sections.js`），`compare`/`info`/
+  `prep`/`stepper` 因語意需要（二元色條判斷／與段落撞形狀／需要群組容器）決策保留 fence；
+  `doc/card_dsl.md` 改寫為寫作手冊，移除孤兒 renderer 與失效稽核工具。
+- **2026-07-21（標題系統定案）**：`.prose` 內化 07-16 雜誌感標題階層；`border-bottom` 規則
+  歷經「條件式 `:has()`」（07-20 六個 `##` 有四個忽有忽無、讀者猜不到規律）被推翻，最終定案
+  「只有 `h2` 固定底線、無條件套用」；`h3` 視覺記號（字符／左側色條）評估後皆否決，改採
+  **減少標題數量**處理密集區，寫入 `doc/doc_style.md`（新增標題階層與 `---` 用法守則）與
+  `style.md` A13/A14；`.style-a-post` 自成一格的標題音階併回全站 `.prose`（見第一部分第
+  17–20 點）。同日另完成：文章 banner 改連結傳遞 `&bg=` query string 消除切換閃圖、TOC 側
+  欄／桌機 FAB／上下篇導覽三處 UI 調整、`contact.html` 風格對齊全站、修正裸網址撐破手機版面
+  （CACHE_NAME 升至 v53）。
+- **2026-07-22～07-14**：07-22 修正首頁/聯絡頁背景圖換版未生效（漏 bump `CACHE_NAME`，
+  v54）；07-17 修正 TOC 圓球未渲染與 Naver/Kakao 空格網址（v48）、style-a 美食分隔線定案
+  （v47）；07-16 景點快速跳轉重構為時間軸面板、`stepper` 納入卡片 DSL（v33/v46）；07-15
+  新增 `assets/markdown-cards.js`（8 家族卡片 DSL 取代手寫 HTML，v26）、`info-card` 家族、
+  提示框收斂 warning/note 兩級、首爾文章拆分兩篇並視覺重整（v27–v32）；07-14 首爾文章移植
+  `travel_guide` 卡片式排版並重構為「行程優先」結構、新增行動版章節分頁列、修正 TOC 誤收與
+  桌機側欄捲動細節；07-13 修正 TOC 側欄初始遮擋 Banner 問題。
+- **2026-07-11～07-12**：自 Jekyll 遷移至 Vite + Tailwind CSS v4 純前端 MPA 架構（方案
+  A），介面中文化、字型與導覽列簡化、雙頁面 JS 前端分頁；隨後完成 TOC 元件初版（桌機側欄＋
+  手機 Bottom Sheet scroll-spy）、目錄頁 RWD 重構、開發模式文章自動監聽插件。
 - 2026-07-10：記錄 GitHub Pages 工作流，建置並推送重構版本 (e5be734)
