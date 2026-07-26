@@ -198,15 +198,22 @@ marked v12 的 `hooks.processAllTokens`，**在 token 陣列上重組**（而非
       純 Markdown 沒有天然的起訖邊界標記，容易與一般 `###`/`####` 子標題混淆
 - [x] `public/sw.js` bump `CACHE_NAME`（v56 → v57，`markdown-sections.js` 內容變更）
 
-### Phase E — 收尾 ⬜ 未開始
+### Phase E — 收尾 ✅ 已完成（2026-07-26）
 
-- [ ] `doc/card_dsl.md` 改寫：從「fence 語法手冊」改成「Markdown 寫作約定手冊」
-- [ ] `doc/doc_style.md`：補上新的寫作約定（反引號標籤、角括號網址、卡片形狀）
-- [ ] `doc/project.md`：更新歷史、速查表、設計決策
-- [ ] 刪除已失效的 `scripts/verify-card-dsl.mjs`
-- [ ] 刪除原型腳本 `scripts/__proto-test.mjs`、`scripts/__proto-bulk.mjs`、
-      `scripts/audit-card-fields.mjs`
-- [ ] 移除 `markdown-cards.js` 中因遷移而不再被使用的 renderer
+- [x] `doc/card_dsl.md` 改寫：從「fence 語法手冊」改成「Markdown 寫作約定手冊」（§1 純
+      Markdown 形狀約定、§2 剩餘 7 個 fence 家族、§3 保留 fence 理由彙整、§4 視覺風格系統）
+- [x] `doc/doc_style.md`：補上第 5 節新的寫作約定速查（反引號標籤、角括號網址、App 圖示
+      單字元粗體、`eatarea` 免轉換層），並更新檔頭指向新版 `card_dsl.md`
+- [x] `doc/project.md`：更新歷史新增 Phase E 完整記錄、`eat`/`eatarea` 記錄壓縮進摘要清單、
+      功能→程式碼速查表與目錄結構表同步移除已刪檔案、`eat`/`eatarea`/`apps` 從 fence 家族
+      清單移除
+- [x] 刪除已失效的 `scripts/verify-card-dsl.mjs`
+- [x] 刪除原型腳本 `scripts/__proto-test.mjs`、`scripts/__proto-bulk.mjs`、
+      `scripts/__proto-apps-test.mjs`、`scripts/audit-card-fields.mjs`
+- [x] 移除 `markdown-cards.js` 中因遷移而不再被使用的 renderer：`renderEat`／`renderEatarea`／
+      `renderApps` 連同 `CARD_LANGS`／`RENDERERS` 對應項一併刪除（全站已 0 使用這三個
+      fence，`node scripts/verify-post-render.mjs` 驗證刪除前後 0 diff）
+- [x] `public/sw.js` bump `CACHE_NAME`（v57 → v58，`markdown-cards.js` 內容變更）
 
 ---
 

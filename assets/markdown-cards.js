@@ -1,7 +1,12 @@
 /**
- * Card DSL 擴充：把文章 markdown 裡精簡的 ```compare / ```prep / ```apps / ```info /
- * ```stepper / ```accordion / ```quickjump / ```stop / ```eat / ```eatarea 資料區塊，在
- * marked 渲染時逐字還原成與手寫版本相同的卡片 HTML。
+ * Card DSL 擴充：把文章 markdown 裡精簡的 ```compare / ```prep / ```info / ```stepper /
+ * ```accordion / ```quickjump / ```stop 資料區塊，在 marked 渲染時逐字還原成與手寫版本
+ * 相同的卡片 HTML。
+ *
+ * 這 7 個家族是評估過「形狀規則能否安全與其他 Markdown 內容區分」後決定保留 fence 的
+ * （帶顏色變體、需要群組容器、或與既有 Markdown 段落撞形狀），完整決策理由見
+ * `doc/card_dsl.md`。`eat`/`eatarea`/`apps` 已改用純 Markdown 寫法，由
+ * `assets/markdown-sections.js` 的形狀判斷轉換層處理，不再是 fence，本檔不含其 renderer。
  *
  * 純字串邏輯，不引用 document / window 等瀏覽器專有物件，可在 Node 環境（驗證腳本、
  * 未來若要在建置時預渲染）與瀏覽器（scripts.js 於 window.marked 上註冊）共用。
@@ -11,8 +16,7 @@
  *   registerCardExtensions(marked); // marked 可以是全域單例，也可以是 new Marked() 實例
  */
 
-const CARD_LANGS =
-  'compare|prep|apps|info|stepper|accordion|quickjump|stop|eat|eatarea';
+const CARD_LANGS = 'compare|prep|info|stepper|accordion|quickjump|stop';
 const CARD_BLOCK_RE = new RegExp(
   `^ {0,3}\`\`\`(${CARD_LANGS})[ \\t]*\\n([\\s\\S]*?)\\n {0,3}\`\`\`[ \\t]*(?:\\n|$)`
 );
@@ -114,18 +118,6 @@ function renderPrep(body) {
   return `<div class="prep-pill-row not-prose">
   ${pills}
 </div>`;
-}
-
-function renderApps(body) {
-  return bodyLines(body)
-    .map((line) => {
-      const parts = line.split(FIELD_SEP);
-      const icon = (parts[0] || '').trim();
-      const name = (parts[1] || '').trim();
-      const appBody = parts.slice(2).join(FIELD_SEP).trim();
-      return `<div class="app-card"><div class="app-icon-wrapper">${icon}</div><div class="app-info"><h4>${name}</h4><p>${appBody}</p></div></div>`;
-    })
-    .join('\n');
 }
 
 /**
@@ -278,71 +270,12 @@ function renderStop(body) {
 </div>`;
 }
 
-/**
- * 美食推薦分區小標題（07-16 editorial-card 風格 `.food-list-title`，採用 `<h3>` 讓大綱 TOC Drawer 抓取索引）。
- */
-function renderEatarea(body) {
-  const f = {};
-  for (const line of bodyLines(body)) {
-    const [key, val] = kv(line);
-    f[key] = val;
-  }
-  return `<h3 class="food-list-title"><a href="${f.url}" target="_blank" class="no-underline text-inherit">${f.name}</a></h3>`;
-}
-
-/**
- * 美食卡（07-16 editorial-card 風格 `.food-item`）。
- * `diet` 欄位以逗號分隔；單一項目字尾加 `*` 會改用警示樣式（如「需排隊!」的紅框變體），
- * 逐字對應原始 30 筆手寫資料裡兩種並存的既有樣式差異。
- */
-function renderEat(body) {
-  const f = {};
-  for (const line of bodyLines(body)) {
-    const [key, val] = kv(line);
-    f[key] = val;
-  }
-
-  const dietTags = (f.diet || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((d) => {
-      if (d.endsWith('*')) {
-        return `<span class="food-tag font-bold text-red-700 bg-red-50 border border-red-200">${d.slice(0, -1)}</span>`;
-      }
-      return `<span class="food-tag diet">${d}</span>`;
-    })
-    .join('\n      ');
-
-  const sigSep = f.sigsep === 'half' ? ': ' : '：';
-
-  return `<div class="food-item">
-  <div class="food-header">
-    <span class="food-name"><a href="${f.url}" target="_blank" class="no-underline text-inherit">${f.name}</a></span>
-    <div class="food-meta">
-      <span class="food-tag">${f.meal}</span>
-      ${dietTags ? `${dietTags}\n      ` : ''}<span class="food-price">${f.price}</span>
-    </div>
-  </div>
-  <p class="food-body"><strong>招牌菜</strong>${sigSep}${f.signature}</p>
-  <p class="food-why">${f.why}</p>
-  <div class="food-actions">
-    <a href="${f.naver}" target="_blank" class="food-action-link">Naver ↗</a>
-    <a href="${f.kakao}" target="_blank" class="food-action-link">Kakao ↗</a>
-    <a href="${f.ref}" target="_blank" class="food-action-link">食記參考 ↗</a>
-  </div>
-</div>`;
-}
-
 const RENDERERS = {
   compare: renderCompare,
   prep: renderPrep,
-  apps: renderApps,
   info: renderInfo,
   quickjump: renderQuickjump,
   stop: renderStop,
-  eat: renderEat,
-  eatarea: renderEatarea,
 };
 
 // ---- marked 擴充註冊 ----------------------------------------------------
