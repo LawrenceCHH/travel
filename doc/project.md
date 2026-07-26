@@ -128,9 +128,10 @@ npm run preview
 | 文章 metadata 產生（字數／閱讀時間，內部經 marked + card DSL 渲染後才剝標籤計數） | `scripts/generate-posts-metadata.js` → 產出 `public/data/posts.json` |
 | 文章內頁渲染（Markdown/HTML 解析、上一篇/下一篇導航） | `posts/detail.html` + `assets/scripts.js` |
 | 文章大綱 TOC（桌機側欄／手機 Bottom Sheet／已停用的行動版章節分頁列） | `assets/scripts.js` → `initTOC()`；`ENABLE_CHAPTER_BAR` 旗標控制分頁列是否顯示 |
-| 卡片 fence DSL（```compare/prep/info/stepper/accordion/quickjump/stop 資料區塊，語法細節見 `doc/card_dsl.md`） | `assets/markdown-cards.js`（渲染邏輯）／`assets/scripts.js` 檔頭（`registerCardExtensions` 接線）／`scripts/verify-post-render.mjs`（Node 端渲染回歸驗證，用法：`node scripts/verify-post-render.mjs [基準git-ref] [檔名過濾字串]`，比對指定 ref 與工作目錄的渲染輸出是否 0 diff） |
-| 純 Markdown 卡片形狀轉換層（`eat`／`apps` 家族改用形狀判斷取代 fence，語法見 `doc/card_dsl.md` §1） | `assets/markdown-sections.js`（`registerSectionExtensions`）／接線點與 `registerCardExtensions` 相同三處：`assets/scripts.js`、`scripts/generate-posts-metadata.js`、`scripts/verify-post-render.mjs` |
-| 文章專屬視覺風格（front matter `style` 欄位） | `scripts/generate-posts-metadata.js`（寫入 `posts.json`）／`posts/detail.html`（掛 `.post-style-<name>` class）／`assets/post-styles/<name>.css`（scoped 樣式，由 `assets/tailwind.css` 檔尾 `@import`） |
+| 卡片 fence DSL（```compare/prep/info/stepper/accordion/quickjump/stop 資料區塊，語法細節見 `doc/card_dsl.md`） | `assets/markdown-cards.js`（渲染邏輯）／`assets/create-marked.js`（`registerCardExtensions` 接線）／`scripts/verify-post-render.mjs`（Node 端渲染回歸驗證，用法：`node scripts/verify-post-render.mjs [基準git-ref] [檔名過濾字串]`，比對指定 ref 與工作目錄的渲染輸出是否 0 diff） |
+| 純 Markdown 卡片形狀轉換層（`eat`／`apps` 家族改用形狀判斷取代 fence，語法見 `doc/card_dsl.md` §1） | `assets/markdown-sections.js`（`registerSectionExtensions`）／接線點與 `registerCardExtensions` 同一處：`assets/create-marked.js`（見下方 `Markdown 渲染器建立` 列） |
+| Markdown 渲染器建立（單一 `Marked` 實例工廠，供 Node／瀏覽器共用，避免三處重複註冊） | `assets/create-marked.js` → `createMarked()`；呼叫端：`assets/scripts.js`（瀏覽器，同步掛回 `window.marked`）、`scripts/generate-posts-metadata.js`、`scripts/verify-post-render.mjs` |
+| 文章專屬視覺風格（front matter `style` 欄位） | `scripts/generate-posts-metadata.js`（寫入 `posts.json`）／`posts/detail.html`（掛 `.post-style-<name>` class）／`assets/post-styles/<name>.css`（scoped 樣式，由 `assets/tailwind.css` 檔尾 `@import ... layer(post-styles)`） |
 | 卡片視覺樣式（`.food-item`／`.spot-card`／`.compare-card`／`.info-card`／`.stepper`／`.app-card`／`.emergency-card`／`.alert-box` 等） | `assets/tailwind.css` 的 `@layer components` |
 | 色彩／字型設計 Token | `assets/tailwind.css` 的 `@theme` |
 | 導覽列／頁尾動態載入 | `assets/scripts.js` 尾端 fetch 邏輯 + `public/components/navbar.html`／`footer.html` |
@@ -143,12 +144,19 @@ npm run preview
 ```
 .github/workflows/pages.yml   CI/CD 部署設定，使用 Node/Vite 環境建置，部署 dist 到 Pages
 assets/
-  tailwind.css                 Tailwind v4 CSS 原始碼（定義主題 Tokens 與自訂組件）
+  tailwind.css                 Tailwind v4 CSS 原始碼（定義主題 Tokens 與自訂組件）；檔首宣告
+                                @layer theme, base, components, utilities, post-styles，元件區在
+                                @layer components 內，post-styles 由檔尾 @import ... layer(post-styles)
+                                掛入，覆寫關係由宣告順序決定，不再依賴「誰沒分層誰贏」
   scripts.js                   通用 JS，含雙頁面分頁 (initPagination)、文章大綱 (initTOC)、元件動態載入與 PWA 註冊
+  create-marked.js             建立單一 Marked 實例並註冊 registerCardExtensions／
+                                registerSectionExtensions 的工廠函式 createMarked()，供
+                                scripts.js（瀏覽器）／generate-posts-metadata.js／
+                                verify-post-render.mjs 三處共用，取代原本各自重複的
+                                「new Marked() + 兩次 register」樣板
   markdown-cards.js            Card fence DSL：marked block 擴充 registerCardExtensions()，把 ```compare/
                                 prep/info/stepper/accordion/quickjump/stop 資料區塊逐字還原成卡片 HTML
-                                （純字串邏輯，可在 Node 與瀏覽器共用），由 scripts.js 最上方在
-                                window.marked 上註冊；語法細節見 doc/card_dsl.md
+                                （純字串邏輯，可在 Node 與瀏覽器共用）；語法細節見 doc/card_dsl.md
   markdown-sections.js         純 Markdown 結構轉換層：marked v12 hooks.processAllTokens()，在 token
                                 陣列上依「內容形狀」（單一連結標題＋下一段只有 code span → 美食卡；
                                 清單每項以單一英數字元粗體開頭 → App 清單）辨識並重組成與舊 fence 逐字
@@ -156,7 +164,8 @@ assets/
                                 Markdown；與 markdown-cards.js 並存同時註冊，互不衝突。涵蓋 eat／apps
                                 兩個家族，見 doc/card_dsl.md §1
   post-styles/                 文章專屬視覺風格 CSS，每個風格一份 <name>.css，scope 在 .post-style-<name>
-                                下，由 tailwind.css 檔尾 @import（見 doc/card_dsl.md「文章視覺風格系統」）
+                                下，由 tailwind.css 檔尾 @import ... layer(post-styles) 掛入
+                                （見 doc/card_dsl.md「文章視覺風格系統」）
   fonts/                       自我託管的 Lora + Open Sans 字型 (woff2)
 public/
   components/                  共用佈局元件
@@ -327,6 +336,9 @@ posts/
     未分層元件規則裡寫了 `display`／`position`／`color` 這類 utility 也會設的屬性，對應的
     utility 就會失效，新增 JS 注入的元件時必須留意。同期檢查過 `.chapter-bar` 與
     `.toc-sidebar`——它們自身沒宣告 `display`，故 `xl:hidden`／`hidden xl:block` 正常生效。
+    **後續（2026-07-26）**：本點描述的「未分層優先於一切」問題已透過 cascade layer 重構
+    根治，`.toc-fab` 的 `@media` hack 已移除，見第一部分第 27 點；本點保留作為問題成因與
+    當時解法的歷史記錄。
 
 22. **上/下一篇導覽不用按鈕，改為顯示標題的連結對（2026-07-21）**：原本是兩顆 `.btn-primary`，
     標題只藏在 `title` 屬性的 tooltip 裡。兩個問題：(1) `.btn-primary` 是全站唯一的主 CTA 重量級
@@ -391,17 +403,17 @@ posts/
     wrapper。風格 CSS 放 `assets/post-styles/<名稱>.css`，整份 scope 在 `.post-style-<名稱>`
     下，由 `assets/tailwind.css` `@import` 進來。07-16 的 `.style-a-post` 整段改名搬進
     `assets/post-styles/editorial-card.css`，front matter 加 `style: editorial-card`。
-    *   **`@import` 位置陷阱（唯一的踩坑點）**：必須放 `assets/tailwind.css` **檔案最末行**，
-        不可放元件區中間。實測 `npx vite build` 後檢查 `dist/assets/*.css` 的 byte offset：
-        放第 119 行元件區 → 風格規則落在多數元件 CSS **之前**，風格覆寫不到基礎樣式；放檔尾
-        → 落在全檔最末（複驗 offset 65591／總長 75231，排在 `.prose h1` 等規則之後）才正確。
-        兩種位置 Tailwind v4 都能編譯、`@apply` 都能解析，**build 不會報錯**，是純粹的靜默
-        cascade bug，肉眼看 build log 完全看不出來，只能靠檢查編譯後 CSS 的實際順序抓到。
+    *   **`@import` 位置陷阱（2026-07-26 已解除）**：本點原文記錄的是「必須放
+        `assets/tailwind.css` 檔案最末行，不可放元件區中間，否則風格規則排到元件 CSS
+        之前、build 不會報錯但靜默覆寫失敗」的踩坑經驗。第一部分第 27 點的 cascade layer
+        重構後，`@import "./post-styles/editorial-card.css" layer(post-styles);` 用
+        `layer(post-styles)` 明確宣告所屬層，覆寫順序改由檔首的 `@layer` 順序宣告決定，
+        與這行 `@import` **物理上寫在檔案哪個位置無關**——原本「唯一的踩坑點」已不成立，
+        但仍維持放在檔尾的慣例以維持可讀性（風格覆寫本來就該讀在元件定義之後）。
     *   **為何仍是單一 CSS bundle、不做動態 `<link>` 分離**：`vite.config.js` 的
         `swPrecachePlugin` 用 `files.find(f => f.endsWith('.css'))` 只抓第一個 CSS 檔寫進
         PWA 預快取清單——多 CSS 輸出會讓預快取抓錯檔案，是現行 plugin 程式碼的硬性前提，
-        不是「圖方便」的簡化選擇。風格 CSS 因此也刻意不放 `@layer`（同第一部分第 21 點的
-        未分層元件慣例）。
+        不是「圖方便」的簡化選擇。
     *   **跨文章共用的前提**：`.post-style-<name>` scoping 天生支援多篇 front matter 填同一個
         值，但風格檔的選擇器綁定特定 DSL 家族（`editorial-card.css` 綁定 `quickjump`/`stop`/
         `eat`/`eatarea`，如 `.spot-title`/`.food-item`/`.food-list-title`）——第二篇想套用
@@ -458,6 +470,50 @@ posts/
         由上述 CSS／JS 分析證實不受影響）。headless Chromium 截圖複驗：30 張 `.food-item`
         正常渲染、無 console error、視覺與 TOC 一致。`CACHE_NAME` 升至 `clean-blog-v56`。
 
+27. **Cascade layer 重構，`.toc-fab` 的 `@media` hack 走入歷史（`doc/archive/suggestion.md`
+    R2/S2 第 2 步，2026-07-26）**：第一部分第 21 點記錄的「未分層樣式優先序恆高於任何
+    `@layer`」問題，原本只在 `.toc-fab` 單點用 `@media` 手動關閉解決，未推廣成通則——
+    `doc/archive/suggestion.md` 指出第 2 個風格檔遲早會再踩一次同樣的坑。
+    *   **做法**：`assets/tailwind.css` 檔案最頂（`@import "tailwindcss"` 之前）新增
+        `@layer theme, base, components, utilities, post-styles;` 明確宣告全站層順序——
+        CSS 規範裡「哪個 `@layer` 名稱先被提及」決定層優先序，不是宣告語句寫在檔案哪個
+        位置，故必須搶在 Tailwind 自己內部的 `@layer theme, base, components, utilities;`
+        之前出現，才能讓 `post-styles` 排在其後而非被忽略。原本大段未分層的「UI Components」
+        區塊（約 758 行）整段包進 `@layer components { … }`；`assets/post-styles/
+        editorial-card.css` 的 `@import` 改為 `@import "..." layer(post-styles);`（細節見
+        第一部分第 25 點該小節的更新）。
+    *   **`.toc-fab` hack 移除**：`.toc-fab` 現在屬於 `@layer components`，排在
+        `@layer utilities` 之前，`scripts.js` 掛的 `xl:hidden` utility 能正常靠層順序覆寫，
+        不再需要額外寫 `@media (min-width: 80rem) { .toc-fab { display: none } }`——原本
+        `doc/archive/suggestion.md` 就指出這是這次重構會連帶解掉的副作用。
+    *   **驗證**：`npm run build` 通過；`node scripts/verify-post-render.mjs` 3 篇文章 0 diff
+        （純 CSS 變更、不影響渲染出的 HTML）；額外用 playwright-core 起 headless Chromium
+        對 `.toc-fab` 在 1400px／390px 兩種寬度量測 `getComputedStyle(...).display`，
+        分別為 `none`／`flex`，確認拿掉手動 hack 後行為不變；07-16 三種地形徽章
+        （`.food-tag.level-flat/slope/steps`）底色仍各自不同，未被此次重構重新吃掉；
+        對首頁／文章目錄／關於／聯絡／三篇文章共 6 個頁面做 console error 掃描與
+        `.btn-primary` 顏色抽查，全數正常、零 console error。**此變更未提交（commit）**，
+        依使用者要求留待其本人在瀏覽器目視確認後再自行 commit。
+28. **`marked` 改由 npm 打包，收斂三處重複註冊為 `assets/create-marked.js`（
+    `doc/archive/suggestion.md` R10/R13/S3，2026-07-26）**：`posts/detail.html` 原本用
+    `<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">` 載入瀏覽器端
+    `marked`（吃 CDN latest，版本不受控），與 Node 端建置腳本鎖定的 `marked@^12.0.0`
+    可能分裂；離線 PWA 若 CDN 請求失敗，文章會整個降級成純文字。
+    *   **做法**：刪除 `posts/detail.html` 的 CDN `<script>`；新增 `assets/create-marked.js`
+        匯出 `createMarked()`（`new Marked()` ＋ `registerCardExtensions`／
+        `registerSectionExtensions`），取代原本 `assets/scripts.js`／
+        `scripts/generate-posts-metadata.js`／`scripts/verify-post-render.mjs` 三處
+        各自重複的「`new Marked()` + 兩次 register」樣板。`assets/scripts.js` 呼叫
+        `createMarked()` 後把實例掛回 `window.marked`——`posts/detail.html` 內解析文章的
+        那段是非 `type="module"` 的 inline `<script>`，無法用 `import` 拿到同一份實例，只能
+        靠全域變數；`<script type="module" src="/assets/scripts.js">` 依 HTML 規範以
+        defer 語意在 `DOMContentLoaded` 前執行完畢，故該 inline script 的事件處理常式觸發時
+        `window.marked` 必然已就緒，時序與改動前（CDN `<script>` 先執行）等價。
+    *   **驗證**：`npm run build` 通過（`marked` 現已隨 `scripts-*.js` bundle 一起打包，不再
+        是獨立的第三方 `<script>` 標籤）；`node scripts/verify-post-render.mjs` 3 篇文章
+        0 diff；playwright-core headless Chromium 開 `posts/detail.html` 實際頁面確認
+        `window.marked.parse` 可用、文章內容正常渲染、無 console error。
+
 ## GitHub Pages 部署設定指引
 
 由於本專案採用自訂的 GitHub Actions 工作流（監聽 `main` 工作分支）來建置並部署至 GitHub Pages，若遇到 `Branch "main" is not allowed to deploy to github-pages due to environment protection rules` 錯誤，請前往 GitHub 儲存庫網頁端進行以下兩項設定：
@@ -483,59 +539,20 @@ posts/
 
 ## 待辦事項
 
-- [ ] 從 [formspree.io/forms](https://formspree.io/forms) 取得真實的 Formspree 表單 ID，並替換 `contact.html` 中的 `YOUR_FORM_ID`
-- [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前保留原 Jekyll 主題的資訊）
-- [ ] 將 `public/manifest.json` 與元件中預留的 `your-email@example.com` 替換為真實數值
+- [ ] 更新 `package.json` 中的元數據描述與真實的專案儲存庫（目前仍保留原 Jekyll 主題
+      `startbootstrap-clean-blog-jekyll` 的 `name`／`description`／`author`／`repository`
+      欄位，需要使用者提供這個專案實際要用的名稱、描述與 repo URL 才能填入真實值）
 - [ ] **中文襯線字體跨裝置一致性**：目前中文標題襯線僅在有系統內建中文襯線字型（macOS Songti、Windows 新細明體）的裝置上生效，多數 Android 裝置無內建中文襯線會退回無襯線字體。若未來要追求完全一致的跨裝置「編輯雜誌感」，需自行 subset 打包 Noto Serif TC 字型檔（僅收錄實際會用到的標題字元），並更新 `sw.js` 的 precache 清單
 - [ ] **「關於」頁面目前沒有任何入口**：`about.html` 存在且已套用新樣式，但 Navbar 與 Footer 都沒有連結指向它。若要恢復這個入口，建議與「Navbar 手機版漢堡選單」一併評估
 - [ ] **Navbar 手機版漢堡選單死程式碼**：`assets/scripts.js` 裡仍保留舊 Jekyll 主題遺留的 `toggleNav()` 漢堡選單邏輯（對應 `#navbarResponsive` 元素），但目前 `navbar.html` 只有 2 個導覽項目、單排橫向排列在小螢幕也不會擠壓，因此沒有實際啟用。若未來導覽項目增加需重新評估是否啟用，或直接移除死程式碼
 - [ ] **07-20 `## 1.2 WOWPASS 完整介紹` 底下仍有 6 個 `###`**：是全文最密的一節（已依 `doc_style.md` 第 3 節收掉一個標籤型 `### 是什麼`）。若閱讀時仍覺得標題雜，可再依同一判準（讀者會不會拿這個標題來定位）收一輪；注意解法是減少標題，不是給 `###` 加視覺記號（見第一部分第 19 點與 `style.md` A14）
-- [ ] **07-16（`editorial-card` 風格）行動版開頭出現兩個重複的摘要／導覽區塊**：
-      `buildMobileOutlineAndSheet()` 產生的自動大綱框「本文章節」（列出 總覽／景點漫遊／美食推薦）
-      會插在 `#post-content` 最前面，緊接著又是「總覽」小節裡 `quickjump` DSL 輸出的
-      「7 大主題景點快速導覽」格狀清單——兩者功能高度重疊，行動版一開頭連續出現兩個摘要區塊。
-      需要決定去重方式：例如拿掉 `quickjump` 區塊、或讓自動大綱偵測到頁面已有等價導覽時跳過
-      渲染，或乾脆把兩者合併成一個元件。（原文提及的 style-b/c 實驗版型已於 2026-07-25「文章
-      視覺風格系統」重構時整組移除，不再適用，故不再需要一併確認。）
 
-- [ ] **本次 UI 調整待目視確認（2026-07-21）**：三項改動都只做到 `npm run build` 與 CSS 輸出複驗，未實際在瀏覽器目視。待確認 (a) TOC 側欄新密度是否仍嫌擠——若是，下一步是把 `.toc-sidebar` 寬度改成 `clamp(11rem, calc(50vw - 26rem), 14rem)` 讓大螢幕自動加寬（**不是再縮字**），代價是動到側欄與文章的 2rem 間隙；(b) `.post-nav-title` 在行動版 375px 下是否普遍撞到 `line-clamp: 3` 上限——若是，解法是收窄 `.post-nav` 的 `gap` 換欄寬
-- [x] **07-16 `.food-list-title` 改為 `<h3 class="food-list-title">` 進 TOC**：已改為 `<h3 class="food-list-title">`，讓 6 個美食分區成功加入 TOC Drawer / 側欄供快速跳轉，視覺樣式 0 Diff 完全不變。
+### `doc/archive/suggestion.md` 架構審查待辦（S1–S13）
 
-### 2026-07-26 架構審查（`doc/archive/suggestion.md`）待辦，尚未動工
-
-以下 13 項摘自 `doc/archive/suggestion.md` 的 S1–S13，只是登記追蹤，尚未實作；完整風險分析、
-程式碼位置與驗證方式見該檔對應的 R／S 編號。
-
-**現在就做**
-
-- [x] **S1 補齊 13 個變體專屬 class 的 base 樣式**（2026-07-26 完成）：`.food-header`／
-      `.food-name`／`.food-tag`／`.food-price`／`.food-why`／`.spot-section`／`.spot-desc`
-      等 13 個 class 原本只存在 `editorial-card.css`，未指定 `style` 的文章會渲染成外框有
-      內容裸露的「半裸卡片」；已在 `assets/tailwind.css` 補上與 `editorial-card.css` 原值
-      逐字相同的 base 樣式，`editorial-card.css` 同步清掉重複宣告（`doc/archive/suggestion.md`
-      R1/S1，見更新歷史）。
-- [x] **S2 第 1 步：修 `stop` 徽章顏色被吃掉的 bug**（2026-07-26 完成）：`STOP_LEVEL_CLASS`
-      的 `flat`/`slope`/`steps` 已從 Tailwind 任意值 utility 改成 `.food-tag.level-*` 具名
-      class，07-16 三種地形徽章顏色恢復可見差異（`doc/archive/suggestion.md` R2/S2）。
-- [ ] **S2 第 2 步：定義 `@layer components/post-styles/utilities` 順序規則**：尚未做——會
-      改變現有覆寫關係（如 `.toc-fab` 目前靠 unlayered CSS 贏過 `xl:hidden` 的 hack），
-      `suggestion.md` 要求做完必須跑 build 並目視三篇文章，需要有瀏覽器可驗證時再處理
-      （`doc/archive/suggestion.md` R2/S2）
-- [ ] **S3 marked.js 改 npm 打包，收斂三處重複註冊為單一模組**：目前瀏覽器端吃 CDN latest、
-      建置端鎖 12.0.2，版本可能分裂；離線 PWA 開文章會整個降級成純文字
-      （`doc/archive/suggestion.md` R10,R13/S3）
-- [x] **S4 `style` front matter 值加驗證**（2026-07-26 完成）：build 時檢查對應 CSS 是否
-      存在、`@import` 是否已加；執行時避免含空白的值讓 `classList.add()` 拋例外導致整篇
-      文章消失（`doc/archive/suggestion.md` R4,R5/S4，見更新歷史）
-- [x] **S5 CI 補 `fetch-depth: 0` ＋ 加一道 `verify-post-render.mjs` 驗證步驟**
-      （2026-07-26 完成）：目前 shallow clone 導致線上每篇文章「更新時間」都跳成部署日，
-      且每次部署集體跳動（`doc/archive/suggestion.md` R12/S5，見更新歷史）
-- [x] **S6 收緊 `appList` 觸發形狀**（2026-07-26 完成）：拿掉數字、要求該項含全形冒號
-      「：」，避免手寫編號清單（`**1** 下載 App`）被誤判成 App 卡片
-      （`doc/archive/suggestion.md` R6/S6，見更新歷史）
-- [x] **S7 修 `doc/style.md` 三處與程式碼不符的敘述**（2026-07-26 完成）：不存在的
-      `build:css` 指令、blockquote 樣式、TOC 側欄定位方式
-      （`doc/archive/suggestion.md` R15/S7，見更新歷史）
+以下摘自 `doc/archive/suggestion.md` 的 S1–S13，只登記追蹤；完整風險分析、程式碼位置與驗證
+方式見該檔對應的 R／S 編號。S1、S2（兩步皆已完成，第 2 步的程式碼變更尚未 commit，待使用者
+本人瀏覽器目視確認後自行提交）、S3、S4、S5、S6、S7 已完成，記錄見下方「更新歷史」，不再
+重複列於待辦。
 
 **觀察區，等特定時機再做**
 
@@ -557,78 +574,72 @@ posts/
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
-### 2026-07-26 — S7：修 `doc/style.md` 三處與程式碼不符的敘述
+### 2026-07-26 — S2 第 2 步：Cascade layer 重構，`.toc-fab` 的 `@media` hack 移除
 
-* **範圍**：`doc/archive/suggestion.md` R15/S7 的落地。`doc/style.md` 是全站唯一一份「新增
-  元件時照抄」的規格書，核對後發現 3 處文件與程式碼實際行為已經漂移，其中 D 節（操作鏈）
-  的漂移影響最大——照著做會去找一個不存在的指令。本次是純文件修正，不涉及任何程式碼、
-  CSS 或建置行為變更。
-* **`doc/style.md` D 節第 1 點**：原文宣稱「跑 `npm run build:css` 產出 `assets/main.css`」
-  ——`package.json` 根本沒有這個 script（`CLAUDE.md`／`doc/project.md` 都已明確否定），
-  改為「樣式只改 `assets/tailwind.css`，沒有獨立的 `build:css` 指令，由 `@tailwindcss/vite`
-  在 `npm run dev`／`npm run build` 時即時編譯，驗證請直接跑 `npm run build`」。
-* **`doc/style.md` E 節反模式清單**：`assets/main.css` 那條原本寫「會被 build 覆蓋」，
-  暗示它仍在建置流程內，改為「gitignored 的無用殘留，不在建置流程內，編輯了也不會有任何
-  效果」，與 `CLAUDE.md`／`doc/project.md` 的敘述對齊。
-* **`doc/style.md` B7 引言 `blockquote`**：原文寫「`italic` + `text-muted-text`」，但
-  `assets/tailwind.css` 的 `.prose blockquote` 早在 2026-07-21（見第一部分第 17 點）就已
-  改為 `font-style: normal` + 襯線 pull-quote + `text-ink`，全站已無殘留斜體樣式；改為
-  如實描述目前的 pull-quote 規則。
-* **`doc/style.md` B5 桌機 TOC 側欄**：原文寫死「`position: fixed`」，但實際是 `.toc-sidebar`
-  預設 `position: absolute`（隨頁面捲動貼在 Banner 下緣，避免初始蓋住 Banner 文字），捲動
-  超過休息位置後才由 `updatePinnedState()` 切換 `.is-pinned` 改為 `fixed`（見第一部分第 8
-  點的完整設計說明）；改為如實描述這個兩階段定位機制。
-* **驗證**：純文件變更，`npm run build` 通過（用以確認未誤動任何程式碼檔案），
-  `CACHE_NAME` 未變動。S1–S7「現在就做」清單至此全數完成。
+* **範圍**：`doc/archive/suggestion.md` R2/S2 第 2 步的落地。完整內容見第一部分第 27 點，
+  此處只記重點：`assets/tailwind.css` 檔首新增 `@layer theme, base, components, utilities,
+  post-styles;`，原本大段未分層的「UI Components」區塊（約 758 行）包進
+  `@layer components { … }`，`assets/post-styles/editorial-card.css` 的 `@import` 改為
+  `@import "..." layer(post-styles);`。連帶效果：`.toc-fab` 不再需要手動
+  `@media (min-width: 80rem) { display: none }` 才能贏過 `xl:hidden`，該 hack 已移除。
+* **驗證**：`npm run build` 通過；`node scripts/verify-post-render.mjs` 3 篇文章 0 diff；
+  playwright-core headless Chromium 對 `.toc-fab` 在 1400px／390px 兩種寬度量測
+  `getComputedStyle` 的 `display`，分別為 `none`／`flex`，確認移除 hack 後行為不變；
+  07-16 三種地形徽章底色仍各自不同；對 6 個頁面（首頁／文章目錄／關於／聯絡／三篇文章）
+  做 console error 掃描與 `.btn-primary` 顏色抽查，全數正常。**此變更未提交（commit）**，
+  依使用者要求留待其本人在瀏覽器目視確認後自行 commit。
+* **`doc/style.md` B8 對應更新**：`@import` 位置陷阱一節的描述同步更新為「已解除」（見下方
+  「更早的更新」條目與 `doc/style.md` 本身的變更）。
 
-### 2026-07-26 — S6：收緊 `appList` 觸發形狀，避免誤判手寫粗體編號清單
+### 2026-07-26 — S3：`marked` 改由 npm 打包，收斂三處重複註冊為 `assets/create-marked.js`
 
-* **範圍**：`doc/archive/suggestion.md` R6/S6 的落地。`assets/markdown-sections.js` 的
-  App 推薦清單形狀判斷原本用 `/^[A-Za-z0-9]$/` 判定「單一英數字元的粗體」開頭，且不檢查
-  是否含分隔用的全形冒號「：」。`card_dsl.md` 原本宣稱「全站掃過確認沒有其他清單/段落用
-  單一粗體字母開頭，是安全的形狀」，但「掃過現有 3 篇沒撞到」不等於長期安全——這個形狀
-  剛好涵蓋一個常見手寫慣例（`- **1** 下載 App，選擇「韓國地區」`這種粗體編號步驟清單），
-  作者哪天改成粗體編號寫法就會被靜默誤判成 App 卡片；另外沒有冒號的清單一樣會觸發，只是
-  說明區塊留空。
-* **`assets/markdown-sections.js`**：`startsWithLetterStrong()` 的正則從
-  `/^[A-Za-z0-9]$/` 改成 `/^[A-Za-z]$/`（拿掉數字——App 圖示取名稱首字母，不會是數字）；
-  `isAppList()` 追加條件，要求該項 `inline.raw` 含全形冒號「：」（對應 `renderAppList`
-  實際用第一個「：」切「名稱／說明」的渲染邏輯）。兩條件皆須成立才觸發，任一項不符即整份
-  清單維持原樣輸出（普通 `<ul><li>`）。
-* **`doc/card_dsl.md` §1.2／`doc/doc_style.md` §5**：同步更新觸發條件敘述為「單一英文
-  字母的粗體＋全形冒號」雙條件，移除「掃過現有文章沒撞到＝安全」這個站不住腳的理由。
-* **驗證**：現有 5 張 App 卡（`2026-07-13-...md:256-260`，`**N**`/`**K**`/`**T**`/
-  `**P**`/`**W**` 皆含「：」）經 `node scripts/verify-post-render.mjs` 確認 3 篇文章
-  0 diff；額外寫兩組反向測試腳本確認：(1) `- **1** 下載 Toss App` 這類粗體編號清單改動
-  前會、改動後不會被誤判成 App 卡；(2) 單一字母粗體但缺「：」的清單同樣不再誤判。
-  `npm run build` 通過，未改動 CSS，`CACHE_NAME` 未變動。
+* **範圍**：`doc/archive/suggestion.md` R10/R13/S3 的落地。完整內容見第一部分第 28 點。
+  `posts/detail.html` 原本用 CDN `<script src="https://cdn.jsdelivr.net/npm/marked/
+  marked.min.js">` 載入瀏覽器端 `marked`（吃 latest，版本不受控，離線 PWA 若 CDN 請求
+  失敗文章會整個降級成純文字），與 Node 端建置腳本鎖定的 `marked@^12.0.0` 可能分裂。
+* **做法**：刪除該 CDN `<script>`；新增 `assets/create-marked.js` 匯出 `createMarked()`
+  （`new Marked()` ＋ 兩個 DSL 擴充註冊），取代 `assets/scripts.js`／
+  `scripts/generate-posts-metadata.js`／`scripts/verify-post-render.mjs` 三處原本各自
+  重複的樣板。`assets/scripts.js` 把實例掛回 `window.marked`，供 `posts/detail.html`
+  內非 module 的 inline `<script>` 讀取（時序理由見第一部分第 28 點）。
+* **驗證**：`npm run build` 通過（`marked` 現隨 bundle 一起打包）；`verify-post-render.mjs`
+  3 篇文章 0 diff；playwright-core 開實際頁面確認 `window.marked.parse` 可用、內容正常
+  渲染、無 console error。
 
-### 2026-07-26 — S5：CI 補 `fetch-depth: 0` ＋ 加一道 `verify-post-render.mjs` 驗證步驟
+### 2026-07-26 — 07-16 行動版開頭重複摘要區塊去重
 
-* **範圍**：`doc/archive/suggestion.md` R12/S5 的落地。`.github/workflows/pages.yml` 的
-  `actions/checkout@v4` 原本用預設 shallow clone（`fetch-depth: 1`），但
-  `generate-posts-metadata.js` 的 `getFileUpdatedDate()` 靠 `git log -1 --format=%ad` 取
-  每篇文章的「更新時間」——shallow clone 下每個檔案的 git 歷史都被截斷成只剩最新一個
-  commit，導致線上每篇文章的「更新時間」全部跳成部署當天日期，且每次重新部署會集體再跳
-  一次，讀者看不出文章實際的修訂新舊。
-* **`.github/workflows/pages.yml`**：`Checkout` 步驟加 `with: fetch-depth: 0`，取得完整
-  git 歷史，讓 `getFileUpdatedDate()` 在 CI 環境也能正確算出每篇文章各自最後一次修改的
-  commit 日期。新增一道 `Verify post render (regression smoke test)` 步驟，在
-  `build:metadata` 之後、`Build site (Vite)` 之前跑 `node scripts/verify-post-render.mjs`
-  （不帶參數，即 `HEAD` vs 工作目錄、全部文章）。
-* **這道驗證步驟在 CI 裡的實際效果**：由於 CI 的工作目錄本來就是 checkout 出來的 `HEAD`，
-  「`HEAD` vs 工作目錄」的內容比對永遠是 0 diff，不會抓到「這次改動改變了渲染輸出」這種
-  語意差異（那需要指定上一個 ref 才有意義，是 S10 golden snapshot 要解決的範圍）；它真正
-  擋住的是`doc/archive/suggestion.md` 講的「改了文章內容導致渲染爆炸」——只要任何一篇
-  文章的內容讓 `markdown-cards.js`／`markdown-sections.js` 在解析時丟出例外，這一步就會
-  以非 0 exit code 讓 CI 失敗，在部署前攔下語法炸裂的文章，成本是一次全綠的 Node 腳本
-  執行，不影響建置時間。
-* **驗證**：本機模擬 CI 情境執行 `node scripts/verify-post-render.mjs`（`src/posts/`
-  無未提交變更），3 篇文章皆 0 diff、exit code 0；`npm run build` 通過。未改動任何
-  CSS／JS 執行邏輯，`CACHE_NAME` 未變動。
+* **範圍**：待辦事項裡「`editorial-card` 風格行動版開頭出現兩個重複摘要／導覽區塊」的落地。
+  `buildMobileOutlineAndSheet()`（`assets/scripts.js`）產生的自動大綱框「本文章節」與
+  07-16「總覽」小節裡 `quickjump` DSL 輸出的「7 大主題景點快速導覽」格狀清單功能重疊，
+  行動版一開頭連續出現兩個摘要區塊。使用者選定的去重方式：讓自動大綱偵測到頁面已有等價
+  導覽時跳過渲染（而非拿掉 `quickjump` 或合併兩者）。
+* **`assets/scripts.js`**：`buildMobileOutlineAndSheet()` 新增
+  `hasEquivalentNav = !!contentContainer.querySelector('.editorial-quick-jump')`，
+  靜態大綱只在 `topLevelItems.length > 0 && !hasEquivalentNav` 時才建立並插入；
+  FAB／Bottom Sheet 不受影響（`fabSentinel = outline || toc[0].el` 既有的 null 分支
+  已經處理「沒有靜態大綱」的情況，無需額外改動）。只影響用了 `quickjump` 的文章
+  （目前僅 07-16），07-13／07-20 行為不變。
+* **驗證**：`npm run build` 通過；playwright-core headless Chromium 檢查 07-16
+  `.toc-outline` 數量為 0（`.editorial-quick-jump` 數量為 1），07-13 `.toc-outline`
+  數量為 1（`.editorial-quick-jump` 數量為 0），確認只有已具備等價導覽的文章才跳過；
+  截圖複驗 07-16「總覽」小節下方僅剩 `quickjump` 格狀清單一個摘要區塊。
 
 ### 更早的更新（壓縮摘要，新到舊）
 
+- 2026-07-26：待辦清單整理——移除待辦事項裡已完成的 `[x]` 項目（07-16 `.food-list-title`
+  改 h3、S1、S2 第 1 步、S4、S5、S6、S7），修正已過期的「架構審查…尚未動工」章節標題；
+  同日稍後移除「本次 UI 調整待目視確認（2026-07-21）」（使用者本人已在瀏覽器確認完成）與
+  「07-16 行動版重複摘要區塊」（已修正，見上方完整記錄）兩項；另外發現 Formspree 表單 ID
+  與 `manifest.json` email 佔位字串兩項待辦已經是舊 code 的痕跡——`contact.html` 目前實際
+  用 Google Apps Script `fetch()` 送出表單，早就不是 Formspree，且全 repo 搜尋不到
+  `your-email@example.com`/`YOUR_FORM_ID` 任何殘留，兩項一併移除，只留下確實仍是佔位資料的
+  `package.json` 元數據一項
+- 2026-07-26：S7 修 `doc/style.md` 三處與程式碼不符的敘述——不存在的 `build:css` 指令、
+  blockquote 樣式、TOC 側欄定位方式（純文件修正）
+- 2026-07-26：S6 收緊 `appList` 觸發形狀，避免誤判手寫粗體編號清單——正則拿掉數字、
+  追加要求含全形冒號「：」雙條件
+- 2026-07-26：S5 CI 補 `fetch-depth: 0`（修正 shallow clone 導致線上文章「更新時間」全部
+  跳成部署日）＋ 加一道 `verify-post-render.mjs` 渲染回歸驗證步驟，部署前攔下語法炸裂的文章
 - 2026-07-26：S4 `style` front matter 值加驗證——build 時檢查 CSS 檔與 `@import` 皆存在，
   不符即 `process.exit(1)`；`detail.html` 的 `classList.add` 加 trim/正則守衛與獨立
   `try`，避免含空白的值讓整篇文章消失

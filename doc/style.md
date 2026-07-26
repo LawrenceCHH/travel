@@ -326,10 +326,12 @@ CSS 層（機制細節、`style` front matter 用法見 `doc/card_dsl.md`「文�
 - **檔案位置**：每個風格一份 `assets/post-styles/<風格名稱>.css`，整份 scope 在
   `.post-style-<風格名稱>` 之下，class 由 `posts/detail.html` 依 front matter `style`
   欄位動態掛在 `#post-content` 上（與 `marked.parse()` 同一個 tick，無 FOUC）。
-- **`@import` 位置是硬性要求，必須放 `assets/tailwind.css` 檔案最末行**（不是元件區中間）。
-  風格檔的職責就是覆寫上方元件基礎樣式，來源順序必須排最後才吃得到 cascade；放在檔案中間
-  時 Tailwind v4 一樣能編譯、`@apply` 一樣能解析，**build 不會報錯**，但風格規則會排在多數
-  元件 CSS 之前，變成靜默的「風格覆寫不到元件樣式」cascade bug。
+- **`@import` 用 `layer(post-styles)` 明確宣告所屬層（2026-07-26 起）**：
+  `assets/tailwind.css` 檔首宣告 `@layer theme, base, components, utilities, post-styles;`，
+  風格檔的 `@import` 寫成 `@import "./post-styles/<名稱>.css" layer(post-styles);`——
+  覆寫順序由這個宣告的層順序決定，與 `@import` 語句物理上寫在檔案哪個位置**無關**。舊版曾
+  規定「必須放檔案最末行，否則 build 不會報錯但靜默覆寫失敗」，該踩坑點已解除，但仍建議
+  放在檔尾維持可讀性（風格覆寫本來就該讀在元件定義之後）。
 - **只打包成單一 CSS bundle，不做動態 `<link>`**：`vite.config.js` 的 `swPrecachePlugin` 用
   `files.find(f => f.endsWith('.css'))` 只抓第一個 CSS 檔寫進 PWA 預快取清單，多 CSS 輸出會
   讓預快取抓錯檔案，是現行 plugin 的硬性前提，不是單純的簡化選擇。
@@ -347,12 +349,14 @@ CSS 層（機制細節、`style` front matter 用法見 `doc/card_dsl.md`「文�
   規則是「文章預設有通用 CSS、少數文章才疊加客製化 CSS」這個設計目標成立的前提，不是可省的
   細節。
 - **風格檔覆寫用具名 class，不要用 Tailwind 任意值 utility 表達顏色變體**：`editorial-card.css`
-  是未分層（unlayered）CSS，優先序恆高於 Tailwind 產生的 `@layer utilities`，與 specificity
-  無關；若某個 renderer 用 `bg-[#f6eed6]` 這類任意值 utility 表達顏色變體，只要有任何一條
-  未分層的 `.post-style-x .foo` 規則同時命中該元素，utility 會被整組壓過且不報錯。曾在
-  07-16 造成 `stop` fence 的 flat/slope/steps 三種地形徽章全部被吃成同一色（見
-  `assets/tailwind.css` 的 `.food-tag.level-*`）；顏色變體一律改用與風格檔同處未分層空間的
-  具名 class，讓覆寫關係回到可預期的 specificity 競爭（`doc/archive/suggestion.md` R2）。
+  現屬 `@layer post-styles`，宣告順序排在 `@layer utilities` 之後（見上一條），若某個
+  renderer 用 `bg-[#f6eed6]` 這類任意值 utility 表達顏色變體，只要有任何一條
+  `.post-style-x .foo` 規則同時命中該元素，utility 一樣會被層順序壓過（這點在 2026-07-26
+  cascade layer 重構後仍然成立，只是原因從「未分層意外贏過一切」變成「post-styles 依宣告
+  順序本來就該贏過 utilities」）。曾在 07-16 造成 `stop` fence 的 flat/slope/steps 三種
+  地形徽章全部被吃成同一色（見 `assets/tailwind.css` 的 `.food-tag.level-*`）；顏色變體
+  一律改用具名 class，讓覆寫關係回到可預期的 specificity 競爭，不要依賴風格檔能不能剛好
+  蓋過某個 utility（`doc/archive/suggestion.md` R2）。
 
 ---
 

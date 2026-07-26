@@ -1,3 +1,9 @@
+/* Cascade layer 順序宣告：必須在 @import "tailwindcss" 之前，才能讓 post-styles 排在
+   utilities 之後（CSS 規範裡「哪個 @layer 名稱先被提及」決定層順序，不是宣告位置）。
+   之後 base／components／post-styles／utilities 的覆寫關係就是可預測的，不再依賴
+   「誰沒分層誰贏」（doc/project.md 待辦事項 S2 第 2 步，見第一部分第 21 點的背景）。 */
+@layer theme, base, components, utilities, post-styles;
+
 @import "tailwindcss";
 @source "./**/*.js";
 @source "../**/*.js";
@@ -116,7 +122,8 @@
   }
 }
 
-/* UI Components (Unlayered to prevent purging of JS-injected classes in Tailwind v4) */
+/* UI Components */
+@layer components {
   .btn-primary {
     @apply inline-block rounded-none px-6 py-4 font-sans text-sm font-extrabold uppercase tracking-wider text-paper;
     background-color: var(--color-primary);
@@ -496,15 +503,11 @@
     opacity: 1;
     pointer-events: auto;
   }
-  /* 桌機（xl 以上）改用左側常駐側欄，不需要浮動按鈕。
-     這裡必須用 CSS 關掉，不能只靠 JS 掛的 xl:hidden——本檔元件區刻意未分層（見檔首
-     說明），未分層樣式的優先序高於 @layer utilities，上面的 display: flex 會直接壓過
-     .xl\:hidden 的 display: none，導致桌機右下角仍冒出圓鈕。 */
-  @media (min-width: 80rem) {
-    .toc-fab {
-      display: none;
-    }
-  }
+  /* 桌機（xl 以上）改用左側常駐側欄，不需要浮動按鈕：靠 scripts.js 掛的 xl:hidden
+     隱藏即可。2026-07-26 之前這裡曾需要額外的 @media 手動關閉，因為本檔元件區
+     未分層時優先序恆高於 @layer utilities；現在 .toc-fab 已收進 @layer components，
+     排在 @layer utilities 之前（見檔首 @layer 順序宣告），xl:hidden 能正常覆寫，
+     手動 hack 已移除（doc/project.md 待辦事項 S2 第 2 步）。 */
 
   /* 文章大綱 (TOC) —— 手機底部抽屜 (Bottom Sheet) */
   .toc-sheet-scrim {
@@ -873,7 +876,10 @@
   }
   .fold > *:not(summary) { @apply text-[14.5px] leading-relaxed; }
   .fold > *:last-child { @apply mb-4; }
+}
 
-/* 文章專屬視覺風格：必須置於檔案最末，確保來源順序最後、能覆寫上方元件樣式。 */
-@import "./post-styles/editorial-card.css";
+/* 文章專屬視覺風格：layer(post-styles) 使其排在 components 之後、utilities 之前
+   （見檔首 @layer 順序宣告），改寫變體樣式時靠明確的層順序覆寫 base，不再依賴
+   @import 位置本身的來源順序。 */
+@import "./post-styles/editorial-card.css" layer(post-styles);
 

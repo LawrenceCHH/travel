@@ -1,8 +1,10 @@
-import { registerCardExtensions } from './markdown-cards.js';
-import { registerSectionExtensions } from './markdown-sections.js';
-if (typeof window !== 'undefined' && window.marked) {
-  registerCardExtensions(window.marked);
-  registerSectionExtensions(window.marked);
+import { createMarked } from './create-marked.js';
+
+const marked = createMarked();
+if (typeof window !== 'undefined') {
+  // posts/detail.html 內的非 module inline <script> 靠全域 `marked` 呼叫 .parse()，
+  // 無法用 import 取得同一份實例，故掛回 window 供其讀取。
+  window.marked = marked;
 }
 
 function toggleNav() {
@@ -701,10 +703,13 @@ function initTOC(contentContainer) {
   // --- 手機/平板（<1280px）：頂部速覽區塊 + 浮動按鈕 + 底部抽屜 ---
   function buildMobileOutlineAndSheet(toc, contentContainer) {
     const topLevelItems = toc.filter(item => item.level === 2);
+    // 文章若已用 quickjump DSL 輸出等價的導覽格狀清單，就不再重複插入靜態大綱，
+    // 避免行動版開頭連續出現兩個功能重疊的摘要區塊（doc/project.md 待辦事項）。
+    const hasEquivalentNav = !!contentContainer.querySelector('.editorial-quick-jump');
 
     // 1. 文章開頭的靜態大綱區塊（僅列 h2，無巢狀、無 scroll-spy）
     let outline = null;
-    if (topLevelItems.length > 0) {
+    if (topLevelItems.length > 0 && !hasEquivalentNav) {
       outline = document.createElement('nav');
       outline.className = 'toc-outline not-prose my-2 rounded-md border border-sand bg-paper/60 p-4 xl:hidden';
       outline.setAttribute('aria-label', '章節速覽');
