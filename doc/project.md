@@ -177,7 +177,8 @@ assets/
   post-styles/                 文章專屬視覺風格 CSS，每個風格一份 <name>.css，scope 在 .post-style-<name>
                                 下，由 tailwind.css 檔尾 @import ... layer(post-styles) 掛入
                                 （見 doc/card_dsl.md「文章視覺風格系統」）
-  fonts/                       自我託管的 Lora + Open Sans 字型 (woff2)
+  fonts/                       自我託管的 Lora + Inter + Noto Serif TC 字型 (woff2，Noto Serif TC
+                                為僅收錄實際標題字元的 subset 可變字重檔，見第一部分第 31 點)
 public/
   components/                  共用佈局元件
     navbar.html                動態載入的導覽列（文字 wordmark Logo + 目錄連結）
@@ -238,7 +239,7 @@ posts/
         *   `--color-primary` / `-dark`：`#6F675B` / `#595249`（暖褐強調色，對白底通過 WCAG AA，同時滿足文字疊白底與白字疊強調底的可讀性）。
         *   `--color-hero-text`：`#F4ECDD`（Hero 區文字專用色，在深色遮罩下提供高對比）。
     *   **Hero 遮罩與文字對比**：`.masthead .overlay` 遮罩固定使用 `bg-ink`，不透明度設為 `0.78`，文字強制使用 `text-hero-text`（`#F4ECDD`）。此組合可確保不論背景圖明暗，標題與 Meta 文字皆能通過 WCAG AA 對比度規範。
-    *   **字體分工**：展示型標題（Hero、文章標題、Nav wordmark）與 Hero 副標題使用 `Lora` 襯線字型，建立編輯雜誌感；UI 與內文字體升級為 `Inter` 無襯線變數字型以確保清晰。中文字型維持系統優選。元資料（Meta）完全去除 CJK 漢字之斜體，收細至 `text-sm` 以拉開視覺層次。
+    *   **字體分工**：展示型標題（Hero、文章標題、Nav wordmark）與 Hero 副標題使用 `Lora` 襯線字型，建立編輯雜誌感；UI 與內文字體升級為 `Inter` 無襯線變數字型以確保清晰。中文襯線字型自 2026-07-26 起自架 `Noto Serif TC`（見第一部分第 31 點），不再只靠系統優選字型。元資料（Meta）完全去除 CJK 漢字之斜體，收細至 `text-sm` 以拉開視覺層次。
     *   **文章內文排版**：安裝 `@tailwindcss/typography` 處理 Markdown 元素樣式。詳細頁在渲染完成後以 JS 為 `<table>` 動態包覆 `overflow-x-auto` 容器，以防表格橫向溢出。**此外** `.prose p`/`.prose li` 設 `overflow-wrap: anywhere`、`.prose td`/`.prose th` 設較保守的 `overflow-wrap: break-word`（2026-07-21）：純 Markdown 文章若把裸網址等無空格長字串直接當可見文字（未用 `[文字](url)` 包裝），預設不斷行會撐寬 `.prose` 一路撐寬到 `<article>`，使整頁在手機出現橫向捲動，連帶把 `position: fixed` 的 `.toc-fab` 圓點推出可視範圍外；td/th 刻意不用 `anywhere` 是因為它會縮小儲存格 min-content 寬度，容易讓匯率、日期等數字欄位被不必要地強制斷成兩行、破壞對齊。
     *   **Navbar**：Logo 改為純文字 wordmark「旅遊指南」之極簡二項目架構，Navbar 具毛玻璃特效（`bg-surface/90 backdrop-blur-sm`）。
 6.  **目錄頁篩選/搜尋互動細節**：
@@ -640,6 +641,43 @@ posts/
     *   **驗證**：`npm run lint` 全綠；`npm run build`／`node scripts/verify-post-render.mjs`
         3 篇 0 diff（僅新增程式碼路徑，未變更既有渲染邏輯）。
 
+31. **中文襯線字體自架，解決跨裝置一致性（2026-07-26，待辦事項落地）**：
+    *   **問題**：`--font-serif` 字型堆疊雖列了 `"Noto Serif TC"`，但站內從未提供對應
+        `@font-face`，該名稱能生效全靠訪客裝置本身裝有系統內建中文襯線字型（macOS
+        Songti TC、Windows 新細明體）；多數 Android 裝置無此類系統字型，會直接跳過落到
+        堆疊末端的無襯線 fallback，導致「編輯雜誌感」標題只在部分裝置上生效。
+    *   **做法**：不採常規流程（下載完整 Noto Serif TC 字型檔＋本機用 `fonttools`/
+        `pyftsubset` 手動 subset），改用 Google Fonts CSS2 API 的 `&text=` 參數做**伺服器端**
+        字元級 subsetting——事先寫一支一次性腳本，重用 `assets/create-marked.js` 的
+        `createMarked()`（與 `scripts/verify-post-render.mjs` 同一套渲染管線）把
+        `src/posts/` 全部文章渲染成 HTML，加上各篇 front matter 的 `title`/`subtitle`、
+        以及 `index.html`/`contact.html`/`404.html`/`posts/index.html` 等靜態頁的
+        hero 標題，掃出所有會落在 `font-serif` 標題情境（`h1`-`h3`、`h4.food-name`、
+        `blockquote`、`.spot-title`、`.food-list-title`、`.alert-box-title`、
+        `.fold > summary`）裡的文字，取聯集得到 469 個實際會用到的中文字+標點。以
+        `https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&text=<這
+        469 字>` 換回的 CSS 只含一組 `unicode-range`，且 400/700 兩個 `@font-face` 指向
+        **同一個** `kit=` URL——證實 Google 回傳的是保留 `wght` 變化軸的可變字重字型（如
+        Inter 現行做法），故只需下載一份 woff2（208KB）即可涵蓋两个字重，不必比照 Lora
+        分兩個靜態檔案。下載後存為 `assets/fonts/noto-serif-tc-var.woff2`，在
+        `assets/tailwind.css` 新增兩組 `@font-face`（`font-weight: 400`／`700`，皆帶上
+        Google 回傳的 `unicode-range`），`--font-serif` 堆疊本身不需要改動（`"Noto Serif
+        TC"` 名稱已經在裡面，先前只是缺對應字型檔生效不了）。字集外字元會自動 fallback
+        到堆疊下一位（`Songti TC` / 系統 serif），未來新增文章用到字集外的字才需要重跑
+        一次同樣流程（一次性腳本未進版控，僅記錄流程於此，日後可依此重建）。
+    *   **PWA 快取**：`sw.js` 的 precache 清單／`CACHE_NAME` 不需要手動改動——新字型檔會被
+        Vite 打包進 `dist/assets/` 並帶內容雜湊，`sw.js` 的 `isStaticAsset` 本來就對
+        `/assets/`／`/fonts/` 做 cache-first（見 `public/sw.js` fetch handler），而
+        `swPrecachePlugin` 的 `CACHE_NAME` 雜湊來源包含 CSS 檔名（見第一部分第 29 點
+        S13），新增字型會讓 `tailwind.css` 內容變動、連帶讓打包後 CSS 檔名雜湊改變，
+        `CACHE_NAME` 自動跟著換版，訪客會拿到新字型，此點待辦原文提到的「更新 sw.js 的
+        precache 清單」已因 S13 自動化而不需要手動處理。
+    *   **驗證**：`npm run build` 通過，`dist/assets/noto-serif-tc-var-*.woff2`
+        （208.46 kB）與更新後的 `CACHE_NAME` 皆正確產生；`node
+        scripts/verify-post-render.mjs` 3 篇 0 diff（只新增字型與 CSS，未動渲染邏輯）；
+        `npm run lint` 全綠。**未涵蓋**：實機跨裝置（尤其 Android）目視驗證留待使用者
+        自行確認，此環境無法操作真實手機瀏覽器。
+
 ## GitHub Pages 部署設定指引
 
 由於本專案採用自訂的 GitHub Actions 工作流（監聽 `main` 工作分支）來建置並部署至 GitHub Pages，若遇到 `Branch "main" is not allowed to deploy to github-pages due to environment protection rules` 錯誤，請前往 GitHub 儲存庫網頁端進行以下兩項設定：
@@ -665,7 +703,12 @@ posts/
 
 ## 待辦事項
 
-- [ ] **中文襯線字體跨裝置一致性**：目前中文標題襯線僅在有系統內建中文襯線字型（macOS Songti、Windows 新細明體）的裝置上生效，多數 Android 裝置無內建中文襯線會退回無襯線字體。若未來要追求完全一致的跨裝置「編輯雜誌感」，需自行 subset 打包 Noto Serif TC 字型檔（僅收錄實際會用到的標題字元），並更新 `sw.js` 的 precache 清單
+- [ ] **Noto Serif TC subset 字集維護**：目前自架的 `assets/fonts/noto-serif-tc-var.woff2`
+      只涵蓋 2026-07-26 當下全站文章＋靜態頁標題實際用到的 469 個字（見第一部分第 31 點／
+      更新歷史）。未來新增文章若標題（`h1`-`h3`／美食店名／引言等 `font-serif` 情境）用到
+      字集外的中文字，該字會自動 fallback 到 `Songti TC`/系統 serif（不會顯示錯誤，只是該
+      字暫時不是自架字型），需要時才重跑同一套 Google Fonts CSS2 `&text=` 流程重新產生字型
+      檔，非每次新增文章都要做
 
 ### 架構審查待辦（2026-07-26 Agent 分析，SEO／可靠性）
 
@@ -706,6 +749,37 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 ## 更新歷史
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
+
+### 2026-07-26 — 中文襯線字體自架，解決跨裝置一致性（待辦事項落地）
+
+* **範圍**：落地待辦事項「中文襯線字體跨裝置一致性」——`--font-serif` 雖列了
+  `"Noto Serif TC"`，但站內從未提供對應 `@font-face`，該名稱只在訪客裝置本身裝有系統
+  內建中文襯線字型（macOS Songti TC 等）時才生效，多數 Android 裝置會直接落到無襯線
+  fallback。完整設計決策見第一部分第 31 點。
+* **字元集**：不下載完整字型檔本機跑 `fonttools`，改寫一次性腳本重用
+  `assets/create-marked.js` 的 `createMarked()`（與 `verify-post-render.mjs` 同一套渲染
+  管線）把全部文章＋各篇 front matter title/subtitle＋四個靜態頁 hero 標題渲染／掃描過
+  一輪，收集所有會落在 `h1`-`h3`／`h4.food-name`／`blockquote`／`.spot-title`／
+  `.food-list-title`／`.alert-box-title`／`.fold > summary` 等 `font-serif` 標題情境裡的
+  文字，取聯集得到 469 個實際會用到的中文字＋標點（僅收錄實際會用到的標題字元，符合
+  待辦原文要求）。
+* **字型檔取得**：用 Google Fonts CSS2 API 的 `&text=` 參數做伺服器端字元級 subsetting
+  （`family=Noto+Serif+TC:wght@400;700&text=<469 字>`），換回的 CSS 裡 400／700 兩個
+  `@font-face` 指向**同一個** `kit=` URL——證實回傳的是保留 `wght` 變化軸的可變字重字型
+  （比照 Inter 現行自架做法），故只需下載一份 woff2（208KB）即可涵蓋兩個字重，不必比照
+  Lora 拆兩個靜態檔。存為 `assets/fonts/noto-serif-tc-var.woff2`，於
+  `assets/tailwind.css` 新增兩組帶 `unicode-range` 的 `@font-face`；`--font-serif`
+  堆疊本身不需改動（`"Noto Serif TC"` 名稱已在裡面，先前只是缺字型檔生效不了）。字集外
+  字元會自動 fallback 到堆疊下一位（`Songti TC` / 系統 serif）。
+* **PWA 快取免手動處理**：`sw.js` 的 precache 清單／`CACHE_NAME` 不需要手動改動——新字型
+  檔會被 Vite 打包進 `dist/assets/` 並帶內容雜湊，`sw.js` 的 `isStaticAsset` 本來就對
+  `/assets/`／`/fonts/` 做 cache-first；新增字型讓 `tailwind.css` 內容變動，連帶讓打包後
+  CSS 檔名雜湊改變，`CACHE_NAME`（見第一部分第 29 點 S13 自動化）跟著換版，訪客自動拿到
+  新字型，待辦原文提到的「更新 sw.js 的 precache 清單」已因既有自動化而不需要手動處理。
+* **驗證**：`npm run build` 通過，`dist/assets/noto-serif-tc-var-*.woff2`（208.46 kB）與
+  更新後的 `CACHE_NAME` 皆正確產生；`node scripts/verify-post-render.mjs` 3 篇 0 diff
+  （只新增字型與 CSS，未動渲染邏輯）；`npm run lint` 全綠。**未涵蓋**：實機跨裝置（尤其
+  Android）目視驗證留待使用者自行確認，此環境無法操作真實手機瀏覽器。
 
 ### 2026-07-26 — 落地 `suggestion.md` S12／S13，並依 `doc_style.md` 第 3 節再收一輪 07-20 標題
 
@@ -781,40 +855,12 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
   前綴（改前重現為雙重 `/travel/travel/`）；`npm run build` 後 `dist/` 五頁輸出不變，仍是
   正確的單一前綴，`public/data/posts.json` 未被意外改動。
 
-### 2026-07-26 — SEO 架構審查落地：OG meta／sitemap／robots.txt／404 頁 ＋ lint/format 工具 ＋ 前端錯誤監控埋點
-
-* **範圍**：落地 07-26 稍早新增的「SEO／可靠性架構審查」待辦清單五項（OG meta、sitemap.xml／
-  robots.txt、自訂 404 頁、lint/format 工具、前端錯誤監控），完整設計決策見第一部分第
-  29／30 點。`innerHTML` sanitize 與自動化單元測試兩項評估後維持不做（前者現無實際風險，
-  後者規模不需要）。
-* **OG meta／sitemap／404**：新增 `vite.config.js` 的 `generatePostPagesPlugin()`（build 後
-  為每篇文章產生帶真實 OG／Twitter meta 的 `dist/posts/<id>.html`，供社群爬蟲讀取，不執行 JS
-  也看得到）與 `generateSeoFilesPlugin()`（產生 `sitemap.xml`／`robots.txt`）；新增
-  `assets/scripts.js` → `postUrl()` 統一產生文章連結網址，取代三處各自手刻的
-  `detail.html?id=...&bg=...` 字串；`posts/detail.html` 缺 id／查無文章時改為
-  `window.location.replace()` 導向新增的根目錄 `404.html`（client-side 導向，非真正 HTTP
-  404 狀態碼，靜態託管環境的已知限制）。舊版 `detail.html?id=xxx` 連結格式完全不受影響。
-  過程中踩到一個實質 bug：第一版用字串比對插入 `window.__PRESET_POST_ID__`，比對目標抓的是
-  「原始碼」而非「build 完成後已被 Vite 改寫成雜湊檔名的 `detail.html`」，導致比對永遠失敗、
-  preset id 從未寫入，文章頁 100% 誤導向 404；改成插在 `<body>` 開頭解決，並用
-  playwright-core 對 5 種情境（新網址／舊 `?id=`／缺 id／查無文章／直接開 404.html）逐一開
-  真實頁面驗證後才確認修復。
-* **lint/format**：新增 `eslint.config.js`（flat config，按目錄分派 browser／node／
-  serviceworker globals）、`.prettierrc.json`／`.prettierignore`，`package.json` 新增
-  `lint`／`format` script。跑出的兩個真實 `no-unused-vars` 已修（`generate-posts-metadata.js`
-  改用 optional catch binding）。**刻意不做**：對既有程式碼跑一次全庫 `npm run format`——
-  `prettier --check .` 顯示 25 個檔案風格不一致，一次性格式化會直接觸犯 `CLAUDE.md` 對
-  `doc/archive/` 的「凍結記錄不可編輯」規則，且改動面過大，故只加工具本身、不強制套用。
-* **前端錯誤監控**：`assets/scripts.js` 新增 `ERROR_WEBHOOK_URL` 常數（**預設空字串，關閉
-  狀態，不發任何請求**）＋ `reportError()`，掛 `window.onerror`／`unhandledrejection`。留白
-  原因：Sentry／自架 webhook 兩個方案都需要使用者自己申請帳號或準備接收端點，這次改動只能
-  把管線接好，實際啟用留給使用者日後決定要用哪個服務。
-* **驗證**：`npm run build`／`npm run lint` 全綠；`node scripts/verify-post-render.mjs` 3 篇
-  文章 0 diff；playwright-core 對首頁／文章目錄頁／新舊文章連結格式／404 頁共 8 個場景做
-  console error 掃描，全數乾淨。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- **2026-07-26（SEO 架構審查落地）**：新增 OG meta／`sitemap.xml`／`robots.txt`／自訂 404
+  頁（`generatePostPagesPlugin`／`generateSeoFilesPlugin`／`postUrl()`）、`eslint`／
+  `prettier` 工具、`ERROR_WEBHOOK_URL` 前端錯誤監控埋點（預設關閉），完整設計決策見第一
+  部分第 29／30 點。
 - **2026-07-26（待辦清理）**：`package.json`／`package-lock.json` 元數據改為專案實際值
   （取代 Jekyll 主題殘留值）；移除未完成的孤兒頁面 `about.html` 及其建置進入點/圖片；移除
   `assets/scripts.js` 已無觸發來源的漢堡選單死程式碼 `toggleNav()`（`CACHE_NAME` 升至
