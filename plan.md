@@ -226,3 +226,41 @@ marked v12 的 `hooks.processAllTokens`，**在 token 陣列上重組**（而非
 3. **接線點有三處**（`scripts.js`、`generate-posts-metadata.js`、`verify-post-render.mjs`），
    漏掉任一處會造成「瀏覽器正常但閱讀時間算錯」或「驗證失真」這類不易察覺的問題。
 4. 本階段**不觸碰** report.md 第三節列出的其他遺留問題。
+
+---
+
+## 7. 目前完成度與下一步（2026-07-26）
+
+### 已完成
+
+Phase A～E 全部完成，5 個 commit 已在 `refactor/post-style-system` 分支上（尚未合併
+`main`）：
+
+```
+21275de refactor(posts): Phase E 收尾——card_dsl.md 改寫為寫作手冊、移除孤兒 renderer 與失效工具
+cd95921 refactor(posts): Phase D 決策 compare/info/prep/stepper 保留 fence，apps 廢 fence 改純 Markdown
+8cfcd73 refactor(posts): 07-16 eat/eatarea 廢 fence 改純 Markdown，其餘家族決策保留 fence
+c288adc build(scripts): 新增渲染回歸驗證與 DSL 欄位稽核工具，完成欄位 Markdown 化 Phase 0-1
+fe997e3 refactor(styles): 文章視覺風格改為 style front matter ＋ post-styles CSS
+```
+
+本檔開頭定義的目標——「作者只用 Markdown 寫內容，風格由 CSS/前端解析套用」——已落地：
+`eat`/`eatarea`/`apps` 三個家族改純 Markdown，`compare`/`info`/`prep`/`stepper`/
+`accordion`/`quickjump`/`stop` 7 個家族逐一評估後決策維持 fence（理由見 `doc/card_dsl.md`
+§3）。文件（`card_dsl.md`/`doc_style.md`/`project.md`）已同步更新，失效與原型工具已刪除，
+`node scripts/verify-post-render.mjs` 全程驗證渲染輸出 0 diff。
+
+### 下一步
+
+這是需要你判斷的部分，agent 不會自作主張執行：
+
+1. **人工瀏覽器目視確認**：`npm run dev` 目前仍在跑（背景 terminal），實際點開
+   07-13／07-16／07-20 三篇文章，確認美食卡、App 推薦清單、`eatarea` 分區標題視覺與互動
+   （TOC 跳轉）都正常，尤其是含空格網址的美食卡連結（Naver/Kakao）真的可以點開。
+2. **確認無誤後再決定合併方式**：直接把 `refactor/post-style-system` merge 進 `main`，
+   或先開一個 PR 走 review／CI 流程——這兩者都會動到共享分支，我不會自己執行，需要你
+   指示要哪一種、以及是否要先跑 `ultrareview`。
+3. 決定合併方式後，可以派 agent 執行實際的 merge／開 PR 動作（例如「開個 PR」或「直接
+   merge 進 main」），或你自己手動操作。
+4. `report.md` 第三節列出的其他遺留問題（既有脆弱點、尚未驗證項目等）不在本次範圍，
+   合併後可以另外排期評估要不要處理。
