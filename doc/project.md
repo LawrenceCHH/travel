@@ -221,6 +221,7 @@ public/
   sw.js                        PWA Service Worker 快取腳本，打包時由 Vite 插件填入雜湊資源檔名
 src/
   posts/                       存放所有文章原始檔（.md 或 .html）的目錄，供前端 Fetch 讀取
+archive/                       存放封存之歷史或非現役文章與規劃原始檔（不進 posts.json 索引）
 doc_template/                 「先寫架構、後填內容」文章模板（只含骨架＋佔位符，不進 build，
                                 供 Agent 填內容產出 src/posts/ 新文章），見 README.md 使用流程
 scripts/
@@ -776,6 +777,15 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-09-09 — 整合 5天4夜新首爾行程手帳，封存 07-16 舊計畫
+
+* **範圍**：依據 `doc_template/travel-itinerary-editorial-card.md`（07-16 抽取架構），整合最新航班（真航空 LJ734 去、大韓航空 KE2027 回）與新首爾飯店 5天4夜行程（含鷺梁津水產市場、現代百貨/星空圖書館、汝矣島漢江夜遊、南怡島/小法國村/江村鐵道自行車近郊包車、首爾塔/弘大備選等），舊計畫未包含之行程與分區美食皆依指示留標題並註記「內容待補」。
+* **變更檔案**：
+  - `src/posts/2026-09-09-首爾秋日漫遊手帳.md`：建立 5天4夜新旅遊計畫文章。
+  - `archive/2026-07-16-首爾秋日漫遊手帳.md`：建立 `archive/` 目錄並將舊 4天3夜文章歸檔封存。
+  - `public/data/posts.json`：更新文章索引，將 09-09 新文章置頂並移除已封存之 07-16 文章。
+* **驗證**：索引檔 `posts.json` 格式正確，現役文章數維持 3 篇；`archive/` 目錄與新文章皆完成版控追蹤。
+
 ### 2026-07-26 — 新增 `doc_template/`，把 07-16 文章架構抽成「先寫架構、後填內容」模板
 
 * **範圍**：使用者要求把 `2026-07-16-首爾秋日漫遊手帳.md` 的架構抽出來存成可重複使用的
@@ -831,60 +841,12 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
   （只新增字型與 CSS，未動渲染邏輯）；`npm run lint` 全綠。**未涵蓋**：實機跨裝置（尤其
   Android）目視驗證留待使用者自行確認，此環境無法操作真實手機瀏覽器。
 
-### 2026-07-26 — 落地 `suggestion.md` S12／S13，並依 `doc_style.md` 第 3 節再收一輪 07-20 標題
-
-* **範圍**：延續架構審查待辦清理，處理 S12（美食卡店名無障礙性）與 S13（`CACHE_NAME`
-  自動化）兩項「觀察區」項目——皆無需等待特定時機，直接落地；另依使用者要求，重新檢視
-  07-20 文章 `## 1.2 WOWPASS 完整介紹` 底下 6 個 `###`，依既有判準（讀者會不會拿這個標題
-  來定位）再收一輪。
-* **S12（美食卡店名 `<span>` → `<h4>`）**：`assets/markdown-sections.js` 的
-  `renderFoodCard()` 把店名容器由 `<span class="food-name">` 改為 `<h4 class="food-name">`，
-  讓 30 家店名進入無障礙樹的標題導覽；內部連結拿掉手動疊加的 `no-underline text-inherit`，
-  改吃既有 `.prose h4 a` 規則（原本用 `<span>` 是因為不受該規則涵蓋，現在已是真正的 `<h4>`
-  不需要再手動疊樣式）。**踩到 cascade layer 陷阱**：`.food-name` 原本的視覺樣式定義在
-  `@layer components`（`assets/tailwind.css`），而 `.prose h4` 定義在後宣告的 `@layer prose`
-  ——CSS layer 優先序由宣告順序決定、與 selector specificity 無關，未分層樣式規則的教訓
-  （見第一部分第 21 點）在這裡以「兩個都分層、但層序不同」的變體重現：`.prose h4` 必贏，
-  若不處理，原本 18px serif bold 的店名會被 `.prose h4` 的 15px sans bold 覆蓋。**解法**：
-  仿照既有 `.prose h3.alert-box-title`／`.prose .editorial-quick-jump h4` 的 2-class 選擇器
-  模式，在 `@layer prose` 內新增 `.prose h4.food-name`（specificity 0,2,1，同層內穩贏
-  `.prose h4` 的 0,1,1）明確恢復原始樣式，並歸零 margin（`.food-header` 是 flex 容器，
-  `.prose h4` 的 `mt-6/mb-2` 會撐開與 `.food-meta` 同排的垂直對齊）；`@layer components`
-  內原本的 `.food-name` 規則整條刪除（已死碼，`.prose h4.food-name` 必定覆蓋它）。
-* **S13（`CACHE_NAME` 自動化）**：`public/sw.js` 的 `CACHE_NAME` 改為固定佔位值
-  `'clean-blog-dev'`（本機 `localhost` 開發時 `scripts.js` 一律自動 unregister SW，不會讀到
-  這個值）；`vite.config.js` 的 `swPrecachePlugin` 新增邏輯，在 `closeBundle()` 階段用
-  `crypto.createHash('md5')` 算出 8 碼短雜湊寫回 `dist/sw.js` 取代 `CACHE_NAME`（如
-  `clean-blog-eea22045`）。**雜湊來源刻意不只用 CSS/JS 檔名**：待辦原描述是「從 CSS/JS 檔名
-  hash 衍生」，但 `sw.js` 的 `isStaticAsset` 對 `/img/` 也是 cache-first，而 `public/img/`
-  是原樣複製、不經 Vite 雜湊，圖片內容換版時檔名不變——這正是待辦引用的線上事故本身（07-22
-  換首頁背景圖忘記手動 bump 版本，訪客看到舊圖），若只雜湊 CSS/JS 檔名，這個自動化完全防不
-  住它原本要防的事故。故改為新增 `hashDirectoryInto()` 遞迴讀取 `public/img/` 全部檔案內容
-  一併餵進同一個 hash，連同 CSS/JS 檔名一起衍生最終雜湊；只要 `assets/` 原始碼或 `public/img/`
-  任一張圖片內容改變，`CACHE_NAME` 就會跟著變，不再需要手動遞增版本號。`public/data/
-  posts.json` 未納入雜湊來源——它走 network-first（見 `sw.js` fetch handler），有網路時本來
-  就一律拿新資料，不受 `CACHE_NAME` 是否更新影響，非本次待處理的風險對象。15MB／21 個檔案
-  的 `public/img/` 全量雜湊實測對 `npm run build` 總時間影響在誤差範圍內（< 1 秒）。
-* **WOWPASS 標題再收一輪**：07-20 `## 1.2 WOWPASS 完整介紹` 底下逐一檢視 6 個 `###`，
-  `申請方式`／`儲值方式比較`／`額度限制`／`適合誰`（已列於 `doc_style.md` 第 4 節）與
-  `兩個獨立錢包，要分開儲值`（標題本身是具體可行動結論，非泛稱）皆有掃描價值保留；只有
-  `其他實用功能` 是「什麼都裝」的泛稱標籤——讀者會找「轉帳」「提領現金」「卡片遺失」等
-  具體項目，不會用這個詞定位，故判定為標籤型小節。**解法**：拿掉該標題，內容併入緊鄰、
-  性質相近的「額度限制」小節（同為卡片機制條列參考資訊），標題改為
-  `### WOWPASS 額度限制與其他功能（2026年規定）` 讓「額度限制」關鍵字仍可搜尋，內容一字
-  未改。該節 `###` 由 6 個收為 5 個。
-* **驗證**：`npm run build`／`npm run lint` 全綠；`node scripts/verify-post-render.mjs` 3 篇
-  文章 0 diff（註：此腳本比對的是「HEAD vs 工作目錄的文章原檔」，S12 只改 renderer 不改
-  文章內容，故此驗證對 S12 是恆真的，不能證明 `<h4>` 有正確輸出——另外手動跑
-  `createMarked()` 渲染 07-16 文章確認美食卡輸出為
-  `<h4 class="food-name"><a ...>店名</a></h4>`，並從 `dist/assets/*.css` 複驗
-  `.prose h4.food-name{font-family:...;font-size:1.125rem;...}` 選擇器與數值正確）；
-  `dist/sw.js` 複驗 `CACHE_NAME` 已寫入雜湊值（`clean-blog-eea22045`）、`PRECACHE_URLS` 維持
-  正確雜湊檔名；連續兩次 `npm run build`（無任何來源變動）確認雜湊值不變，證明可重現、非
-  時間戳/隨機值。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- **2026-07-26（S12/S13 落地與標題收斂）**：美食卡店名改為 `<h4>`（無障礙優化，新增
+  `.prose h4.food-name` 解決 cascade layer 覆蓋問題）；`sw.js` 的 `CACHE_NAME` 改由 build
+  時依 CSS/JS 雜湊＋`public/img/` 全量內容自動計算，終結手動 bump 快取版本需求；07-20
+  「其他實用功能」泛稱標題併入「額度限制」，收斂 heading 階層。
 - **2026-07-26**：修正 dev server 下 `index.html`／`posts/index.html`／`posts/detail.html`／
   `404.html`／`contact.html` 五個檔案的 manifest／icon 連結因原始碼已含 `/travel/` base
   前綴、又被 dev server 疊加一次 base，變成 `/travel/travel/...` 404（production build 不

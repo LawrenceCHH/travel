@@ -1,5 +1,20 @@
 [
   {
+    "id": "2026-09-09-首爾秋日漫遊手帳",
+    "title": "首爾秋日漫遊手帳",
+    "subtitle": "臺灣桃園 (TPE) T1 ➔ 韓國仁川 (ICN) T2 | 2026-10-17 ~ 10-21 (5天4夜)",
+    "date": "2026-09-09",
+    "updatedDate": "2026-09-09",
+    "background": "img/posts/三清洞.jpg",
+    "style": "editorial-card",
+    "tags": [
+      "韓國",
+      "首爾"
+    ],
+    "readTime": "閱讀時間約 35 分鐘",
+    "markdownPath": "src/posts/2026-09-09-首爾秋日漫遊手帳.md"
+  },
+  {
     "id": "2026-07-20-韓國自由行支付教學",
     "title": "韓國自由行支付教學",
     "subtitle": "WOWPASS, Toss, 匯率",
@@ -13,21 +28,6 @@
     ],
     "readTime": "閱讀時間約 20 分鐘",
     "markdownPath": "src/posts/2026-07-20-韓國自由行支付教學.md"
-  },
-  {
-    "id": "2026-07-16-首爾秋日漫遊手帳",
-    "title": "首爾秋日漫遊手帳",
-    "subtitle": "臺灣桃園 (TPE) T1 ➔ 韓國仁川 (ICN) T2 | 2026-10-15 ~ 10-18 (4天3夜)",
-    "date": "2026-07-16",
-    "updatedDate": "2026-07-26",
-    "background": "img/posts/三清洞.jpg",
-    "style": "editorial-card",
-    "tags": [
-      "韓國",
-      "首爾"
-    ],
-    "readTime": "閱讀時間約 35 分鐘",
-    "markdownPath": "src/posts/2026-07-16-首爾秋日漫遊手帳.md"
   },
   {
     "id": "2026-07-13-首爾行前準備與緊急連絡資訊",
