@@ -860,6 +860,7 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
   `assets/scripts.js` 已無觸發來源的漢堡選單死程式碼 `toggleNav()`（`CACHE_NAME` 升至
   `clean-blog-v60`）。
 
+- **2026-09-25**：修正 `npm run dev` 開發伺服器下點擊文章無法開啟的問題。先前引入 `posts/<id>.html` 靜態化方案時僅在 build 階段生成實體檔案，未在 dev server 加入相應路由轉發，導致開發模式下點擊文章被導回首頁；於 `vite.config.js` 的 `generatePostPagesPlugin` 補上 `configureServer` 中間件將請求轉發至 `posts/detail.html`，並於 `posts/detail.html` 補齊 `window.location.pathname` 解析 ID 邏輯。
 - **2026-07-26**：修正 cascade layer 重構（S2 第 2 步，`a63d5a0`）的回歸——`.prose` 自訂覆寫
   規則誤收進 `@layer components`，被排序在後的 `@tailwindcss/typography` 外掛預設樣式蓋過，
   導致 07-16「純連結標題」重新出現底線＋藍字；新增獨立的 `@layer prose`（層順序

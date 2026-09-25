@@ -19,17 +19,23 @@ const tailwindCssContent = fs.existsSync(TAILWIND_CSS_PATH) ? fs.readFileSync(TA
 function validateStyle(styleName, sourceFile) {
   if (!styleName) return;
   if (!/^[a-z0-9-]+$/.test(styleName)) {
-    console.error(`[build:metadata] 錯誤：${sourceFile} 的 style front matter 值 "${styleName}" 格式不合法（只允許小寫英數字與連字號）。`);
+    console.error(
+      `[build:metadata] 錯誤：${sourceFile} 的 style front matter 值 "${styleName}" 格式不合法（只允許小寫英數字與連字號）。`,
+    );
     process.exit(1);
   }
   const cssPath = path.join(POST_STYLES_DIR, `${styleName}.css`);
   if (!fs.existsSync(cssPath)) {
-    console.error(`[build:metadata] 錯誤：${sourceFile} 指定的 style "${styleName}" 找不到對應的 assets/post-styles/${styleName}.css。`);
+    console.error(
+      `[build:metadata] 錯誤：${sourceFile} 指定的 style "${styleName}" 找不到對應的 assets/post-styles/${styleName}.css。`,
+    );
     process.exit(1);
   }
   const importPattern = new RegExp(`@import\\s+["']\\./post-styles/${styleName}\\.css["']`);
   if (!importPattern.test(tailwindCssContent)) {
-    console.error(`[build:metadata] 錯誤：${sourceFile} 指定的 style "${styleName}" 的 CSS 檔存在，但 assets/tailwind.css 尚未 @import 該檔案，樣式不會生效。`);
+    console.error(
+      `[build:metadata] 錯誤：${sourceFile} 指定的 style "${styleName}" 的 CSS 檔存在，但 assets/tailwind.css 尚未 @import 該檔案，樣式不會生效。`,
+    );
     process.exit(1);
   }
 }
@@ -44,7 +50,9 @@ if (!fs.existsSync(path.dirname(OUTPUT_JSON))) {
 
 function getFileUpdatedDate(filePath) {
   try {
-    const gitDate = execSync(`git log -1 --format="%ad" --date=format:"%Y-%m-%d" -- "${filePath}"`, { encoding: 'utf8' }).trim();
+    const gitDate = execSync(`git log -1 --format="%ad" --date=format:"%Y-%m-%d" -- "${filePath}"`, {
+      encoding: 'utf8',
+    }).trim();
     if (gitDate) return gitDate;
   } catch {
     // Ignore git errors
@@ -59,24 +67,121 @@ function getFileUpdatedDate(filePath) {
   }
 }
 
+function parseFilenameMeta(file) {
+  const ext = path.extname(file);
+  const baseName = path.basename(file, ext);
+
+  // 檢查是否符合 YYYY-MM-DD-title 或 YYYY-MM-DD_title 或純 YYYY-MM-DD
+  const dateMatch = baseName.match(/^(\d{4}-\d{2}-\d{2})(?:[-_](.*))?$/);
+  let date = '';
+  let title = '';
+
+  if (dateMatch) {
+    date = dateMatch[1];
+    title = (dateMatch[2] || '').trim();
+  }
+
+  // 若標題為空，則 fallback 為去除副檔名後的 baseName
+  if (!title) {
+    title = baseName;
+  }
+
+  // 若檔名沒有日期前綴，預設使用今天日期 (YYYY-MM-DD)
+  if (!date) {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  }
+
+  return { date, title };
+}
+
+function autofillPostFile(filePath, file) {
+  const { date: parsedDate, title: parsedTitle } = parseFilenameMeta(file);
+  const defaultDateStr = `${parsedDate} 12:00:00 +0800`;
+  let content = fs.readFileSync(filePath, 'utf8');
+
+  const fmMatch = content.match(/^---([\s\S]*?)---/);
+  if (!fmMatch) {
+    const newFm = `---\nlayout: post\ntitle: "${parsedTitle}"\ndate: ${defaultDateStr}\n---\n\n`;
+    content = newFm + content;
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log(`[build:metadata] 自動為 ${file} 補齊 Front Matter（標題: "${parsedTitle}", 日期: ${defaultDateStr}）`);
+    return content;
+  }
+
+  let fmText = fmMatch[1];
+  let modified = false;
+
+  // 檢查 title 是否已填寫
+  const titleLineMatch = fmText.match(/^([ \t]*title:[ \t]*)(.*)$/m);
+  if (titleLineMatch) {
+    let val = titleLineMatch[2].trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1).trim();
+    }
+    if (!val) {
+      fmText = fmText.replace(/^([ \t]*title:[ \t]*).*$/m, `title: "${parsedTitle}"`);
+      modified = true;
+    }
+  } else {
+    // 找不到 title 欄位，若有 layout 則插入在 layout 之後，否則置頂
+    if (/^[ \t]*layout:[^\n]*\n/m.test(fmText)) {
+      fmText = fmText.replace(/^([ \t]*layout:[^\n]*\n)/m, `$1title: "${parsedTitle}"\n`);
+    } else {
+      fmText = `\ntitle: "${parsedTitle}"\n` + fmText.trimStart();
+    }
+    modified = true;
+  }
+
+  // 檢查 date 是否已填寫
+  const dateLineMatch = fmText.match(/^([ \t]*date:[ \t]*)(.*)$/m);
+  if (dateLineMatch) {
+    let val = dateLineMatch[2].trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1).trim();
+    }
+    if (!val) {
+      fmText = fmText.replace(/^([ \t]*date:[ \t]*).*$/m, `date: ${defaultDateStr}`);
+      modified = true;
+    }
+  } else {
+    // 找不到 date 欄位，插入在 Front Matter 結尾
+    fmText = fmText.trimEnd() + `\ndate: ${defaultDateStr}\n`;
+    modified = true;
+  }
+
+  if (modified) {
+    content = content.replace(/^---[\s\S]*?---/, () => `---${fmText}---`);
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log(
+      `[build:metadata] 自動填入 ${file} 缺少的 Front Matter（標題: "${parsedTitle}", 日期: ${defaultDateStr}）`,
+    );
+  }
+
+  return content;
+}
+
 const files = fs.readdirSync(POSTS_DIR);
 const posts = [];
 
-files.forEach(file => {
+files.forEach((file) => {
   const filePath = path.join(POSTS_DIR, file);
   if (fs.statSync(filePath).isDirectory()) return;
+  if (!file.endsWith('.md') && !file.endsWith('.html')) return;
 
-  const content = fs.readFileSync(filePath, 'utf8');
-  
+  const content = autofillPostFile(filePath, file);
+  const { date: parsedDate, title: parsedTitle } = parseFilenameMeta(file);
+
   // 正則表達式抓取 Front Matter
   const fmMatch = content.match(/^---([\s\S]*?)---/);
   if (!fmMatch) return;
 
   const fmText = fmMatch[1];
   const metadata = {};
-  
+
   // 基礎 Key-Value 解析
-  fmText.split('\n').forEach(line => {
+  fmText.split('\n').forEach((line) => {
     const colonIdx = line.indexOf(':');
     if (colonIdx === -1) return;
     const key = line.slice(0, colonIdx).trim();
@@ -90,19 +195,22 @@ files.forEach(file => {
   // 解析 YAML 格式 Tags 陣列
   const tags = [];
   let inTagsSection = false;
-  
-  fmText.split('\n').forEach(line => {
+
+  fmText.split('\n').forEach((line) => {
     const trimmed = line.trim();
     if (trimmed.startsWith('tags:')) {
       const inlineVal = trimmed.substring(5).trim();
       if (inlineVal && inlineVal !== '[]') {
         if (inlineVal.startsWith('[') && inlineVal.endsWith(']')) {
-          inlineVal.slice(1, -1).split(',').forEach(t => {
-            const cleanTag = t.trim().replace(/^['"]|['"]$/g, '');
-            if (cleanTag) tags.push(cleanTag);
-          });
+          inlineVal
+            .slice(1, -1)
+            .split(',')
+            .forEach((t) => {
+              const cleanTag = t.trim().replace(/^['"]|['"]$/g, '');
+              if (cleanTag) tags.push(cleanTag);
+            });
         } else {
-          inlineVal.split(',').forEach(t => {
+          inlineVal.split(',').forEach((t) => {
             const cleanTag = t.trim().replace(/^['"]|['"]$/g, '');
             if (cleanTag) tags.push(cleanTag);
           });
@@ -112,7 +220,10 @@ files.forEach(file => {
       }
     } else if (inTagsSection) {
       if (trimmed.startsWith('-')) {
-        const cleanTag = trimmed.substring(1).trim().replace(/^['"]|['"]$/g, '');
+        const cleanTag = trimmed
+          .substring(1)
+          .trim()
+          .replace(/^['"]|['"]$/g, '');
         if (cleanTag) tags.push(cleanTag);
       } else if (trimmed.includes(':') && !trimmed.startsWith('-')) {
         inTagsSection = false;
@@ -130,10 +241,11 @@ files.forEach(file => {
 
   const id = path.parse(file).name;
 
-  // 日期解析邏輯：優先用 frontmatter 的 date，無則解析檔名前綴 (如 YYYY-MM-DD)
+  // 日期與標題解析邏輯：優先用 frontmatter，無則使用檔名解析結果
   const filenameDateMatch = file.match(/^(\d{4}-\d{2}-\d{2})/);
   const filenameDate = filenameDateMatch ? filenameDateMatch[1] : '';
-  const date = metadata.date || filenameDate;
+  const date = metadata.date || filenameDate || parsedDate;
+  const title = metadata.title || parsedTitle || id;
 
   // 自動抓取最後編輯時間
   const updatedDate = getFileUpdatedDate(filePath);
@@ -142,7 +254,7 @@ files.forEach(file => {
 
   posts.push({
     id,
-    title: metadata.title || id,
+    title,
     subtitle: metadata.subtitle || '',
     date: date || '',
     updatedDate: updatedDate || '',
@@ -150,7 +262,7 @@ files.forEach(file => {
     style: metadata.style || '',
     tags: tags.filter(Boolean),
     readTime,
-    markdownPath: `src/posts/${file}`
+    markdownPath: `src/posts/${file}`,
   });
 });
 
@@ -159,4 +271,3 @@ posts.sort((a, b) => new Date(b.date) - new Date(a.date));
 
 fs.writeFileSync(OUTPUT_JSON, JSON.stringify(posts, null, 2), 'utf8');
 console.log(`[build:metadata] Processed ${posts.length} posts. Generated JSON at ${OUTPUT_JSON}`);
-

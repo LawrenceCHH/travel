@@ -17,7 +17,7 @@ export default defineConfig({
     swPrecachePlugin(),
     watchPostsMetadataPlugin(),
     generatePostPagesPlugin(),
-    generateSeoFilesPlugin()
+    generateSeoFilesPlugin(),
   ],
   build: {
     rollupOptions: {
@@ -26,12 +26,11 @@ export default defineConfig({
         contact: resolve(__dirname, 'contact.html'),
         notFound: resolve(__dirname, '404.html'),
         posts: resolve(__dirname, 'posts/index.html'),
-        detail: resolve(__dirname, 'posts/detail.html')
-      }
-    }
-  }
+        detail: resolve(__dirname, 'posts/detail.html'),
+      },
+    },
+  },
 });
-
 
 /**
  * 自訂 Vite 插件：在打包完成時，動態將雜湊化的 tailwind.css 與 scripts.js 寫入 sw.js 中，
@@ -47,8 +46,8 @@ function swPrecachePlugin() {
       // 1. 更新 sw.js 預快取清單與 CACHE_NAME
       if (fs.existsSync(assetsDir)) {
         const files = fs.readdirSync(assetsDir);
-        const cssFile = files.find(f => f.endsWith('.css'));
-        const jsFile = files.find(f => f.startsWith('scripts') && f.endsWith('.js'));
+        const cssFile = files.find((f) => f.endsWith('.css'));
+        const jsFile = files.find((f) => f.startsWith('scripts') && f.endsWith('.js'));
 
         const cssPath = cssFile ? `assets/${cssFile}` : 'assets/tailwind.css';
         const jsPath = jsFile ? `assets/${jsFile}` : 'assets/scripts.js';
@@ -70,10 +69,7 @@ function swPrecachePlugin() {
         const swPath = resolve(distDir, 'sw.js');
         if (fs.existsSync(swPath)) {
           let swContent = fs.readFileSync(swPath, 'utf8');
-          swContent = swContent.replace(
-            /const CACHE_NAME = '[^']*';/,
-            `const CACHE_NAME = '${cacheName}';`
-          );
+          swContent = swContent.replace(/const CACHE_NAME = '[^']*';/, `const CACHE_NAME = '${cacheName}';`);
           swContent = swContent.replace(
             /const PRECACHE_URLS = \[[\s\S]*?\];/,
             `const PRECACHE_URLS = [
@@ -84,7 +80,7 @@ function swPrecachePlugin() {
   BASE + 'components/navbar.html',
   BASE + 'components/footer.html',
   BASE + 'data/posts.json'
-];`
+];`,
           );
           fs.writeFileSync(swPath, swContent, 'utf8');
           console.log(`[swPrecachePlugin] sw.js precache list and CACHE_NAME (${cacheName}) updated successfully.`);
@@ -96,12 +92,12 @@ function swPrecachePlugin() {
       const distPostsDir = resolve(distDir, 'src/posts');
       if (fs.existsSync(srcPostsDir)) {
         fs.mkdirSync(distPostsDir, { recursive: true });
-        fs.readdirSync(srcPostsDir).forEach(file => {
+        fs.readdirSync(srcPostsDir).forEach((file) => {
           fs.copyFileSync(resolve(srcPostsDir, file), resolve(distPostsDir, file));
         });
         console.log(`[swPrecachePlugin] Copied static posts to ${distPostsDir}`);
       }
-    }
+    },
   };
 }
 
@@ -122,9 +118,17 @@ function hashDirectoryInto(hash, dir) {
 }
 
 function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
+  return String(str).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[c],
+  );
 }
 
 /**
@@ -139,6 +143,27 @@ function escapeHtml(str) {
 function generatePostPagesPlugin() {
   return {
     name: 'generate-post-pages',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const rawUrl = req.url || '';
+        const [pathname, search] = rawUrl.split('?');
+        let decodedPathname;
+        try {
+          decodedPathname = decodeURIComponent(pathname);
+        } catch {
+          decodedPathname = pathname;
+        }
+
+        const match = decodedPathname.match(/^(?:\/travel)?\/posts\/([^/]+)\.html$/);
+        if (match) {
+          const id = match[1];
+          if (id !== 'index' && id !== 'detail') {
+            req.url = `/travel/posts/detail.html${search ? `?${search}` : ''}`;
+          }
+        }
+        next();
+      });
+    },
     closeBundle() {
       const distDir = resolve(__dirname, 'dist');
       const detailPath = resolve(distDir, 'posts/detail.html');
@@ -169,8 +194,10 @@ function generatePostPagesPlugin() {
             `<meta property="og:description" content="${description}">`,
             `<meta property="og:url" content="${pageUrl}">`,
             imageUrl ? `<meta property="og:image" content="${imageUrl}">` : '',
-            `<meta name="twitter:card" content="${imageUrl ? 'summary_large_image' : 'summary'}">`
-          ].filter(Boolean).join('\n  ')
+            `<meta name="twitter:card" content="${imageUrl ? 'summary_large_image' : 'summary'}">`,
+          ]
+            .filter(Boolean)
+            .join('\n  '),
         );
 
         // 已知封面圖，直接寫死 header 背景，取代原本要等 fetch 完成才套用的邏輯，
@@ -186,14 +213,14 @@ function generatePostPagesPlugin() {
         // Vite 產生的確切標籤字串。
         html = html.replace(
           '<body>',
-          `<body>\n  <script>window.__PRESET_POST_ID__ = ${JSON.stringify(post.id)};</script>`
+          `<body>\n  <script>window.__PRESET_POST_ID__ = ${JSON.stringify(post.id)};</script>`,
         );
 
         fs.writeFileSync(resolve(distDir, 'posts', `${post.id}.html`), html, 'utf8');
       });
 
       console.log(`[generatePostPagesPlugin] Generated ${posts.length} static post pages with OG meta.`);
-    }
+    },
   };
 }
 
@@ -224,7 +251,7 @@ function generateSeoFilesPlugin() {
       fs.writeFileSync(resolve(distDir, 'robots.txt'), robots, 'utf8');
 
       console.log(`[generateSeoFilesPlugin] Generated sitemap.xml (${postUrls.length} posts) and robots.txt.`);
-    }
+    },
   };
 }
 
@@ -238,18 +265,18 @@ function watchPostsMetadataPlugin() {
     name: 'watch-posts-metadata',
     configureServer(server) {
       const postsDir = resolve(__dirname, 'src/posts');
-      
+
       // 確保目錄存在
       if (!fs.existsSync(postsDir)) {
         fs.mkdirSync(postsDir, { recursive: true });
       }
-      
+
       server.watcher.add(postsDir);
-      
+
       const rebuildMetadata = (filePath) => {
         // 僅針對 md 與 html 文章變動進行反應
         if (!filePath.endsWith('.md') && !filePath.endsWith('.html')) return;
-        
+
         // 使用防抖動限制，避免多個檔案同時變動（如複製整個資料夾）導致多次重複執行
         clearTimeout(timer);
         timer = setTimeout(() => {
@@ -261,11 +288,11 @@ function watchPostsMetadataPlugin() {
             }
             if (stdout) console.log(stdout.trim());
             if (stderr) console.error(stderr.trim());
-            
+
             // 觸發全頁熱重載
             server.ws.send({
               type: 'full-reload',
-              path: '*'
+              path: '*',
             });
             console.log('[watch-posts-metadata] 索引已更新並完成熱重載。');
           });
@@ -275,7 +302,6 @@ function watchPostsMetadataPlugin() {
       server.watcher.on('add', rebuildMetadata);
       server.watcher.on('change', rebuildMetadata);
       server.watcher.on('unlink', rebuildMetadata);
-    }
+    },
   };
 }
-

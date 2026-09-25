@@ -4,18 +4,18 @@
 
 ## 技術棧
 
-*   **建置打包**：Vite (v5) + Rollup (MPA 多入口配置)
-*   **CSS 樣式**：Tailwind CSS v4（使用 `@tailwindcss/vite` 插件）
-*   **Markdown 解析**：`marked` 改由 npm 打包（`assets/create-marked.js` 建立單一實例，Node／瀏覽器共用），不再依賴 CDN
-*   **SEO**：build 時自動產生 `dist/sitemap.xml`／`dist/robots.txt`，並為每篇文章多產生一份帶正確 OG／Twitter meta 的靜態頁 `dist/posts/<id>.html`（供 LINE/FB/Twitter 等社群爬蟲讀取，不需執行 JS）
-*   **PWA 離線支援**：`public/manifest.json` 與 `public/sw.js`（含自訂隨機雜湊資源快取防刷機制）
-*   **部署**：GitHub Actions → GitHub Pages (發布 `dist/` 目錄，監聽 `main` 分支)
+- **建置打包**：Vite (v5) + Rollup (MPA 多入口配置)
+- **CSS 樣式**：Tailwind CSS v4（使用 `@tailwindcss/vite` 插件）
+- **Markdown 解析**：`marked` 改由 npm 打包（`assets/create-marked.js` 建立單一實例，Node／瀏覽器共用），不再依賴 CDN
+- **SEO**：build 時自動產生 `dist/sitemap.xml`／`dist/robots.txt`，並為每篇文章多產生一份帶正確 OG／Twitter meta 的靜態頁 `dist/posts/<id>.html`（供 LINE/FB/Twitter 等社群爬蟲讀取，不需執行 JS）
+- **PWA 離線支援**：`public/manifest.json` 與 `public/sw.js`（含自訂隨機雜湊資源快取防刷機制）
+- **部署**：GitHub Actions → GitHub Pages (發布 `dist/` 目錄，監聽 `main` 分支)
 
 ---
 
 ## 前置需求
 
-*   **Node.js (v20+)** 與 npm
+- **Node.js (v20+)** 與 npm
 
 專案不再需要 Ruby、Gem 或是 Bundler 執行環境。
 
@@ -24,32 +24,42 @@
 ## 本地開發
 
 ### 1. 安裝套件
+
 在專案根目錄下執行：
+
 ```bash
 npm install
 ```
 
 ### 2. 啟動本地開發伺服器
+
 ```bash
 npm run dev
 ```
+
 這會自動執行文章元資料索引生成，並啟動 Vite 開發伺服器。請使用瀏覽器開啟預設的網址：`http://localhost:5173/travel/`（由於設定了專案 Base URL，請務必帶上 `/travel/` 才能正常載入頁面）。
 
 ### 3. 生產環境建置與預覽
+
 進行靜態檔案編譯（打包結果將輸出至 `dist/`）：
+
 ```bash
 npm run build
 ```
+
 打包後預覽生產版本（主要用以測試 Service Worker PWA 快取與離線閱讀功能）：
+
 ```bash
 npm run preview
 ```
 
 ### 4. 程式碼檢查與格式化
+
 ```bash
 npm run lint      # eslint（assets/*.js、scripts/*.js、vite.config.js；不含 src/posts/ 與 doc/archive/）
 npm run format    # prettier --write .（依 .prettierignore 排除 dist/、src/posts/、doc/archive/ 等）
 ```
+
 > [!NOTE]
 > 這兩個指令目前只用來檢查/格式化「新增或修改的檔案」，尚未對既有程式碼跑過一次全庫格式化
 > （既有檔案風格不一致是已知現象，非本次新增工具造成）。
@@ -63,8 +73,8 @@ npm run format    # prettier --write .（依 .prettierignore 排除 dist/、src/
     ```yaml
     ---
     layout: post
-    title: "您的文章標題"
-    subtitle: "顯示於標題下方的一行副標題。"
+    title: '您的文章標題'
+    subtitle: '顯示於標題下方的一行副標題。'
     date: 2026-07-11 12:00:00 +0800
     background: '/img/posts/01.jpg'
     tags:
@@ -74,6 +84,9 @@ npm run format    # prettier --write .（依 .prettierignore 排除 dist/、src/
     ```
 3.  在第二個 `---` 底下以 Markdown 或 HTML 撰寫文章內容。
 4.  保存後，在本地端執行 `npm run dev` 或 `npm run build`，腳本會自動抓取新文章並更新 `public/data/posts.json` 索引檔，無須手動編輯 JSON 檔案。在 GitHub Actions 部署時，CI/CD 也會自動跑此建置步驟。
+
+> [!TIP]
+> **自動解析標題與日期**：若文章未填寫 `title` 或 `date`（甚至未加入 Front Matter），執行 `npm run dev` 或 `npm run build` 時，腳本會自動由檔名（`YYYY-MM-DD-標題.md`）解析出標題與日期，並自動補齊回填至文章檔案與索引中。
 
 ---
 
@@ -121,7 +134,7 @@ posts/
 
 ## 開發文件說明
 
-*   [`doc/project.md`](doc/project.md) — 專案完整架構、多頁面 (MPA) 進入點、關鍵設計決策，以及更新歷史與待辦目標。
-*   [`doc/style.md`](doc/style.md) — 全站視覺與互動風格系統化分析（設計準則＋元件規格）。
-*   [`doc/card_dsl.md`](doc/card_dsl.md) — 文章卡片寫作手冊（純 Markdown 形狀約定＋剩餘 fence DSL）。
-*   [`doc/doc_style.md`](doc/doc_style.md) — 新增/編輯文章時的標題階層與排版守則。
+- [`doc/project.md`](doc/project.md) — 專案完整架構、多頁面 (MPA) 進入點、關鍵設計決策，以及更新歷史與待辦目標。
+- [`doc/style.md`](doc/style.md) — 全站視覺與互動風格系統化分析（設計準則＋元件規格）。
+- [`doc/card_dsl.md`](doc/card_dsl.md) — 文章卡片寫作手冊（純 Markdown 形狀約定＋剩餘 fence DSL）。
+- [`doc/doc_style.md`](doc/doc_style.md) — 新增/編輯文章時的標題階層與排版守則。

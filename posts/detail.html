@@ -1,255 +1,262 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant-TW">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <title>文章載入中... - 旅遊指南</title>
-  <link rel="manifest" href="/manifest.json">
-  <link rel="icon" type="image/svg+xml" href="/img/icons/icon.svg">
-  <link rel="apple-touch-icon" href="/img/icons/icon-192.png">
-  <meta name="theme-color" content="#FFFFFF">
-  <link rel="stylesheet" href="/assets/tailwind.css">
-  <!-- Safelist for dynamic JS TOC drawer components in Tailwind v4 -->
-  <!-- class="toc-sidebar toc-link toc-fab toc-sheet-scrim toc-sheet toc-sheet-list is-pinned is-visible is-open is-active chapter-bar chapter-pill chapter-bar-scroller toc-outline" -->
-</head>
-<body>
-  <div id="navbar-placeholder"></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>文章載入中... - 旅遊指南</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/img/icons/icon.svg" />
+    <link rel="apple-touch-icon" href="/img/icons/icon-192.png" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <link rel="stylesheet" href="/assets/tailwind.css" />
+    <!-- Safelist for dynamic JS TOC drawer components in Tailwind v4 -->
+    <!-- class="toc-sidebar toc-link toc-fab toc-sheet-scrim toc-sheet toc-sheet-list is-pinned is-visible is-open is-active chapter-bar chapter-pill chapter-bar-scroller toc-outline" -->
+  </head>
+  <body>
+    <div id="navbar-placeholder"></div>
 
-  <!-- Page Header -->
-  <header id="post-header" class="masthead" style="background-image: url('/travel/img/bg-post.jpg')">
-    <div class="overlay"></div>
-    <div class="mx-auto max-w-3xl px-5">
-      <div class="post-heading text-center text-hero-text">
-        <h1 id="post-title" class="text-4xl md:text-5xl font-bold leading-tight"></h1>
-        <h2 id="post-subtitle" class="subheading text-xl md:text-2xl font-normal mt-2 text-hero-text"></h2>
-        <span class="meta flex flex-col items-center mt-6 text-sm text-hero-text">
-          <div id="post-meta-info"></div>
-          <div id="post-tags" class="mt-3 flex flex-wrap gap-2.5 justify-center text-sm font-semibold text-hero-text"></div>
-        </span>
+    <!-- Page Header -->
+    <header id="post-header" class="masthead" style="background-image: url('/travel/img/bg-post.jpg')">
+      <div class="overlay"></div>
+      <div class="mx-auto max-w-3xl px-5">
+        <div class="post-heading text-center text-hero-text">
+          <h1 id="post-title" class="text-4xl md:text-5xl font-bold leading-tight"></h1>
+          <h2 id="post-subtitle" class="subheading text-xl md:text-2xl font-normal mt-2 text-hero-text"></h2>
+          <span class="meta flex flex-col items-center mt-6 text-sm text-hero-text">
+            <div id="post-meta-info"></div>
+            <div
+              id="post-tags"
+              class="mt-3 flex flex-wrap gap-2.5 justify-center text-sm font-semibold text-hero-text"
+            ></div>
+          </span>
+        </div>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <script>
-    // 若連結帶有 bg 參數（由列表頁提供），立即套用正確 banner，
-    // 避免等待 posts.json fetch 完成前先閃一下預設的 bg-post.jpg。
-    (function () {
-      var bg = new URLSearchParams(window.location.search).get('bg');
-      if (bg) {
-        document.getElementById('post-header').style.backgroundImage =
-          `url('/travel/${bg.replace(/^\//, '')}')`;
-      }
-    })();
-  </script>
+    <script>
+      // 若連結帶有 bg 參數（由列表頁提供），立即套用正確 banner，
+      // 避免等待 posts.json fetch 完成前先閃一下預設的 bg-post.jpg。
+      (function () {
+        var bg = new URLSearchParams(window.location.search).get('bg');
+        if (bg) {
+          document.getElementById('post-header').style.backgroundImage = `url('/travel/${bg.replace(/^\//, '')}')`;
+        }
+      })();
+    </script>
 
-  <!-- Post Content -->
-  <article class="mx-auto max-w-3xl px-5 py-8 my-4 bg-surface">
-    <div id="post-content" class="prose max-w-none">
-      <p class="text-center text-muted-text py-12">文章內容載入中...</p>
-    </div>
+    <!-- Post Content -->
+    <article class="mx-auto max-w-3xl px-5 py-8 my-4 bg-surface">
+      <div id="post-content" class="prose max-w-none">
+        <p class="text-center text-muted-text py-12">文章內容載入中...</p>
+      </div>
 
-    <hr class="my-8 border-sand">
+      <hr class="my-8 border-sand" />
 
-    <!-- Navigation -->
-    <nav class="post-nav my-8" aria-label="文章導覽">
-      <div id="prev-post-container"></div>
-      <div id="next-post-container" class="post-nav-cell--next"></div>
-    </nav>
-  </article>
+      <!-- Navigation -->
+      <nav class="post-nav my-8" aria-label="文章導覽">
+        <div id="prev-post-container"></div>
+        <div id="next-post-container" class="post-nav-cell--next"></div>
+      </nav>
+    </article>
 
-  <div id="footer-placeholder"></div>
+    <div id="footer-placeholder"></div>
 
-  <script type="module" src="/assets/scripts.js"></script>
-  
-  <script>
-    document.addEventListener("DOMContentLoaded", async function() {
-      const base = '/travel/';
-      const params = new URLSearchParams(window.location.search);
-      // 舊連結相容 detail.html?id=xxx；新的 posts/<id>.html 靜態頁由建置時注入
-      // window.__PRESET_POST_ID__（見 vite.config.js 的 generatePostPagesPlugin）。
-      const postId = params.get('id') || window.__PRESET_POST_ID__;
-      if (!postId) {
-        window.location.replace(`${base}404.html`);
-        return;
-      }
+    <script type="module" src="/assets/scripts.js"></script>
 
-      try {
-        // 1. 取得所有文章元資料
-        const res = await fetch(`${base}data/posts.json`);
-        if (!res.ok) throw new Error("Metadata fetch failed");
-        const posts = await res.json();
-
-        const index = posts.findIndex(p => p.id === postId);
-        if (index === -1) {
+    <script>
+      document.addEventListener('DOMContentLoaded', async function () {
+        const base = '/travel/';
+        const params = new URLSearchParams(window.location.search);
+        // 從路徑解析文章 ID（支援 dev server 下的 /travel/posts/<id>.html）
+        const pathMatch = window.location.pathname.match(/\/posts\/([^/]+)\.html$/);
+        const pathPostId =
+          pathMatch && pathMatch[1] !== 'index' && pathMatch[1] !== 'detail' ? decodeURIComponent(pathMatch[1]) : null;
+        // 舊連結相容 detail.html?id=xxx；新的 posts/<id>.html 靜態頁由建置時注入
+        // window.__PRESET_POST_ID__（見 vite.config.js 的 generatePostPagesPlugin），
+        // 或在 dev 模式下從網址路徑直接解析。
+        const postId = params.get('id') || window.__PRESET_POST_ID__ || pathPostId;
+        if (!postId) {
           window.location.replace(`${base}404.html`);
           return;
         }
 
-        const post = posts[index];
+        try {
+          // 1. 取得所有文章元資料
+          const res = await fetch(`${base}data/posts.json`);
+          if (!res.ok) throw new Error('Metadata fetch failed');
+          const posts = await res.json();
 
-        // 2. 更新頁面標題與 Meta
-        document.title = `${post.title} - 旅遊指南`;
-
-        // 3. 設定 Banner 背景與標題
-        const header = document.getElementById('post-header');
-        if (post.background) {
-          header.style.backgroundImage = `url('${base}${post.background.replace(/^\//, '')}')`;
-        }
-
-        document.getElementById('post-title').textContent = post.title;
-        document.getElementById('post-subtitle').textContent = post.subtitle;
-
-        // 4. 設定文章元資料（閱讀時間獨自一列，建立時間與最後編輯時間獨自一列）
-        function formatMetaDate(dStr) {
-          if (!dStr) return '';
-          const trimmed = String(dStr).trim();
-          if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-          const d = new Date(trimmed);
-          if (isNaN(d.getTime())) return trimmed;
-          const pad = n => String(n).padStart(2, '0');
-          const yyyy = d.getFullYear();
-          const mm = pad(d.getMonth() + 1);
-          const dd = pad(d.getDate());
-          return `${yyyy}-${mm}-${dd}`;
-        }
-
-        const createdStr = formatMetaDate(post.date);
-        const updatedStr = formatMetaDate(post.updatedDate);
-
-        const dateParts = [];
-        if (createdStr) {
-          dateParts.push(`<span>建立時間: ${createdStr}</span>`);
-        }
-        if (updatedStr) {
-          dateParts.push(`<span>更新時間: ${updatedStr}</span>`);
-        }
-
-        let metaHtml = '';
-        if (post.readTime) {
-          metaHtml += `<div class="reading-time-row"><span class="reading-time" title="預估閱讀時間">${post.readTime}</span></div>`;
-        }
-        if (dateParts.length > 0) {
-          metaHtml += `<div class="dates-row flex flex-wrap items-center justify-center gap-x-3 gap-y-1 opacity-90">${dateParts.join('<span aria-hidden="true">&middot;</span>')}</div>`;
-        }
-
-        document.getElementById('post-meta-info').innerHTML =
-          `<div class="flex flex-col items-center gap-1.5">${metaHtml}</div>`;
-
-        // 5. 設定標籤
-        const tagsContainer = document.getElementById('post-tags');
-        if (post.tags && post.tags.length > 0) {
-          tagsContainer.innerHTML = post.tags.map(tag => `<span>#${tag}</span>`).join('');
-        } else {
-          tagsContainer.style.display = 'none';
-        }
-
-        // 6. 讀取文章檔案
-        const contentRes = await fetch(`${base}${post.markdownPath}`);
-        if (!contentRes.ok) throw new Error("Failed to fetch post raw content");
-        const rawContent = await contentRes.text();
-
-        // 7. 剝除 Front Matter (即首尾的 --- 區塊)
-        let cleanContent = rawContent;
-        if (rawContent.startsWith('---')) {
-          const nextDashIndex = rawContent.indexOf('---', 3);
-          if (nextDashIndex !== -1) {
-            cleanContent = rawContent.slice(nextDashIndex + 3).trim();
+          const index = posts.findIndex((p) => p.id === postId);
+          if (index === -1) {
+            window.location.replace(`${base}404.html`);
+            return;
           }
-        }
 
-        // 8. 依據檔案類型渲染
-        const isMarkdown = post.markdownPath.endsWith('.md');
-        const contentContainer = document.getElementById('post-content');
-        if (isMarkdown) {
-          if (typeof marked !== 'undefined') {
-            contentContainer.innerHTML = marked.parse(cleanContent);
+          const post = posts[index];
+
+          // 2. 更新頁面標題與 Meta
+          document.title = `${post.title} - 旅遊指南`;
+
+          // 3. 設定 Banner 背景與標題
+          const header = document.getElementById('post-header');
+          if (post.background) {
+            header.style.backgroundImage = `url('${base}${post.background.replace(/^\//, '')}')`;
+          }
+
+          document.getElementById('post-title').textContent = post.title;
+          document.getElementById('post-subtitle').textContent = post.subtitle;
+
+          // 4. 設定文章元資料（閱讀時間獨自一列，建立時間與最後編輯時間獨自一列）
+          function formatMetaDate(dStr) {
+            if (!dStr) return '';
+            const trimmed = String(dStr).trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+            const d = new Date(trimmed);
+            if (isNaN(d.getTime())) return trimmed;
+            const pad = (n) => String(n).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            const mm = pad(d.getMonth() + 1);
+            const dd = pad(d.getDate());
+            return `${yyyy}-${mm}-${dd}`;
+          }
+
+          const createdStr = formatMetaDate(post.date);
+          const updatedStr = formatMetaDate(post.updatedDate);
+
+          const dateParts = [];
+          if (createdStr) {
+            dateParts.push(`<span>建立時間: ${createdStr}</span>`);
+          }
+          if (updatedStr) {
+            dateParts.push(`<span>更新時間: ${updatedStr}</span>`);
+          }
+
+          let metaHtml = '';
+          if (post.readTime) {
+            metaHtml += `<div class="reading-time-row"><span class="reading-time" title="預估閱讀時間">${post.readTime}</span></div>`;
+          }
+          if (dateParts.length > 0) {
+            metaHtml += `<div class="dates-row flex flex-wrap items-center justify-center gap-x-3 gap-y-1 opacity-90">${dateParts.join('<span aria-hidden="true">&middot;</span>')}</div>`;
+          }
+
+          document.getElementById('post-meta-info').innerHTML =
+            `<div class="flex flex-col items-center gap-1.5">${metaHtml}</div>`;
+
+          // 5. 設定標籤
+          const tagsContainer = document.getElementById('post-tags');
+          if (post.tags && post.tags.length > 0) {
+            tagsContainer.innerHTML = post.tags.map((tag) => `<span>#${tag}</span>`).join('');
           } else {
-            contentContainer.textContent = cleanContent;
+            tagsContainer.style.display = 'none';
           }
-        } else {
-          // HTML 文章檔直接注入
-          contentContainer.innerHTML = cleanContent;
-        }
 
-        // 8a. 文章專屬視覺風格：front matter 的 style 欄位掛上 .post-style-<name> class，
-        // 與渲染在同一個 tick 內套用，不會有 FOUC。build 時已驗證合法值，但這裡仍自成一個
-        // try：萬一資料源頭出現未預期字元（如含空白），classList.add 會丟例外，若不隔離
-        // 會被外層 catch 接住並把整篇文章內容換成錯誤訊息——寧可靜默跳過套用風格。
-        if (post.style) {
-          try {
-            const styleName = String(post.style).trim();
-            if (/^[a-z0-9-]+$/.test(styleName)) {
-              contentContainer.classList.add(`post-style-${styleName}`);
-            } else {
-              console.warn(`文章 style 欄位格式不合法，略過套用風格: "${post.style}"`);
+          // 6. 讀取文章檔案
+          const contentRes = await fetch(`${base}${post.markdownPath}`);
+          if (!contentRes.ok) throw new Error('Failed to fetch post raw content');
+          const rawContent = await contentRes.text();
+
+          // 7. 剝除 Front Matter (即首尾的 --- 區塊)
+          let cleanContent = rawContent;
+          if (rawContent.startsWith('---')) {
+            const nextDashIndex = rawContent.indexOf('---', 3);
+            if (nextDashIndex !== -1) {
+              cleanContent = rawContent.slice(nextDashIndex + 3).trim();
             }
-          } catch (styleErr) {
-            console.warn('套用文章風格 class 失敗，略過:', styleErr);
           }
-        }
 
-        // 8b. 表格橫向捲動修正：避免窄螢幕被撐破版
-        contentContainer.querySelectorAll('table').forEach(table => {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'overflow-x-auto';
-          table.parentNode.insertBefore(wrapper, table);
-          wrapper.appendChild(table);
-        });
-
-        // 8c. 文章大綱 (TOC)：解析標題產生桌機側欄 / 手機速覽區塊
-        if (typeof window.initTOC === 'function') {
-          window.initTOC(contentContainer);
-        }
-
-        // 9. 上下一篇導覽 (Jekyll 排序為新到舊，即 posts[0] 最新)
-        // 舊文章 (Previous) 在 posts 陣列 index + 1，新文章 (Next) 在 index - 1
-        const prevPost = posts[index + 1]; // 較舊的
-        const nextPost = posts[index - 1]; // 較新的
-
-        // 用 DOM API 而非 innerHTML 組裝：標題以 textContent 寫入，含引號或角括號的
-        // 標題不會破壞標記（舊版把標題插進 title="${...}" 屬性，遇到 " 就壞掉）。
-        function buildPostNavLink(post, dir) {
-          const a = document.createElement('a');
-          a.className = 'post-nav-link';
-          a.href = window.postUrl(post, base);
-          a.rel = dir === 'prev' ? 'prev' : 'next';
-
-          const label = document.createElement('span');
-          label.className = 'post-nav-label';
-          const arrow = document.createElement('span');
-          arrow.className = `post-nav-arrow post-nav-arrow--${dir}`;
-          arrow.setAttribute('aria-hidden', 'true');
-          if (dir === 'prev') {
-            arrow.textContent = '←';
-            label.append(arrow, ' 上一篇');
+          // 8. 依據檔案類型渲染
+          const isMarkdown = post.markdownPath.endsWith('.md');
+          const contentContainer = document.getElementById('post-content');
+          if (isMarkdown) {
+            if (typeof marked !== 'undefined') {
+              contentContainer.innerHTML = marked.parse(cleanContent);
+            } else {
+              contentContainer.textContent = cleanContent;
+            }
           } else {
-            arrow.textContent = '→';
-            label.append('下一篇 ', arrow);
+            // HTML 文章檔直接注入
+            contentContainer.innerHTML = cleanContent;
           }
 
-          const title = document.createElement('span');
-          title.className = 'post-nav-title';
-          title.textContent = post.title;
+          // 8a. 文章專屬視覺風格：front matter 的 style 欄位掛上 .post-style-<name> class，
+          // 與渲染在同一個 tick 內套用，不會有 FOUC。build 時已驗證合法值，但這裡仍自成一個
+          // try：萬一資料源頭出現未預期字元（如含空白），classList.add 會丟例外，若不隔離
+          // 會被外層 catch 接住並把整篇文章內容換成錯誤訊息——寧可靜默跳過套用風格。
+          if (post.style) {
+            try {
+              const styleName = String(post.style).trim();
+              if (/^[a-z0-9-]+$/.test(styleName)) {
+                contentContainer.classList.add(`post-style-${styleName}`);
+              } else {
+                console.warn(`文章 style 欄位格式不合法，略過套用風格: "${post.style}"`);
+              }
+            } catch (styleErr) {
+              console.warn('套用文章風格 class 失敗，略過:', styleErr);
+            }
+          }
 
-          a.append(label, title);
-          return a;
+          // 8b. 表格橫向捲動修正：避免窄螢幕被撐破版
+          contentContainer.querySelectorAll('table').forEach((table) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'overflow-x-auto';
+            table.parentNode.insertBefore(wrapper, table);
+            wrapper.appendChild(table);
+          });
+
+          // 8c. 文章大綱 (TOC)：解析標題產生桌機側欄 / 手機速覽區塊
+          if (typeof window.initTOC === 'function') {
+            window.initTOC(contentContainer);
+          }
+
+          // 9. 上下一篇導覽 (Jekyll 排序為新到舊，即 posts[0] 最新)
+          // 舊文章 (Previous) 在 posts 陣列 index + 1，新文章 (Next) 在 index - 1
+          const prevPost = posts[index + 1]; // 較舊的
+          const nextPost = posts[index - 1]; // 較新的
+
+          // 用 DOM API 而非 innerHTML 組裝：標題以 textContent 寫入，含引號或角括號的
+          // 標題不會破壞標記（舊版把標題插進 title="${...}" 屬性，遇到 " 就壞掉）。
+          function buildPostNavLink(post, dir) {
+            const a = document.createElement('a');
+            a.className = 'post-nav-link';
+            a.href = window.postUrl(post, base);
+            a.rel = dir === 'prev' ? 'prev' : 'next';
+
+            const label = document.createElement('span');
+            label.className = 'post-nav-label';
+            const arrow = document.createElement('span');
+            arrow.className = `post-nav-arrow post-nav-arrow--${dir}`;
+            arrow.setAttribute('aria-hidden', 'true');
+            if (dir === 'prev') {
+              arrow.textContent = '←';
+              label.append(arrow, ' 上一篇');
+            } else {
+              arrow.textContent = '→';
+              label.append('下一篇 ', arrow);
+            }
+
+            const title = document.createElement('span');
+            title.className = 'post-nav-title';
+            title.textContent = post.title;
+
+            a.append(label, title);
+            return a;
+          }
+
+          const prevContainer = document.getElementById('prev-post-container');
+          if (prevPost) {
+            prevContainer.appendChild(buildPostNavLink(prevPost, 'prev'));
+          }
+
+          const nextContainer = document.getElementById('next-post-container');
+          if (nextPost) {
+            nextContainer.appendChild(buildPostNavLink(nextPost, 'next'));
+          }
+        } catch (err) {
+          console.error('Failed to render post detail:', err);
+          document.getElementById('post-content').innerHTML =
+            `<p class="text-red-500 text-center py-8">載入文章內容失敗: ${err.message}</p>`;
         }
-
-        const prevContainer = document.getElementById('prev-post-container');
-        if (prevPost) {
-          prevContainer.appendChild(buildPostNavLink(prevPost, 'prev'));
-        }
-
-        const nextContainer = document.getElementById('next-post-container');
-        if (nextPost) {
-          nextContainer.appendChild(buildPostNavLink(nextPost, 'next'));
-        }
-
-      } catch (err) {
-        console.error("Failed to render post detail:", err);
-        document.getElementById('post-content').innerHTML = `<p class="text-red-500 text-center py-8">載入文章內容失敗: ${err.message}</p>`;
-      }
-    });
-  </script>
-</body>
+      });
+    </script>
+  </body>
 </html>
