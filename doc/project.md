@@ -777,6 +777,24 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-09-25 — 重跑中文襯線字型 subset，修復新文章標題字型混搭
+
+* **問題**：使用者回報文章詳情頁標題（如「首爾景點素材」）出現字型混搭外觀——同一標題內
+  部分字元明顯與其他字元字重/字型不同。
+* **根因**：`.post-heading h1` 走 `font-serif`，其自架 `Noto Serif TC` 是 2026-07-26 當下
+  站內標題實際用字的 469 字 subset（見第一部分第 3 節）；`src/posts/2026-09-12-首爾景點
+  素材.md` 標題「首爾景點**素材**」的「素」（U+7D20）「材」（U+6750）不在該字集內，這兩字
+  即時 fallback 到字型堆疊下一位（系統 serif），與同標題其餘吃到自架字型的字元視覺不一致。
+* **做法**：依第一部分第 3 節既定流程重跑——用 `createMarked()` 重新渲染 `src/posts/` 全部
+  5 篇文章＋4 個靜態頁 hero 標題，掃出目前全部 `font-serif` 場景（`h1`-`h3`／`subtitle`／
+  front matter `title`／`h4.food-name`／`h4.spot-title`／`blockquote`）實際用字，取聯集後
+  得 571 字（469 字集之後新增的 3 篇文章用字），呼叫 Google Fonts CSS2 API 重新 subset，
+  覆蓋 `assets/fonts/noto-serif-tc-var.woff2`（208KB→251KB）與 `assets/tailwind.css` 兩組
+  `@font-face` 的 `unicode-range`。
+* **驗證**：`npm run build` 通過（`swPrecachePlugin` 自動因字型檔雜湊改變而更新
+  `CACHE_NAME`，無需手動 bump）；`node scripts/verify-post-render.mjs` 5 篇 0 diff（只換字型
+  檔與 CSS，未動渲染邏輯或文章內容）。
+
 ### 2026-09-25 — 修正快取防刷與 Service Worker CACHE_NAME 雜湊範圍，並修復 dev server 文章路由轉發
 
 * **範圍**：
@@ -794,33 +812,10 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
   - `public/data/posts.json`：更新文章索引，將 09-09 新文章置頂並移除已封存之 07-16 文章。
 * **驗證**：索引檔 `posts.json` 格式正確，現役文章數維持 3 篇；`archive/` 目錄與新文章皆完成版控追蹤。
 
-### 2026-07-26 — 新增 `doc_template/`，把 07-16 文章架構抽成「先寫架構、後填內容」模板
-
-* **範圍**：使用者要求把 `2026-07-16-首爾秋日漫遊手帳.md` 的架構抽出來存成可重複使用的
-  模板，讓之後寫類似風格（多天行程、按景點分段、文末附分區美食清單）的新文章時，只需準備
-  內容，交由 Agent 依模板填空即可產出完整文章，不必每次重新設計結構。
-* **新增檔案**：
-  - `doc_template/travel-itinerary-editorial-card.md`——`style: editorial-card` 風格骨架，
-    保留 front matter／`總覽`（`quickjump`）／`景點漫遊`（`### Day N` ＋ `stop` fence）／
-    `美食推薦`（`### 區域` ＋美食卡）四個區塊的結構與欄位，內容全部替換為 `{{...}}` 佔位符，
-    並用 `<!-- -->` 註解標出容易漏掉的規則（`quickjump` 條目數需對應 `stop` 區塊數、`level`
-    四選一、美食卡觸發條件）。
-  - `doc_template/README.md`——說明「使用者準備內容→Agent 填模板」兩步驟流程、模板清單、
-    Agent 填內容時的完整步驟（複製檔案→取代佔位符→刪除說明註解→`build:metadata`／`dev`
-    驗證渲染→視需要回頭更新本檔更新歷史），以及新增其他風格模板時的擴充方式。
-* **關鍵決策：模板不重複抄寫 `card_dsl.md` 的完整語法規則**，只放最少量的行內提醒——完整
-  欄位定義、合法值、觸發條件判斷邏輯，一律以 `doc/card_dsl.md`／`doc/doc_style.md`／
-  `doc/style.md` 為準，避免未來語法變動時模板與文件兩處要一起維護、卻容易漏改其中一處。
-* **定位限制**：此模板只適合「多天行程＋景點分段＋分區美食」這類手帳型遊記；性質差異大的
-  文章（單日城市漫步、無明確景點分段等）不應硬套，`doc_template/README.md` 已明寫此限制，
-  並指向 `doc/card_dsl.md` 供從零挑選合適的 fence 家族。
-* **驗證**：純新增文件，未改動任何程式碼、渲染邏輯或既有文章內容，`doc_template/` 不在
-  `vite.config.js` 的建置輸入內、不影響 `npm run build`；不需要 `verify-post-render.mjs`
-  回歸驗證。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
-- **2026-07-26（中文襯線字體自架）**：以 Google Fonts CSS2 API subsetting（469 字）自架 Noto Serif TC 可變字重 woff2 字型，解決 Android/跨裝置中文襯線字體一致性；PWA 快取由 S13 自動化接手。
+- **2026-07-26（`doc_template/` 模板）**：把 07-16 文章架構抽成 `doc_template/travel-itinerary-editorial-card.md`「先寫架構、後填內容」模板，只適合多天行程＋景點分段＋分區美食類遊記。
+- **2026-07-26（中文襯線字體自架）**：以 Google Fonts CSS2 API subsetting（469 字，2026-09-25 已重跑擴增至 571 字）自架 Noto Serif TC 可變字重 woff2 字型，解決 Android/跨裝置中文襯線字體一致性；PWA 快取由 S13 自動化接手。
 - **2026-07-26（S12/S13 落地與標題收斂）**：美食卡店名改為 `<h4>`（無障礙優化，新增
   `.prose h4.food-name` 解決 cascade layer 覆蓋問題）；`sw.js` 的 `CACHE_NAME` 改由 build
   時依 CSS/JS 雜湊＋`public/img/` 全量內容自動計算，終結手動 bump 快取版本需求；07-20

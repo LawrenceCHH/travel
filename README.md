@@ -89,6 +89,9 @@ npm run format    # prettier --write .（依 .prettierignore 排除 dist/、src/
 > [!TIP]
 > **自動解析標題與日期**：若文章未填寫 `title` 或 `date`（甚至未加入 Front Matter），執行 `npm run dev` 或 `npm run build` 時，腳本會自動由檔名（`YYYY-MM-DD-標題.md`）解析出標題與日期，並自動補齊回填至文章檔案與索引中。
 
+> [!WARNING]
+> **中文襯線字型（`font-serif`）只涵蓋站內已用過的字**：全站標題／副標題／美食店名／引言等 `font-serif` 場景使用的 `Noto Serif TC` 是自架的字集子集（`assets/fonts/noto-serif-tc-var.woff2`），只包含目前已收錄的中文字。若新文章的標題等 `font-serif` 場景用到字集外的新字，該字會 fallback 到系統字型，與同段落其他字出現「字型混搭」的視覺落差（不影響其他版面，也不會建置失敗）。需要讓新字也吃到自架字型時，依 [`doc/project.md`](doc/project.md) 第一部分第 3 節「維護中文襯線字型（Noto Serif TC）subset」的流程重跑一次。
+
 ---
 
 ## 專案目錄結構
