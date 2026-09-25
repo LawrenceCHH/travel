@@ -8,7 +8,7 @@
 - **CSS 樣式**：Tailwind CSS v4（使用 `@tailwindcss/vite` 插件）
 - **Markdown 解析**：`marked` 改由 npm 打包（`assets/create-marked.js` 建立單一實例，Node／瀏覽器共用），不再依賴 CDN
 - **SEO**：build 時自動產生 `dist/sitemap.xml`／`dist/robots.txt`，並為每篇文章多產生一份帶正確 OG／Twitter meta 的靜態頁 `dist/posts/<id>.html`（供 LINE/FB/Twitter 等社群爬蟲讀取，不需執行 JS）
-- **PWA 離線支援**：`public/manifest.json` 與 `public/sw.js`（含自訂隨機雜湊資源快取防刷機制）
+- **PWA 離線支援與快取管理**：`public/manifest.json` 與 `public/sw.js`。自訂 Vite 插件 `swPrecachePlugin` 會自動將 CSS/JS 產出、圖片資源、`src/posts/` 全部文章 Markdown 與 `posts.json` 索引納入 `CACHE_NAME` 雜湊計算，並於前端資料請求採用 `cache: 'no-cache'`，確保文章更新推上 GitHub Pages 後，訪客能立即自動取得最新內容，徹底避免被瀏覽器或 Service Worker 舊快取卡住
 - **部署**：GitHub Actions → GitHub Pages (發布 `dist/` 目錄，監聽 `main` 分支)
 
 ---
@@ -84,6 +84,7 @@ npm run format    # prettier --write .（依 .prettierignore 排除 dist/、src/
     ```
 3.  在第二個 `---` 底下以 Markdown 或 HTML 撰寫文章內容。
 4.  保存後，在本地端執行 `npm run dev` 或 `npm run build`，腳本會自動抓取新文章並更新 `public/data/posts.json` 索引檔，無須手動編輯 JSON 檔案。在 GitHub Actions 部署時，CI/CD 也會自動跑此建置步驟。
+5.  將更動提交並推送至 GitHub（`git push`），GitHub Actions 會自動執行建置與部署，並依文章內容變更自動更新 Service Worker 快取版本（`CACHE_NAME`），讀者進入網站時會自動換版取得最新內容。
 
 > [!TIP]
 > **自動解析標題與日期**：若文章未填寫 `title` 或 `date`（甚至未加入 Front Matter），執行 `npm run dev` 或 `npm run build` 時，腳本會自動由檔名（`YYYY-MM-DD-標題.md`）解析出標題與日期，並自動補齊回填至文章檔案與索引中。
