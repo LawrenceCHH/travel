@@ -282,16 +282,16 @@ posts/
     *   **視覺細節收斂**：分頁器改用暖色 Token，日期改用 `tabular-nums` 並與標籤合併為單一橫排 Meta 帶以緊湊版面。加入鍵盤 `focus-visible` 焦點樣式，並以內聯 SVG 放大鏡取代 emoji。
 7.  **PWA 靜態資源預快取防刷 (swPrecachePlugin)**：
     由於 Vite 打包後的 CSS/JS 檔名會帶有隨機雜湊碼，自訂 Vite 插件 `swPrecachePlugin`，在建置完成後，動態將帶有雜湊值的資源名稱取代並更新至 `dist/sw.js` 的預快取陣列中。
-    *   **`CACHE_NAME` 自動化（2026-07-26，`doc/archive/suggestion.md` S13）**：`public/sw.js`
+    *   **`CACHE_NAME` 自動化（2026-07-26，2026-09-25 擴充）**：`public/sw.js`
         原始碼裡的 `CACHE_NAME` 只是固定佔位值 `'clean-blog-dev'`（本機開發時 `scripts.js` 一律
         自動 unregister SW，不會讀到這個值），真正生效的版本號由 `swPrecachePlugin` 在
         `closeBundle()` 用 `crypto.createHash('md5')` 對「CSS/JS 檔名＋`public/img/` 全部檔案
-        內容」算出的 8 碼短雜湊決定，寫回 `dist/sw.js`。**雜湊來源涵蓋 `public/img/` 而不只是
-        CSS/JS 檔名**：`sw.js` 的 `isStaticAsset` 對 `/img/` 也是 cache-first，但該目錄是原樣
-        複製、不經 Vite 雜湊，圖片內容換版時檔名不變——只雜湊 CSS/JS 防不住這個情境，也正是
-        2026-07-22 那次「換首頁背景圖忘記手動 bump 版本」線上事故的根因。`public/data/
-        posts.json` 未納入雜湊來源，因為它走 network-first（見 `sw.js` fetch handler），有
-        網路時一律拿新資料，不受 `CACHE_NAME` 是否更新影響。
+        內容＋`src/posts/` 全部文章 Markdown 內容＋`public/data/posts.json` 內容」算出的 8 碼
+        短雜湊決定，寫回 `dist/sw.js`。**雜湊來源涵蓋 `public/img/`、`src/posts/` 與 `posts.json`**：
+        若僅修改文章內容或增減文章，CSS/JS 檔名不會變動；將文章與索引納入雜湊後，每次文章變動
+        皆能觸發 `CACHE_NAME` 換版，讓瀏覽器自動觸發 Service Worker 更新並清除舊快取。同時前端
+        在 fetch `data/posts.json` 與 `src/posts/*.md` 時帶有 `{ cache: 'no-cache' }`，避免
+        GitHub Pages 預設的 `max-age=600` 讓瀏覽器在 10 分鐘內卡在本地磁碟快取。
 8.  **文章大綱元件 (TOC)**：
     *   **Runtime 動態生成**：於文章渲染後動態走訪章節標題生成大綱，支援 Markdown 與手寫 HTML 格式。若標題無 `id` 則自動指派繁中安全 slug。**選擇器刻意用 `:scope > h2, :scope > h3`（僅直接子節點）而非 `querySelectorAll('h2, h3')`**：文章由 `marked.parse()` 注入 `#post-content`，Markdown 章節標題是其直接子節點，而卡片元件（`.emergency-card`／`.alert-box` 等）內部自帶的 `<h3>` 標題是巢狀子孫；若不限定直接子，像「緊急應變」這種一節含多張卡片時，救護車/警局/各醫院、WOWPASS 步驟、行李限重提醒等卡片標題會被灌進 TOC（首爾文章實測會多出 12 條雜訊）。
     *   **桌機版（>= 1280px）**：側欄以 `position: absolute` 隨頁面捲動貼在 Banner 下緣（避免初始就以 fixed 蓋住 Banner 文字），在 `assets/scripts.js` 的 `buildDesktopSidebar` 內由 `updatePinnedState()` 監聽 `scroll`/`resize`，一旦捲動超過休息位置即切換 `.is-pinned` class 改為 `position: fixed`（效果等同 `position: sticky`；因側欄掛載於 `document.body` 而非文章內文的 flow 子節點，無法直接套用原生 sticky，故以 JS 手動切換）。側欄本身以 `IntersectionObserver` 搭配捲動幾何計算進行精準的 Scroll Spy 章節高亮，並隱藏內部捲軸（`scrollbar-width: none` / `::-webkit-scrollbar { display: none }`，僅隱藏視覺捲軸，捲動功能不受影響）。
@@ -777,6 +777,14 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-09-25 — 修正快取防刷與 Service Worker CACHE_NAME 雜湊範圍，並修復 dev server 文章路由轉發
+
+* **範圍**：
+  1. **快取防刷與 CACHE_NAME 自動化擴充**：修復 GitHub Pages 部署後因瀏覽器快取或 Service Worker 舊版本導致文章未及時更新的問題。原先 `vite.config.js` 的 `swPrecachePlugin` 僅雜湊 CSS/JS 與 `public/img/`，當僅修改 `src/posts/*.md` 或 `posts.json` 時 `CACHE_NAME` 不變；現將 `src/posts/` 與 `public/data/posts.json` 一併納入雜湊計算，並在 `index.html`、`posts/index.html`、`posts/detail.html` 的 fetch 加入 `{ cache: 'no-cache' }` 避免被 GitHub Pages 預設 `max-age=600` 攔截。
+  2. **dev server 文章路由轉發**：修復 `npm run dev` 下點擊文章靜態連結被導回首頁的問題，於 `vite.config.js` 的 `generatePostPagesPlugin` 補上 `configureServer` 中間件將 `/posts/<id>.html` 轉發至 `posts/detail.html`，並支援由檔名自動補齊文章標題與日期。
+* **變更檔案**：`vite.config.js`、`index.html`、`posts/index.html`、`posts/detail.html`、`doc/project.md`。
+* **驗證**：`npm run build` 通過，`dist/sw.js` 正確產出新版 `CACHE_NAME (clean-blog-699fafa3)`；`npm run lint` 全綠；`node scripts/verify-post-render.mjs` 5 篇 0 diff。
+
 ### 2026-09-09 — 整合 5天4夜新首爾行程手帳，封存 07-16 舊計畫
 
 * **範圍**：依據 `doc_template/travel-itinerary-editorial-card.md`（07-16 抽取架構），整合最新航班（真航空 LJ734 去、大韓航空 KE2027 回）與新首爾飯店 5天4夜行程（含鷺梁津水產市場、現代百貨/星空圖書館、汝矣島漢江夜遊、南怡島/小法國村/江村鐵道自行車近郊包車、首爾塔/弘大備選等），舊計畫未包含之行程與分區美食皆依指示留標題並註記「內容待補」。
@@ -810,39 +818,9 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
   `vite.config.js` 的建置輸入內、不影響 `npm run build`；不需要 `verify-post-render.mjs`
   回歸驗證。
 
-### 2026-07-26 — 中文襯線字體自架，解決跨裝置一致性（待辦事項落地）
-
-* **範圍**：落地待辦事項「中文襯線字體跨裝置一致性」——`--font-serif` 雖列了
-  `"Noto Serif TC"`，但站內從未提供對應 `@font-face`，該名稱只在訪客裝置本身裝有系統
-  內建中文襯線字型（macOS Songti TC 等）時才生效，多數 Android 裝置會直接落到無襯線
-  fallback。完整設計決策見第一部分第 31 點。
-* **字元集**：不下載完整字型檔本機跑 `fonttools`，改寫一次性腳本重用
-  `assets/create-marked.js` 的 `createMarked()`（與 `verify-post-render.mjs` 同一套渲染
-  管線）把全部文章＋各篇 front matter title/subtitle＋四個靜態頁 hero 標題渲染／掃描過
-  一輪，收集所有會落在 `h1`-`h3`／`h4.food-name`／`blockquote`／`.spot-title`／
-  `.food-list-title`／`.alert-box-title`／`.fold > summary` 等 `font-serif` 標題情境裡的
-  文字，取聯集得到 469 個實際會用到的中文字＋標點（僅收錄實際會用到的標題字元，符合
-  待辦原文要求）。
-* **字型檔取得**：用 Google Fonts CSS2 API 的 `&text=` 參數做伺服器端字元級 subsetting
-  （`family=Noto+Serif+TC:wght@400;700&text=<469 字>`），換回的 CSS 裡 400／700 兩個
-  `@font-face` 指向**同一個** `kit=` URL——證實回傳的是保留 `wght` 變化軸的可變字重字型
-  （比照 Inter 現行自架做法），故只需下載一份 woff2（208KB）即可涵蓋兩個字重，不必比照
-  Lora 拆兩個靜態檔。存為 `assets/fonts/noto-serif-tc-var.woff2`，於
-  `assets/tailwind.css` 新增兩組帶 `unicode-range` 的 `@font-face`；`--font-serif`
-  堆疊本身不需改動（`"Noto Serif TC"` 名稱已在裡面，先前只是缺字型檔生效不了）。字集外
-  字元會自動 fallback 到堆疊下一位（`Songti TC` / 系統 serif）。
-* **PWA 快取免手動處理**：`sw.js` 的 precache 清單／`CACHE_NAME` 不需要手動改動——新字型
-  檔會被 Vite 打包進 `dist/assets/` 並帶內容雜湊，`sw.js` 的 `isStaticAsset` 本來就對
-  `/assets/`／`/fonts/` 做 cache-first；新增字型讓 `tailwind.css` 內容變動，連帶讓打包後
-  CSS 檔名雜湊改變，`CACHE_NAME`（見第一部分第 29 點 S13 自動化）跟著換版，訪客自動拿到
-  新字型，待辦原文提到的「更新 sw.js 的 precache 清單」已因既有自動化而不需要手動處理。
-* **驗證**：`npm run build` 通過，`dist/assets/noto-serif-tc-var-*.woff2`（208.46 kB）與
-  更新後的 `CACHE_NAME` 皆正確產生；`node scripts/verify-post-render.mjs` 3 篇 0 diff
-  （只新增字型與 CSS，未動渲染邏輯）；`npm run lint` 全綠。**未涵蓋**：實機跨裝置（尤其
-  Android）目視驗證留待使用者自行確認，此環境無法操作真實手機瀏覽器。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- **2026-07-26（中文襯線字體自架）**：以 Google Fonts CSS2 API subsetting（469 字）自架 Noto Serif TC 可變字重 woff2 字型，解決 Android/跨裝置中文襯線字體一致性；PWA 快取由 S13 自動化接手。
 - **2026-07-26（S12/S13 落地與標題收斂）**：美食卡店名改為 `<h4>`（無障礙優化，新增
   `.prose h4.food-name` 解決 cascade layer 覆蓋問題）；`sw.js` 的 `CACHE_NAME` 改由 build
   時依 CSS/JS 雜湊＋`public/img/` 全量內容自動計算，終結手動 bump 快取版本需求；07-20
@@ -859,8 +837,6 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
   （取代 Jekyll 主題殘留值）；移除未完成的孤兒頁面 `about.html` 及其建置進入點/圖片；移除
   `assets/scripts.js` 已無觸發來源的漢堡選單死程式碼 `toggleNav()`（`CACHE_NAME` 升至
   `clean-blog-v60`）。
-
-- **2026-09-25**：修正 `npm run dev` 開發伺服器下點擊文章無法開啟的問題。先前引入 `posts/<id>.html` 靜態化方案時僅在 build 階段生成實體檔案，未在 dev server 加入相應路由轉發，導致開發模式下點擊文章被導回首頁；於 `vite.config.js` 的 `generatePostPagesPlugin` 補上 `configureServer` 中間件將請求轉發至 `posts/detail.html`，並於 `posts/detail.html` 補齊 `window.location.pathname` 解析 ID 邏輯。
 - **2026-07-26**：修正 cascade layer 重構（S2 第 2 步，`a63d5a0`）的回歸——`.prose` 自訂覆寫
   規則誤收進 `@layer components`，被排序在後的 `@tailwindcss/typography` 外掛預設樣式蓋過，
   導致 07-16「純連結標題」重新出現底線＋藍字；新增獨立的 `@layer prose`（層順序

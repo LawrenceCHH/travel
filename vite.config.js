@@ -52,17 +52,20 @@ function swPrecachePlugin() {
         const cssPath = cssFile ? `assets/${cssFile}` : 'assets/tailwind.css';
         const jsPath = jsFile ? `assets/${jsFile}` : 'assets/scripts.js';
 
-        // 2026-07-26（doc/archive/suggestion.md S13）：CACHE_NAME 不再手動遞增版本號，改由
-        // 打包產出實際衍生出短雜湊當版本後綴。單靠 CSS/JS 檔名（本身已含 Vite 內容雜湊）不夠
-        // ——sw.js 的 isStaticAsset 對 /img/ 也是 cache-first，但 public/img/ 是原樣複製、
-        // 不經 Vite 雜湊，圖片內容換版時檔名不變，只靠 CSS/JS 雜湊偵測不到（這正是 S13 待辦
-        // 引用的線上事故：07-22 換首頁背景圖忘記手動 bump 版本，訪客看到舊圖）。故額外把
-        // public/img/ 全部檔案內容一併餵進同一個 hash，涵蓋圖片內容變動；public/data/
-        // posts.json 走 network-first（見下方 fetch handler），非本次要處理的風險對象，
-        // 不需要納入雜湊來源。
+        // 2026-07-26 / 2026-09-25：CACHE_NAME 不再手動遞增版本號，改由打包產出實際衍生出短雜湊當版本後綴。
+        // 雜湊來源涵蓋：
+        // 1. 打包後 CSS/JS 檔名（含 Vite 內容雜湊）
+        // 2. public/img/ 全部檔案內容（避免換圖未改名時訪客卡在 cache-first 舊圖）
+        // 3. src/posts/ 全部文章 Markdown 內容與檔名（文章新增或修改時自動換版）
+        // 4. public/data/posts.json 索引資料內容（確保標題/日期/元資料更新時自動換版）
         const hash = crypto.createHash('md5');
         hash.update(`${cssFile || ''}|${jsFile || ''}`);
         hashDirectoryInto(hash, resolve(__dirname, 'public/img'));
+        hashDirectoryInto(hash, resolve(__dirname, 'src/posts'));
+        const postsJsonPath = resolve(__dirname, 'public/data/posts.json');
+        if (fs.existsSync(postsJsonPath)) {
+          hash.update(fs.readFileSync(postsJsonPath));
+        }
         const cacheHash = hash.digest('hex').slice(0, 8);
         const cacheName = `clean-blog-${cacheHash}`;
 

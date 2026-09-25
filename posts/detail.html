@@ -82,7 +82,7 @@
 
         try {
           // 1. 取得所有文章元資料
-          const res = await fetch(`${base}data/posts.json`);
+          const res = await fetch(`${base}data/posts.json`, { cache: 'no-cache' });
           if (!res.ok) throw new Error('Metadata fetch failed');
           const posts = await res.json();
 
@@ -151,7 +151,7 @@
           }
 
           // 6. 讀取文章檔案
-          const contentRes = await fetch(`${base}${post.markdownPath}`);
+          const contentRes = await fetch(`${base}${post.markdownPath}`, { cache: 'no-cache' });
           if (!contentRes.ok) throw new Error('Failed to fetch post raw content');
           const rawContent = await contentRes.text();
 

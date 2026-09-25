@@ -41,7 +41,7 @@
     document.addEventListener("DOMContentLoaded", async function() {
       const base = '/travel/';
       try {
-        const res = await fetch(`${base}data/posts.json`);
+        const res = await fetch(`${base}data/posts.json`, { cache: 'no-cache' });
         if (!res.ok) throw new Error("Metadata JSON fetch failed");
         const posts = await res.json();
         
