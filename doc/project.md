@@ -777,6 +777,24 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-09-26 — 韓國支付教學文章新增 T-money 交通卡完整攻略區塊
+
+* **範圍**：`src/posts/2026-07-20-韓國自由行支付教學.md` 新增「1.7 T-money 交通卡完整攻略」
+  區塊與對應「2.5 關於 T-money 與 Apple Pay」Q&A，涵蓋：實體卡購買/價格/免證件、觀光客
+  專用版本（M-pass／Korea Tour Card／Discover Seoul Pass）差異、儲值方式、WOWPASS 轉
+  Tmoney 的「僅限本卡、無法代其他人的卡儲值」機制與 500 韓元手續費（2025-12-16起）、iOS
+  Apple Pay Express Transit 搭車（2025-07-22 開通，需 iPhone Xs/XR+／iOS 17.2+）與虛擬卡
+  加值路徑（Apple Wallet 內建加值僅認韓國現代卡；需改用 Mobile T-money App「外國人」入口
+  以海外 Mastercard／Amex／UnionPay 加值，2026-03-19 起開放，Visa 尚不支援）、成本比較、
+  信用卡選卡建議，文末附參考來源網址清單。
+* **來源查證**：由一個 general-purpose 研究 agent 上網彙整初稿，本人（agent）再逐項用
+  WebFetch 對關鍵事實（WOWPASS 僅限本卡機制、Apple Pay 開通日期與裝置需求、Apple Wallet
+  現代卡限制、海外卡加值開放時間與支援卡別、信用卡回饋數字）做第一手覆核後才寫入文章，
+  避免二手轉載失真；文中列出的來源網址均為實際查證過的頁面。
+* **變更檔案**：`src/posts/2026-07-20-韓國自由行支付教學.md`、`doc/project.md`。
+* **驗證**：`npm run build:metadata` 通過（純內容新增，未動渲染邏輯/DSL，不影響
+  `verify-post-render.mjs` 涵蓋範圍）。
+
 ### 2026-09-25 — 重跑中文襯線字型 subset，修復新文章標題字型混搭
 
 * **問題**：使用者回報文章詳情頁標題（如「首爾景點素材」）出現字型混搭外觀——同一標題內
@@ -814,6 +832,8 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 
 ### 更早的更新（壓縮摘要，新到舊）
 
+- **2026-09-09（5天4夜新首爾行程手帳）**：整合最新航班與新首爾飯店 5天4夜行程，舊 4天3夜
+  計畫封存至 `archive/`。
 - **2026-07-26（`doc_template/` 模板）**：把 07-16 文章架構抽成 `doc_template/travel-itinerary-editorial-card.md`「先寫架構、後填內容」模板，只適合多天行程＋景點分段＋分區美食類遊記。
 - **2026-07-26（中文襯線字體自架）**：以 Google Fonts CSS2 API subsetting（469 字，2026-09-25 已重跑擴增至 571 字）自架 Noto Serif TC 可變字重 woff2 字型，解決 Android/跨裝置中文襯線字體一致性；PWA 快取由 S13 自動化接手。
 - **2026-07-26（S12/S13 落地與標題收斂）**：美食卡店名改為 `<h4>`（無障礙優化，新增
