@@ -122,7 +122,7 @@ npm run preview
 ### 3. 維護中文襯線字型（Noto Serif TC）subset
 
 `--font-serif` 堆疊的中文襯線字型是自架的字集子集（見第一部分第 31 點），只涵蓋
-2026-07-26 當下全站文章＋靜態頁標題實際用到的 469 個字，**不是**每次新增文章都要處理的
+2026-07-26 當下全站文章＋靜態頁標題實際用到的 469 個字（2026-10-12 重跑後為 650 字），**不是**每次新增文章都要處理的
 待辦——只有下面這個情境才需要重跑：
 
 > 新增／編輯文章時，若標題（`h1`-`h3`）、`subtitle`、美食店名（`.food-item-name`／
@@ -777,6 +777,21 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-10-12 — 重跑中文襯線字型 subset（650 字）並封存計程車手冊原稿
+
+* **範圍**：處理上一筆「後續」留下的字集檢查。依第一部分第 3 節流程重掃全部 6 篇文章＋靜態頁
+  hero 標題的 `font-serif` 場景，與現有 571 字集取聯集；新增約 79 字（如「騙」「冊」「亂」
+  「濟」「攻」「疑」「問」等，含新文章標題與章節標題用字；韓文與全形空白不在 Noto Serif TC
+  subset 範圍，排除）。向 Google Fonts CSS2 API 重新 subset，覆蓋
+  `assets/fonts/noto-serif-tc-var.woff2`（251KB→287KB）與 `assets/tailwind.css` 兩組
+  `@font-face` 的 `unicode-range`，並更新該處註解。
+* **封存**：使用者提供的原稿 `seoul-taxi-guide.md` 已轉為文章，從專案根目錄移入
+  `doc/archive/` 保存（僅供引用，不進 `posts.json` 索引）。
+* **變更檔案**：`assets/fonts/noto-serif-tc-var.woff2`、`assets/tailwind.css`、
+  `doc/archive/seoul-taxi-guide.md`、`doc/project.md`。
+* **驗證**：`npm run build` 通過（`CACHE_NAME` 因字型檔雜湊改變自動更新）；
+  `node scripts/verify-post-render.mjs` 6 篇 0 diff。
+
 ### 2026-10-12 — 新增文章「首爾計程車 App 與防詐騙手冊」
 
 * **範圍**：由使用者提供的 `seoul-taxi-guide.md` 轉成 `src/posts/2026-10-12-首爾計程車App與防詐騙手冊.md`
@@ -788,8 +803,7 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 * **變更檔案**：`src/posts/2026-10-12-首爾計程車App與防詐騙手冊.md`、`public/data/posts.json`、
   `doc/project.md`。
 * **驗證**：`npm run build:metadata` 通過（6 篇）；純內容新增，未動渲染邏輯。
-* **後續**：標題含新字（如「騙」「程」「計」是否在 571 字集內未逐字檢查），字集外的字會
-  fallback 到系統 serif，不影響功能；需要時依第一部分第 3 節重跑 subset。
+* **後續**：標題用字是否在字集內未逐字檢查——已於同日下一筆記錄重跑 subset 補齊。
 
 ### 2026-09-26 — 韓國支付教學文章新增 T-money 交通卡完整攻略區塊
 
@@ -809,26 +823,9 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 * **驗證**：`npm run build:metadata` 通過（純內容新增，未動渲染邏輯/DSL，不影響
   `verify-post-render.mjs` 涵蓋範圍）。
 
-### 2026-09-25 — 重跑中文襯線字型 subset，修復新文章標題字型混搭
-
-* **問題**：使用者回報文章詳情頁標題（如「首爾景點素材」）出現字型混搭外觀——同一標題內
-  部分字元明顯與其他字元字重/字型不同。
-* **根因**：`.post-heading h1` 走 `font-serif`，其自架 `Noto Serif TC` 是 2026-07-26 當下
-  站內標題實際用字的 469 字 subset（見第一部分第 3 節）；`src/posts/2026-09-12-首爾景點
-  素材.md` 標題「首爾景點**素材**」的「素」（U+7D20）「材」（U+6750）不在該字集內，這兩字
-  即時 fallback 到字型堆疊下一位（系統 serif），與同標題其餘吃到自架字型的字元視覺不一致。
-* **做法**：依第一部分第 3 節既定流程重跑——用 `createMarked()` 重新渲染 `src/posts/` 全部
-  5 篇文章＋4 個靜態頁 hero 標題，掃出目前全部 `font-serif` 場景（`h1`-`h3`／`subtitle`／
-  front matter `title`／`h4.food-name`／`h4.spot-title`／`blockquote`）實際用字，取聯集後
-  得 571 字（469 字集之後新增的 3 篇文章用字），呼叫 Google Fonts CSS2 API 重新 subset，
-  覆蓋 `assets/fonts/noto-serif-tc-var.woff2`（208KB→251KB）與 `assets/tailwind.css` 兩組
-  `@font-face` 的 `unicode-range`。
-* **驗證**：`npm run build` 通過（`swPrecachePlugin` 自動因字型檔雜湊改變而更新
-  `CACHE_NAME`，無需手動 bump）；`node scripts/verify-post-render.mjs` 5 篇 0 diff（只換字型
-  檔與 CSS，未動渲染邏輯或文章內容）。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- **2026-09-25（字型 subset 重跑）**：標題「首爾景點素材」的「素」「材」不在 469 字集內造成字型混搭，依第一部分第 3 節流程重跑，字集擴增至 571 字（2026-10-12 再擴至 650 字）。
 - **2026-09-25（快取防刷與 dev 路由）**：`CACHE_NAME` 雜湊納入 `src/posts/` 與 `posts.json`，
   三個列表/內頁 fetch 加 `no-cache`；`generatePostPagesPlugin` 補 dev server 的
   `/posts/<id>.html` 轉發。
