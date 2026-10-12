@@ -777,6 +777,20 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
 
 最新三筆完整記錄如下；更早的記錄壓縮為一行摘要，列於其後。
 
+### 2026-10-12 — 新增文章「首爾計程車 App 與防詐騙手冊」
+
+* **範圍**：由使用者提供的 `seoul-taxi-guide.md` 轉成 `src/posts/2026-10-12-首爾計程車App與防詐騙手冊.md`
+  （tags：韓國／首爾／交通／防詐騙）。涵蓋 Kakao T／k.ride／Uber 比較與使用方式、首爾計程車
+  費率與車種、防詐騙清單、被多收的救濟管道與申訴範本、資料限制。
+* **轉換調整**：依 `doc/doc_style.md` 移除全文 H1（標題改由 front matter 提供）、手動目錄與所有
+  `---` 分隔線（全文無 `#`，不需要）；內文與資料來源一字未動，僅把「這是你說的」這句對話
+  殘留改為讀者向敘述。
+* **變更檔案**：`src/posts/2026-10-12-首爾計程車App與防詐騙手冊.md`、`public/data/posts.json`、
+  `doc/project.md`。
+* **驗證**：`npm run build:metadata` 通過（6 篇）；純內容新增，未動渲染邏輯。
+* **後續**：標題含新字（如「騙」「程」「計」是否在 571 字集內未逐字檢查），字集外的字會
+  fallback 到系統 serif，不影響功能；需要時依第一部分第 3 節重跑 subset。
+
 ### 2026-09-26 — 韓國支付教學文章新增 T-money 交通卡完整攻略區塊
 
 * **範圍**：`src/posts/2026-07-20-韓國自由行支付教學.md` 新增「1.7 T-money 交通卡完整攻略」
@@ -813,25 +827,11 @@ lint/format 工具五項已完成（見第一部分第 29／30 點與下方更�
   `CACHE_NAME`，無需手動 bump）；`node scripts/verify-post-render.mjs` 5 篇 0 diff（只換字型
   檔與 CSS，未動渲染邏輯或文章內容）。
 
-### 2026-09-25 — 修正快取防刷與 Service Worker CACHE_NAME 雜湊範圍，並修復 dev server 文章路由轉發
-
-* **範圍**：
-  1. **快取防刷與 CACHE_NAME 自動化擴充**：修復 GitHub Pages 部署後因瀏覽器快取或 Service Worker 舊版本導致文章未及時更新的問題。原先 `vite.config.js` 的 `swPrecachePlugin` 僅雜湊 CSS/JS 與 `public/img/`，當僅修改 `src/posts/*.md` 或 `posts.json` 時 `CACHE_NAME` 不變；現將 `src/posts/` 與 `public/data/posts.json` 一併納入雜湊計算，並在 `index.html`、`posts/index.html`、`posts/detail.html` 的 fetch 加入 `{ cache: 'no-cache' }` 避免被 GitHub Pages 預設 `max-age=600` 攔截。
-  2. **dev server 文章路由轉發**：修復 `npm run dev` 下點擊文章靜態連結被導回首頁的問題，於 `vite.config.js` 的 `generatePostPagesPlugin` 補上 `configureServer` 中間件將 `/posts/<id>.html` 轉發至 `posts/detail.html`，並支援由檔名自動補齊文章標題與日期。
-* **變更檔案**：`vite.config.js`、`index.html`、`posts/index.html`、`posts/detail.html`、`doc/project.md`。
-* **驗證**：`npm run build` 通過，`dist/sw.js` 正確產出新版 `CACHE_NAME (clean-blog-699fafa3)`；`npm run lint` 全綠；`node scripts/verify-post-render.mjs` 5 篇 0 diff。
-
-### 2026-09-09 — 整合 5天4夜新首爾行程手帳，封存 07-16 舊計畫
-
-* **範圍**：依據 `doc_template/travel-itinerary-editorial-card.md`（07-16 抽取架構），整合最新航班（真航空 LJ734 去、大韓航空 KE2027 回）與新首爾飯店 5天4夜行程（含鷺梁津水產市場、現代百貨/星空圖書館、汝矣島漢江夜遊、南怡島/小法國村/江村鐵道自行車近郊包車、首爾塔/弘大備選等），舊計畫未包含之行程與分區美食皆依指示留標題並註記「內容待補」。
-* **變更檔案**：
-  - `src/posts/2026-09-09-首爾秋日漫遊手帳.md`：建立 5天4夜新旅遊計畫文章。
-  - `archive/2026-07-16-首爾秋日漫遊手帳.md`：建立 `archive/` 目錄並將舊 4天3夜文章歸檔封存。
-  - `public/data/posts.json`：更新文章索引，將 09-09 新文章置頂並移除已封存之 07-16 文章。
-* **驗證**：索引檔 `posts.json` 格式正確，現役文章數維持 3 篇；`archive/` 目錄與新文章皆完成版控追蹤。
-
 ### 更早的更新（壓縮摘要，新到舊）
 
+- **2026-09-25（快取防刷與 dev 路由）**：`CACHE_NAME` 雜湊納入 `src/posts/` 與 `posts.json`，
+  三個列表/內頁 fetch 加 `no-cache`；`generatePostPagesPlugin` 補 dev server 的
+  `/posts/<id>.html` 轉發。
 - **2026-09-09（5天4夜新首爾行程手帳）**：整合最新航班與新首爾飯店 5天4夜行程，舊 4天3夜
   計畫封存至 `archive/`。
 - **2026-07-26（`doc_template/` 模板）**：把 07-16 文章架構抽成 `doc_template/travel-itinerary-editorial-card.md`「先寫架構、後填內容」模板，只適合多天行程＋景點分段＋分區美食類遊記。
